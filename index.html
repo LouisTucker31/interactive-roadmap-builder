@@ -73,64 +73,21 @@
 <div class="body">
 <div class="rows"></div>
 <div class="mlines" data-mlines></div>
-<div class="pline" style="top: 192px"></div>
 <div class="dock"><button class="today" type="button" data-today>← Today</button></div>
 
-<!-- The current plan, pinned to its start date on the timeline (see js/app.js) -->
-<div class="plan" data-plan>
-
+<!-- Plan rows and dependency arrows are drawn from js/data.js by js/app.js -->
 <svg class="deps" aria-hidden="true">
 <defs><marker id="ah" viewBox="0 0 8 8" refX="4" refY="7" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L4 7L7 1" fill="none" stroke="#9aa3ad" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></marker></defs>
-<g fill="none" stroke="#b3bbc4" stroke-width="1.1" stroke-linecap="square">
-<line x1="16.25%" y1="85" x2="16.5833%" y2="85"></line>
-<line x1="16.5833%" y1="85" x2="16.5833%" y2="107" marker-end="url(#ah)"></line>
-<line x1="27.9167%" y1="119" x2="28.25%" y2="119"></line>
-<line x1="28.25%" y1="119" x2="28.25%" y2="142" marker-end="url(#ah)"></line>
-<line x1="28.8333%" y1="152" x2="57.75%" y2="152"></line>
-<line x1="57.75%" y1="152" x2="57.75%" y2="376" marker-end="url(#ah)"></line>
-<line x1="28.8333%" y1="152" x2="35%" y2="152"></line>
-<line x1="35%" y1="152" x2="35%" y2="510"></line>
-<line x1="29.1667%" y1="152" x2="29.1667%" y2="242" marker-end="url(#ah)"></line>
-<line x1="38.5%" y1="253" x2="38.9167%" y2="253"></line>
-<line x1="38.9167%" y1="253" x2="38.9167%" y2="275" marker-end="url(#ah)"></line>
-<line x1="48.5%" y1="286" x2="48.8333%" y2="286"></line>
-<line x1="48.8333%" y1="286" x2="48.8333%" y2="309" marker-end="url(#ah)"></line>
-<line x1="57.25%" y1="320" x2="88.25%" y2="320"></line>
-<line x1="88.25%" y1="320" x2="88.25%" y2="100%"></line>
-<line x1="68.3333%" y1="387" x2="68.5%" y2="387"></line>
-<line x1="68.5%" y1="387" x2="68.5%" y2="410" marker-end="url(#ah)"></line>
-<line x1="79.1667%" y1="421" x2="79.3333%" y2="421"></line>
-<line x1="79.3333%" y1="421" x2="79.3333%" y2="443" marker-end="url(#ah)"></line>
-<line x1="86.8333%" y1="454" x2="87.3333%" y2="454"></line>
-<line x1="87.3333%" y1="454" x2="87.3333%" y2="478" marker-end="url(#ah)"></line>
-</g>
+<g fill="none" stroke="#b3bbc4" stroke-width="1.1" stroke-linecap="square" data-deps></g>
 </svg>
-
-
-<div class="bar dk" style="left: 0%; top: 75px; width: 16.25%; background: linear-gradient(90deg,#367f9c 0 58%,#4a95b2 58%)"><span class="t">Wireframes</span><span class="av" style="background: #8b5cf0">PS</span></div>
-<div class="bar dk" style="left: 16.1667%; top: 109px; width: 11.75%"><span class="t">UI mockups</span><span class="av" style="background: #8fb83a">JN</span></div>
-<div class="dia" style="left: calc(28.25% - 6px); top: 146px"></div>
-
-<div class="phase" style="top: 175px"><i></i>PHASE 3 — BUILD</div>
-
-<div class="bar dk" style="left: 0%; top: 209px; width: 57.4167%"><span class="t">Notifications service</span><span class="av" style="background: #dc4c4c">SK</span></div>
-<div class="bar lt" style="left: 28.75%; top: 244px; width: 9.75%"><span class="t">Email templates</span><span class="av" style="background: #e57f3a">MC</span></div>
-<div class="bar lt" style="left: 38.5833%; top: 277px; width: 9.9167%"><span class="t">Push pipeline</span><span class="av" style="background: #de4f87">AR</span></div>
-<div class="bar lt" style="left: 48.4167%; top: 311px; width: 8.8333%"><span class="t">Digest scheduler</span><span class="av" style="background: #8b5cf0">PS</span></div>
-<div class="bar dk" style="left: 19.75%; top: 343px; width: 68.1667%"><span class="t">Frontend implementation</span><span class="av" style="background: #8fb83a">JN</span></div>
-<div class="bar lt" style="left: 57.3333%; top: 378px; width: 11%"><span class="t">Mobile pass</span><span class="av" style="background: #dc4c4c">SK</span></div>
-<div class="bar lt" style="left: 68.0833%; top: 412px; width: 11.0833%"><span class="t">Auth screens</span><span class="av" style="background: #e57f3a">MC</span></div>
-<div class="bar lt" style="left: 78.9167%; top: 445px; width: 7.9167%"><span class="t">Dashboard layout</span><span class="av" style="background: #de4f87">AR</span></div>
-<div class="dia" style="left: calc(87.4167% - 6px); top: 482px"></div>
-<div class="bar dk" style="left: 35.9167%; top: 512px; width: 25.9167%"><span class="t">Admin dashboard</span><span class="av" style="background: #8b5cf0">PS</span></div>
-</div>
+<div class="plan" data-plan></div>
 </div>
 </div>
 </div>
 </main>
 
 <footer class="foot">
-<div class="l"><span><b>37</b> tasks</span><span class="dot">·</span><span><b>35</b> deps</span><span class="dot">·</span><span>All days</span><span class="dot">·</span><span>Auto-schedule</span></div>
+<div class="l"><span data-stat="tasks"></span><span class="dot">·</span><span data-stat="milestones"></span><span class="dot">·</span><span data-stat="deps"></span><span class="dot">·</span><span>All days</span><span class="dot">·</span><span>Auto-schedule</span></div>
 <div class="r">
 <button class="ib" type="button" aria-label="Full screen" aria-pressed="false" data-fullscreen><svg class="i-enter" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg><svg class="i-exit" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"></path></svg></button>
 <button class="ib" type="button" aria-label="Zoom out" data-zoom-out>−</button>
@@ -147,6 +104,7 @@
 
 </div>
 
+<script src="js/data.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

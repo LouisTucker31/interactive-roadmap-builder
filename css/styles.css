@@ -53,7 +53,7 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .rows{position:absolute;inset:0;background-image:repeating-linear-gradient(180deg,transparent 0 33px,#f1f3f6 33px 33.6px)}
 .mlines{position:absolute;inset:0}
 .mline{position:absolute;top:0;bottom:0;width:1px;background:#e1e5ea}
-.plan{position:absolute;top:0;bottom:0}
+.plan{position:absolute;inset:0}
 /* Current week: highlighted header label and a line at the start of the week */
 .week.now span{background:#4790ad;color:#ffffff;font-weight:600;border-radius:9px;padding:2px 7px}
 .nowline{position:absolute;top:0;bottom:0;width:2px;background:#4790ad}
@@ -68,7 +68,7 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 /* Sticky dock keeps the Today button on screen while the timeline scrolls */
 .dock{position:sticky;left:0;width:0;height:0;z-index:4}
 .today{position:absolute;left:calc(var(--week)*37/75);top:31px;white-space:nowrap;height:24px;padding:0 11px;border-radius:12px;border:0;background:#4790ad;color:#ffffff;font:500 10.5px Inter,sans-serif;display:flex;align-items:center;gap:4px;cursor:pointer;box-shadow:0 1px 2px rgba(20,40,60,.18)}
-.phase{position:absolute;left:0;display:flex;align-items:center;gap:6px;font:700 10px Inter,sans-serif;letter-spacing:.04em;color:#22262b}
+.phase{position:absolute;left:0;display:flex;text-transform:uppercase;align-items:center;gap:6px;font:700 10px Inter,sans-serif;letter-spacing:.04em;color:#22262b}
 .phase i{width:12px;height:12px;border-radius:50%;border:1.5px solid #c7c1ec;background:#ffffff;display:block;margin-left:-6px}
 .pline{position:absolute;left:0;right:0;height:4px;background:#cdc6f2;border-radius:2px}
 .foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 20px 12px;font-size:10.5px;color:#4a5159}

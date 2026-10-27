@@ -74,8 +74,6 @@
     var end = rangeStart + weekCount * WEEK;
     chart.style.setProperty('--week', weekPx + 'px');
     chart.style.width = weekCount * weekPx + 'px';
-    plan.style.left = xOf(PLAN_START) + 'px';
-    plan.style.width = PLAN_WEEKS * weekPx + 'px';
 
     // The current week (which starts at PLAN_START) gets a highlighted label.
     var weeks = '';
@@ -103,6 +101,99 @@
     }
     monthsEl.innerHTML = months;
     mlinesEl.innerHTML = lines;
+    renderPlan();
+  }
+
+  // Plan rows (tasks, milestones, phase headers), dependency arrows and footer stats,
+  // all drawn from js/data.js. Rows sit on a 33.6px grid starting at ROW_Y (row centre).
+  var data = window.ROADMAP;
+  var ROW_Y = 85;
+  var ROW_PX = 33.6;
+  var depsEl = chart.querySelector('[data-deps]');
+  var rowIndex = {};
+  data.rows.forEach(function (row, i) { if (row.id) rowIndex[row.id] = i; });
+
+  function dayX(day) {
+    return xOf(PLAN_START + day * DAY);
+  }
+
+  function dayLabel(day) {
+    var d = new Date(PLAN_START + day * DAY);
+    return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()];
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  // Where a row's shape sits: horizontal extent, vertical centre and top edge.
+  function box(row, i) {
+    var cy = ROW_Y + i * ROW_PX;
+    if (row.type === 'milestone') {
+      var x = dayX(row.day);
+      return { x1: x - 6, x2: x + 6, cx: x, cy: cy, top: cy - 6 };
+    }
+    var h = row.parent ? 18 : 20;
+    return { x1: dayX(row.start), x2: dayX(row.end), cy: cy, top: cy - h / 2 };
+  }
+
+  function renderPlan() {
+    var html = '';
+    data.rows.forEach(function (row, i) {
+      var b = box(row, i);
+      if (row.type === 'phase') {
+        html += '<div class="pline" style="top: ' + (b.cy + 6) + 'px"></div>' +
+          '<div class="phase" style="left: ' + dayX(row.start) + 'px; top: ' + (b.cy - 11) + 'px"><i></i>' + esc(row.name) + '</div>';
+      } else if (row.type === 'milestone') {
+        html += '<div class="dia" style="left: ' + b.x1 + 'px; top: ' + b.top + 'px" title="' +
+          esc(row.name + ' · ' + dayLabel(row.day)) + '"></div>';
+      } else {
+        var owner = data.people[row.owner];
+        var fill = row.progress && !row.parent
+          ? '; background: linear-gradient(90deg,#367f9c 0 ' + row.progress * 100 + '%,#4a95b2 ' + row.progress * 100 + '%)'
+          : '';
+        html += '<div class="bar ' + (row.parent ? 'lt' : 'dk') + '" style="left: ' + b.x1 + 'px; top: ' + b.top +
+          'px; width: ' + (b.x2 - b.x1) + 'px' + fill + '" title="' +
+          esc(row.name + ' · ' + dayLabel(row.start) + ' – ' + dayLabel(row.end - 1)) + '">' +
+          '<span class="t">' + esc(row.name) + '</span>' +
+          (owner ? '<span class="av" style="background: ' + owner.color + '">' + esc(row.owner) + '</span>' : '') +
+          '</div>';
+      }
+    });
+    plan.innerHTML = html;
+
+    // Each arrow leaves the end of `from` and drops onto the start of `to`.
+    depsEl.innerHTML = data.deps.map(function (dep) {
+      var fi = rowIndex[dep[0]];
+      var ti = rowIndex[dep[1]];
+      var from = box(data.rows[fi], fi);
+      var to = box(data.rows[ti], ti);
+      var fx = data.rows[fi].type === 'milestone' ? from.cx + 7 : from.x2;
+      var tx = data.rows[ti].type === 'milestone' ? to.cx : to.x1 + 5;
+      var ty = data.rows[ti].type === 'milestone' ? to.cy - 10 : to.top - 2;
+      var d = tx >= fx
+        ? 'M' + fx + ' ' + from.cy + 'H' + tx + 'V' + ty
+        : 'M' + fx + ' ' + from.cy + 'H' + (fx + 4) + 'V' + (ty - 8) + 'H' + tx + 'V' + ty;
+      return '<path d="' + d + '" marker-end="url(#ah)"></path>';
+    }).join('');
+
+    renderStats();
+  }
+
+  // Footer counts come straight from the data, so they stay right as the plan changes.
+  function renderStats() {
+    var counts = {
+      tasks: data.rows.filter(function (r) { return r.type === 'task'; }).length,
+      milestones: data.rows.filter(function (r) { return r.type === 'milestone'; }).length,
+      deps: data.deps.length
+    };
+    var words = { tasks: ['task', 'tasks'], milestones: ['milestone', 'milestones'], deps: ['dep', 'deps'] };
+    Object.keys(counts).forEach(function (key) {
+      var n = counts[key];
+      document.querySelector('[data-stat="' + key + '"]').innerHTML = '<b>' + n + '</b> ' + words[key][n === 1 ? 0 : 1];
+    });
   }
 
   // Grow the timeline by chunks until the view is at least one screen from either end.
@@ -263,6 +354,15 @@
   } else {
     fullscreenBtn.hidden = true;
   }
+
+  // After changing window.ROADMAP, call roadmap.refresh() to redraw the plan and stats.
+  window.roadmap = {
+    refresh: function () {
+      rowIndex = {};
+      data.rows.forEach(function (row, i) { if (row.id) rowIndex[row.id] = i; });
+      renderPlan();
+    }
+  };
 
   render();
   scroller.scrollLeft = xOf(PLAN_START);
