@@ -170,11 +170,11 @@
   }
 
   // Plan rows (tasks, milestones, phase headers), dependency arrows and footer stats,
-  // all drawn from js/data.js. Rows sit on a 33.6px grid starting at ROW_Y (row centre).
+  // all drawn from js/data.js. Rows sit on a 34px grid (whole pixels keep the lines crisp) starting at ROW_Y (row centre).
   var data = window.ROADMAP;
   loadPlan();
   var ROW_Y = 85;
-  var ROW_PX = 33.6;
+  var ROW_PX = 34;
   var depsEl = chart.querySelector('[data-deps]');
   var freshId = null; // a just-created row, flashed briefly
   var rowIndex = {};
