@@ -41,7 +41,7 @@
 <span class="av" style="background: #8b5cf0">PS</span>
 <span class="more">+2</span>
 </div>
-<button class="primary" type="button" disabled=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New task</button>
+<button class="primary" type="button" aria-haspopup="dialog" data-new-task><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New task</button>
 </div>
 </header>
 
@@ -109,6 +109,46 @@
 </footer>
 
 </div>
+
+<!-- New task form. Options (owners, phases, parents, dependencies) are filled in by js/app.js -->
+<dialog class="dlg" aria-labelledby="nt-title" data-new-dialog>
+<form method="dialog" novalidate data-new-form>
+<div class="dlg-hd">
+<h2 id="nt-title" data-nt-title>New task</h2>
+<button class="x" type="button" aria-label="Close" data-nt-close><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+<div class="dlg-body">
+<div class="kind" role="radiogroup" aria-label="Type">
+<label><input type="radio" name="type" value="task" checked><span>Task</span></label><label><input type="radio" name="type" value="milestone"><span>Milestone</span></label><label><input type="radio" name="type" value="phase"><span>Phase</span></label>
+</div>
+
+<label class="fld"><span class="fl">Name</span><input type="text" name="name" maxlength="80" autocomplete="off" placeholder="e.g. Billing page" required></label>
+
+<div class="when">
+<div class="fld"><span class="fl" data-start-label>Start</span><div class="dt"><input type="date" name="startDate" aria-label="Start date" required><input type="time" name="startTime" aria-label="Start time" value="09:00" data-time></div></div>
+<div class="fld" data-for="task"><span class="fl">Finish</span><div class="dt"><input type="date" name="endDate" aria-label="Finish date" required><input type="time" name="endTime" aria-label="Finish time" value="17:00" data-time></div></div>
+</div>
+<label class="chk" data-for="task milestone"><input type="checkbox" name="allDay" checked> All day</label>
+
+<div class="fld" data-for="task"><span class="fl">Owner</span><div class="owners" role="radiogroup" aria-label="Owner" data-owners></div></div>
+
+<div class="two">
+<label class="fld" data-for="task milestone"><span class="fl">Phase</span><select name="phase" data-phases></select></label>
+<label class="fld" data-for="task"><span class="fl">Subtask of</span><select name="parent" data-parents></select></label>
+</div>
+
+<div class="fld" data-for="task"><span class="fl">Progress <output data-progress-out>0%</output></span><input type="range" name="progress" min="0" max="100" step="5" value="0" aria-label="Progress"></div>
+
+<div class="fld" data-for="task milestone"><span class="fl">Depends on <em>can't start until these finish</em></span><div class="deps-list" data-dep-options></div></div>
+
+<p class="err" role="alert" data-nt-error hidden></p>
+</div>
+<div class="dlg-ft">
+<button class="btn" type="button" data-nt-close>Cancel</button>
+<button class="primary" type="submit" data-nt-submit>Create task</button>
+</div>
+</form>
+</dialog>
 
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>

@@ -172,9 +172,11 @@
   // Plan rows (tasks, milestones, phase headers), dependency arrows and footer stats,
   // all drawn from js/data.js. Rows sit on a 33.6px grid starting at ROW_Y (row centre).
   var data = window.ROADMAP;
+  loadPlan();
   var ROW_Y = 85;
   var ROW_PX = 33.6;
   var depsEl = chart.querySelector('[data-deps]');
+  var freshId = null; // a just-created row, flashed briefly
   var rowIndex = {};
   data.rows.forEach(function (row, i) { if (row.id) rowIndex[row.id] = i; });
 
@@ -183,8 +185,23 @@
   }
 
   function dayLabel(day) {
-    var d = new Date(PLAN_START + day * DAY);
+    var d = new Date(PLAN_START + Math.floor(day) * DAY);
     return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()];
+  }
+
+  // Days can be fractional when a time of day was given; show the time then too.
+  function when(day) {
+    var mins = Math.round((day - Math.floor(day)) * 1440);
+    return dayLabel(day) + (mins ? ' ' + pad(Math.floor(mins / 60)) + ':' + pad(mins % 60) : '');
+  }
+
+  function pad(n) {
+    return (n < 10 ? '0' : '') + n;
+  }
+
+  // A whole-day `end` is exclusive, so the last day shown is the one before it.
+  function rangeLabel(row) {
+    return when(row.start) + ' – ' + (row.end % 1 ? when(row.end) : dayLabel(row.end - 1));
   }
 
   function esc(s) {
@@ -212,16 +229,16 @@
         html += '<div class="pline" style="top: ' + (b.cy + 6) + 'px"></div>' +
           '<div class="phase" style="left: ' + dayX(row.start) + 'px; top: ' + (b.cy - 11) + 'px"><i></i>' + esc(row.name) + '</div>';
       } else if (row.type === 'milestone') {
-        html += '<div class="dia" style="left: ' + b.x1 + 'px; top: ' + b.top + 'px" title="' +
-          esc(row.name + ' · ' + dayLabel(row.day)) + '"></div>';
+        html += '<div class="dia' + (row.id === freshId ? ' fresh' : '') + '" data-id="' + esc(row.id) + '" style="left: ' + b.x1 + 'px; top: ' + b.top + 'px" title="' +
+          esc(row.name + ' · ' + when(row.day)) + '"></div>';
       } else {
         var owner = data.people[row.owner];
         var fill = row.progress && !row.parent
           ? '; background: linear-gradient(90deg,#367f9c 0 ' + row.progress * 100 + '%,#4a95b2 ' + row.progress * 100 + '%)'
           : '';
-        html += '<div class="bar ' + (row.parent ? 'lt' : 'dk') + (b.x2 - b.x1 < 30 ? ' tiny' : '') + '" style="left: ' + b.x1 + 'px; top: ' + b.top +
-          'px; width: ' + (b.x2 - b.x1) + 'px' + fill + '" title="' +
-          esc(row.name + ' · ' + dayLabel(row.start) + ' – ' + dayLabel(row.end - 1)) + '">' +
+        html += '<div class="bar ' + (row.parent ? 'lt' : 'dk') + (b.x2 - b.x1 < 30 ? ' tiny' : '') + (row.id === freshId ? ' fresh' : '') + '" data-id="' + esc(row.id) +
+          '" style="left: ' + b.x1 + 'px; top: ' + b.top + 'px; width: ' + (b.x2 - b.x1) + 'px' + fill + '" title="' +
+          esc(row.name + ' · ' + rangeLabel(row)) + '">' +
           '<span class="t">' + esc(row.name) + '</span>' +
           (owner ? '<span class="av" style="background: ' + owner.color + '">' + esc(row.owner) + '</span>' : '') +
           '</div>';
@@ -407,12 +424,12 @@
         return '<div class="trow ph"><i class="ic"></i><span class="tn">' + esc(row.name) + '</span></div>';
       }
       if (row.type === 'milestone') {
-        return '<div class="trow ms" title="' + esc(row.name + ' · ' + dayLabel(row.day)) + '"><i class="ic"></i>' +
+        return '<div class="trow ms" title="' + esc(row.name + ' · ' + when(row.day)) + '"><i class="ic"></i>' +
           '<span class="tn">' + esc(row.name) + '</span><span class="meta">' + dayLabel(row.day) + '</span></div>';
       }
       var owner = data.people[row.owner];
       return '<div class="trow ' + (row.parent ? 'sub' : 'top') + '" title="' +
-        esc(row.name + ' · ' + dayLabel(row.start) + ' – ' + dayLabel(row.end - 1)) + '"><i class="ic"></i>' +
+        esc(row.name + ' · ' + rangeLabel(row)) + '"><i class="ic"></i>' +
         '<span class="tn">' + esc(row.name) + '</span>' +
         (row.progress ? '<span class="meta">' + Math.round(row.progress * 100) + '%</span>' : '') +
         (owner ? '<span class="av" style="background: ' + owner.color + '">' + esc(row.owner) + '</span>' : '') +
@@ -586,13 +603,248 @@
     fullscreenBtn.hidden = true;
   }
 
+  // Rows you create are saved in this browser (localStorage) along with the order of the
+  // whole plan. js/data.js rows are saved as references, so they keep floating with the
+  // current week, while created rows stay on the dates you picked. If js/data.js changes,
+  // the saved plan no longer matches it and is dropped.
+  function loadPlan() {
+    var base = data.rows.slice();
+    var sig = JSON.stringify([base, data.deps]);
+    data.base = base;
+    data.sig = sig;
+    var saved;
+    try { saved = JSON.parse(localStorage.getItem('roadmapPlan')); } catch (e) {}
+    if (!saved || saved.sig !== sig) return;
+    var shift = (saved.planStart - PLAN_START) / DAY;
+    data.rows = saved.rows.map(function (r) {
+      if (r.base != null) return base[r.base];
+      ['start', 'end', 'day'].forEach(function (k) { if (r[k] != null) r[k] += shift; });
+      return r;
+    }).filter(Boolean);
+    data.deps = saved.deps;
+  }
+
+  function savePlan() {
+    var plan = {
+      sig: data.sig,
+      planStart: PLAN_START,
+      rows: data.rows.map(function (r) {
+        var i = data.base.indexOf(r);
+        return i >= 0 ? { base: i } : r;
+      }),
+      deps: data.deps
+    };
+    try { localStorage.setItem('roadmapPlan', JSON.stringify(plan)); } catch (e) {}
+  }
+
+  function refresh() {
+    rowIndex = {};
+    data.rows.forEach(function (row, i) { if (row.id) rowIndex[row.id] = i; });
+    renderPlan();
+    renderTaskList();
+    syncPanelScroll();
+  }
+
+  // New task form: creates a task, milestone or phase row. Everything js/data.js can
+  // describe can be entered here: name, dates (optionally with times), owner, phase,
+  // parent task, progress and dependencies. The new row goes at the end of its phase,
+  // or straight after its parent's other subtasks.
+  var dialog = document.querySelector('[data-new-dialog]');
+  var form = dialog.querySelector('[data-new-form]');
+  var newBtn = document.querySelector('[data-new-task]');
+  var errEl = form.querySelector('[data-nt-error]');
+  var TYPE_WORDS = { task: 'task', milestone: 'milestone', phase: 'phase' };
+
+  function isoDate(t) {
+    return new Date(t).toISOString().slice(0, 10);
+  }
+
+  // Day offset from PLAN_START for a yyyy-mm-dd date and optional hh:mm time.
+  function dayOf(date, time) {
+    var p = date.split('-');
+    var day = (Date.UTC(+p[0], p[1] - 1, +p[2]) - PLAN_START) / DAY;
+    if (time) {
+      var hm = time.split(':');
+      day += (hm[0] * 60 + +hm[1]) / 1440;
+    }
+    return day;
+  }
+
+  function formType() {
+    return form.elements.type.value;
+  }
+
+  // Show only the fields that apply to the chosen type.
+  function syncForm() {
+    var type = formType();
+    var allDay = form.elements.allDay.checked || type === 'phase';
+    Array.prototype.forEach.call(form.querySelectorAll('[data-for]'), function (el) {
+      el.hidden = el.getAttribute('data-for').split(' ').indexOf(type) < 0;
+    });
+    Array.prototype.forEach.call(form.querySelectorAll('[data-time]'), function (el) { el.hidden = allDay; });
+    form.querySelector('[data-start-label]').textContent = type === 'task' ? 'Start' : type === 'milestone' ? 'Date' : 'Starts';
+    form.querySelector('[data-nt-title]').textContent = 'New ' + TYPE_WORDS[type];
+    form.querySelector('[data-nt-submit]').textContent = 'Create ' + TYPE_WORDS[type];
+    // A subtask sits under its parent, so its phase comes from there.
+    form.elements.phase.disabled = type === 'task' && !!form.elements.parent.value;
+    form.querySelector('[data-progress-out]').textContent = form.elements.progress.value + '%';
+  }
+
+  // Phases split the rows into sections: rows before the first phase have none.
+  function sectionEnd(phaseIndex) {
+    for (var i = phaseIndex + 1; i < data.rows.length; i++) if (data.rows[i].type === 'phase') return i;
+    return data.rows.length;
+  }
+
+  function fillOptions() {
+    var phases = [];
+    data.rows.forEach(function (r, i) { if (r.type === 'phase') phases.push({ i: i, name: r.name }); });
+    form.elements.phase.innerHTML = '<option value="-1">No phase</option>' + phases.map(function (p) {
+      return '<option value="' + p.i + '">' + esc(p.name) + '</option>';
+    }).join('');
+    form.elements.phase.value = phases.length ? String(phases[phases.length - 1].i) : '-1';
+
+    form.elements.parent.innerHTML = '<option value="">None (top level)</option>' + data.rows.filter(function (r) {
+      return r.type === 'task' && !r.parent;
+    }).map(function (r) {
+      return '<option value="' + esc(r.id) + '">' + esc(r.name) + '</option>';
+    }).join('');
+
+    form.querySelector('[data-owners]').innerHTML =
+      '<label class="own none"><input type="radio" name="owner" value="" checked><span title="No owner">—</span></label>' +
+      Object.keys(data.people).map(function (key) {
+        return '<label class="own"><input type="radio" name="owner" value="' + esc(key) + '"><span class="av" style="background: ' +
+          data.people[key].color + '" title="' + esc(key) + '">' + esc(key) + '</span></label>';
+      }).join('');
+
+    form.querySelector('[data-dep-options]').innerHTML = data.rows.filter(function (r) {
+      return r.type === 'task' || r.type === 'milestone';
+    }).map(function (r) {
+      return '<label class="dep' + (r.parent ? ' sub' : '') + '"><input type="checkbox" name="deps" value="' + esc(r.id) + '">' +
+        '<i class="' + (r.type === 'milestone' ? 'ms' : 'tk') + '"></i><span>' + esc(r.name) + '</span>' +
+        '<em>' + (r.type === 'milestone' ? when(r.day) : rangeLabel(r)) + '</em></label>';
+    }).join('');
+  }
+
+  function openForm() {
+    form.reset();
+    fillOptions();
+    // Start on the date at the left of the view if today is off screen, otherwise today.
+    var leftDay = startOf(timeAt(scroller.scrollLeft), 'day');
+    var rightDay = timeAt(scroller.scrollLeft + scroller.clientWidth);
+    var start = TODAY >= leftDay && TODAY < rightDay ? TODAY : leftDay;
+    form.elements.startDate.value = isoDate(start);
+    form.elements.endDate.value = isoDate(start + 4 * DAY);
+    errEl.hidden = true;
+    syncForm();
+    dialog.showModal();
+    form.elements.name.focus();
+  }
+
+  function fail(msg, field) {
+    errEl.textContent = msg;
+    errEl.hidden = false;
+    if (field) field.focus();
+  }
+
+  function uniqueId(name) {
+    var base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'item';
+    var id = base;
+    for (var n = 2; rowIndex[id] != null; n++) id = base + '-' + n;
+    return id;
+  }
+
+  function createRow() {
+    var f = form.elements;
+    var type = formType();
+    var name = f.name.value.trim();
+    if (!name) return fail('Give it a name.', f.name);
+    if (!f.startDate.value) return fail('Pick a date.', f.startDate);
+    var timed = type !== 'phase' && !f.allDay.checked;
+    var row = { type: type, name: name };
+
+    if (type === 'phase') {
+      row.start = dayOf(f.startDate.value);
+    } else if (type === 'milestone') {
+      row.day = dayOf(f.startDate.value, timed && f.startTime.value);
+    } else {
+      if (!f.endDate.value) return fail('Pick a finish date.', f.endDate);
+      row.start = dayOf(f.startDate.value, timed && f.startTime.value);
+      // All-day tasks finish at the end of the finish date.
+      row.end = timed ? dayOf(f.endDate.value, f.endTime.value) : dayOf(f.endDate.value) + 1;
+      if (row.end <= row.start) return fail('The finish needs to be after the start.', f.endDate);
+      if (f.parent.value) row.parent = f.parent.value;
+      if (f.owner.value) row.owner = f.owner.value;
+      if (+f.progress.value) row.progress = f.progress.value / 100;
+    }
+    if (type !== 'phase') row.id = uniqueId(name);
+    row.added = true;
+
+    // Where it goes: after the parent's last subtask, at the end of the chosen phase, or
+    // (for a phase) at the bottom as a new section.
+    var at = data.rows.length;
+    if (row.parent) {
+      at = rowIndex[row.parent] + 1;
+      while (at < data.rows.length && data.rows[at].parent === row.parent) at++;
+    } else if (type !== 'phase') {
+      at = sectionEnd(+f.phase.value);
+    }
+    data.rows.splice(at, 0, row);
+
+    Array.prototype.forEach.call(form.querySelectorAll('[name="deps"]:checked'), function (box) {
+      data.deps.push([box.value, row.id]);
+    });
+
+    refresh();
+    savePlan();
+    dialog.close();
+    reveal(row, at);
+  }
+
+  // Bring the new row into view and flash it briefly.
+  function reveal(row, i) {
+    var b = box(row, i);
+    var x1 = row.type === 'phase' ? dayX(row.start) : b.x1;
+    var view = scroller.clientWidth;
+    var left = scroller.scrollLeft;
+    if (x1 < left || x1 > left + view - 60) left = x1 - Math.min(120, view / 4);
+    var top = scroller.scrollTop;
+    var y = b.cy + 41; // 41px header above the chart body
+    if (y < top + 80 || y > top + scroller.clientHeight - 40) top = y - scroller.clientHeight / 2;
+    stopGlide();
+    scroller.scrollTo({ left: left, top: Math.max(0, top), behavior: 'smooth' });
+    freshId = row.id;
+    renderPlan();
+    setTimeout(function () { if (freshId === row.id) freshId = null; }, 1600);
+  }
+
+  newBtn.addEventListener('click', openForm);
+  form.addEventListener('change', syncForm);
+  form.elements.progress.addEventListener('input', syncForm);
+  // Keep the finish on or after the start when the start moves past it.
+  form.elements.startDate.addEventListener('change', function () {
+    var f = form.elements;
+    if (f.startDate.value && f.endDate.value < f.startDate.value) f.endDate.value = f.startDate.value;
+  });
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    createRow();
+  });
+  Array.prototype.forEach.call(form.querySelectorAll('[data-nt-close]'), function (btn) {
+    btn.addEventListener('click', function () { dialog.close(); });
+  });
+  // Clicking the dimmed backdrop closes the form.
+  dialog.addEventListener('click', function (e) {
+    if (e.target === dialog) dialog.close();
+  });
+
   // After changing window.ROADMAP, call roadmap.refresh() to redraw the plan and stats.
+  // roadmap.reset() removes everything created with the New task form.
   window.roadmap = {
-    refresh: function () {
-      rowIndex = {};
-      data.rows.forEach(function (row, i) { if (row.id) rowIndex[row.id] = i; });
-      renderPlan();
-      renderTaskList();
+    refresh: refresh,
+    reset: function () {
+      try { localStorage.removeItem('roadmapPlan'); } catch (e) {}
+      location.reload();
     }
   };
 
