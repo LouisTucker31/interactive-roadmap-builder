@@ -723,7 +723,7 @@
       return '<label class="dep' + (r.parent ? ' sub' : '') + '"><input type="checkbox" name="deps" value="' + esc(r.id) + '">' +
         '<i class="' + (r.type === 'milestone' ? 'ms' : 'tk') + '"></i><span>' + esc(r.name) + '</span>' +
         '<em>' + (r.type === 'milestone' ? when(r.day) : rangeLabel(r)) + '</em></label>';
-    }).join('');
+    }).join('') || '<p class="deps-empty">Nothing to depend on yet. Tasks and milestones you add appear here.</p>';
   }
 
   function openForm() {
