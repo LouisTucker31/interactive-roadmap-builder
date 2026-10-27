@@ -91,6 +91,9 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .plan{position:absolute;inset:0}
 /* Month, quarter and year views: no weekend shading; very narrow bars drop their label */
 .chart[data-noshade] .body{background-image:none}
+/* Hour view: shade outside 8am–6pm, with a stronger line between days */
+.chart[data-hours] .body{background-image:linear-gradient(90deg,#f3f5f8 0 calc(var(--day)/3),transparent calc(var(--day)/3) calc(var(--day)*.75),#f3f5f8 calc(var(--day)*.75));background-size:var(--day) 100%}
+.mline.day{background:#c3cad2}
 .bar.tiny{padding:0}
 .bar.tiny>*{display:none}
 /* Current period (today's column): highlighted header label and a line at its start */
@@ -168,6 +171,10 @@ button:disabled{cursor:not-allowed}
 .dt input[type=date]{flex:1}
 .dt input[type=time]{width:92px}
 .chk{display:inline-flex;align-items:center;gap:7px;font-weight:500;font-size:11.5px;cursor:pointer;margin-top:-4px}
+.lengths{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:-4px}
+.lengths .fl{margin-right:4px}
+.lengths button{height:24px;padding:0 8px;border:1px solid #dde1e6;border-radius:6px;background:#ffffff;color:#3a4048;font:500 10.5px "JetBrains Mono",monospace;cursor:pointer}
+.lengths button:hover{background:#f2f4f6;border-color:#c9ced4}
 .chk input,.dep input{accent-color:#418dab;margin:0}
 .owners{display:flex;flex-wrap:wrap;gap:8px;padding:3px}
 .own{position:relative;cursor:pointer}
@@ -252,6 +259,8 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .body{background-image:repeating-linear-gradient(90deg,transparent 0 calc(var(--week)*5/7),#181c20 calc(var(--week)*5/7) var(--week))}
 [data-theme="dark"] .rows{background-image:repeating-linear-gradient(180deg,transparent 0 33px,#1c2024 33px 34px)}
 [data-theme="dark"] .mline{background:#2b3036}
+[data-theme="dark"] .mline.day{background:#454c54}
+[data-theme="dark"] .chart[data-hours] .body{background-image:linear-gradient(90deg,#15181c 0 calc(var(--day)/3),transparent calc(var(--day)/3) calc(var(--day)*.75),#15181c calc(var(--day)*.75))}
 [data-theme="dark"] .deps g{stroke:#4d555e}
 [data-theme="dark"] .deps marker path{stroke:#6a737d}
 [data-theme="dark"] .bar.lt{background:#1f4352;color:#cfe8f3}
@@ -290,6 +299,8 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .own input:checked+span,[data-theme="dark"] .own input:focus-visible+span{box-shadow:0 0 0 2px #181b1f,0 0 0 4px #4790ad}
 [data-theme="dark"] .own.none span{background:#181b1f;color:#6b737c;border-color:#3a4047}
 [data-theme="dark"] .err{background:#3a1d1b;color:#f0a39d}
+[data-theme="dark"] .lengths button{background:#131619;border-color:#2b3036;color:#c9ced4}
+[data-theme="dark"] .lengths button:hover{background:#20242a;border-color:#3a4047}
 [data-theme="dark"] .trow[data-id]:hover{background:#1c2024}
 [data-theme="dark"] .bar:hover,[data-theme="dark"] .dia:hover{box-shadow:0 0 0 2px #181c20,0 0 0 3.5px #4790ad}
 [data-theme="dark"] .dlg-ft .del{color:#f0a39d}

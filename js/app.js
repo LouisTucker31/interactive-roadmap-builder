@@ -29,9 +29,17 @@
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+  var HOUR = DAY / 24;
+
   var TODAY = (function () {
     var now = new Date();
     return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  })();
+
+  // The current local time on the same UTC-based scale, for the hour view.
+  var NOW = (function () {
+    var now = new Date();
+    return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes());
   })();
 
   // Calendar maths on UTC timestamps. add() expects `t` to already be a unit start.
@@ -40,6 +48,7 @@
     var y = d.getUTCFullYear();
     var m = d.getUTCMonth();
     switch (unit) {
+      case 'hour': return Math.floor(t / HOUR) * HOUR;
       case 'day': return Date.UTC(y, m, d.getUTCDate());
       case 'week': return startOf(t, 'day') - (d.getUTCDay() + 6) % 7 * DAY; // Monday
       case 'month': return Date.UTC(y, m, 1);
@@ -54,6 +63,7 @@
     var y = d.getUTCFullYear();
     var m = d.getUTCMonth();
     switch (unit) {
+      case 'hour': return t + n * HOUR;
       case 'day': return t + n * DAY;
       case 'week': return t + n * 7 * DAY;
       case 'month': return Date.UTC(y, m + n, 1);
@@ -66,11 +76,13 @@
   // Monday of the current week: the plan starts here, so Today always lands on it.
   var PLAN_START = startOf(TODAY, 'week');
 
-  // Views (D/W/M/Q/Y). Each has a column unit, a group unit for the row above, the column
+  // Views (H/D/W/M/Q/Y). Each has a column unit, a group unit for the row above, the column
   // width at 100% zoom, how many days "Fit to screen" shows, the narrowest column fit will
   // allow, and how many columns to add each time an edge is reached. Weekend shading only
-  // shows in day and week views. Day view chunks are whole weeks so shading stays aligned.
+  // shows in day and week views; the hour view shades the hours outside 8am–6pm instead.
+  // Day view chunks are whole weeks, and hour view chunks whole days, so shading stays aligned.
   var SCALES = {
+    H: { unit: 'hour', days: 1 / 24, group: 'day', basePx: 64, fitDays: 0.5, minPx: 40, chunk: 48 },
     D: { unit: 'day', days: 1, group: 'month', basePx: 60, fitDays: 21, minPx: 28, chunk: 63, shade: true },
     W: { unit: 'week', days: 7, group: 'month', basePx: 100, fitDays: 112, minPx: 75, chunk: 26, shade: true },
     M: { unit: 'month', days: 30.44, group: 'year', basePx: 150, fitDays: 365, minPx: 60, chunk: 12 },
@@ -96,12 +108,17 @@
   var rangeEnd = add(home(), scale.unit, 2 * scale.chunk);
   var dayPx = dayPxFor(zoomMode);
 
-  // Where Today scrolls to: one column before the current one, so yesterday / last week /
-  // last month / last quarter shows first and the current period second. Year view starts
-  // on the current year.
+  // Where Today scrolls to: one column before the current one, so the last hour / yesterday /
+  // last week / last month / last quarter shows first and the current period second. Year
+  // view starts on the current year.
   function home() {
-    var now = startOf(TODAY, scale.unit);
+    var now = nowCol();
     return scale.unit === 'year' ? now : add(now, scale.unit, -1);
+  }
+
+  // The column containing now: the current hour in hour view, otherwise today's period.
+  function nowCol() {
+    return startOf(scale.unit === 'hour' ? NOW : TODAY, scale.unit);
   }
 
   function dayPxFor(mode) {
@@ -120,6 +137,7 @@
   function colLabel(t, width) {
     var d = new Date(t);
     switch (scale.unit) {
+      case 'hour': return pad(d.getUTCHours()) + ':00';
       case 'day': return (width >= 52 ? WEEKDAYS[d.getUTCDay()] + ' ' : '') + d.getUTCDate();
       case 'week': return MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate();
       case 'month': return MONTHS[d.getUTCMonth()];
@@ -130,6 +148,7 @@
 
   function groupLabel(t) {
     var d = new Date(t);
+    if (scale.group === 'day') return (WEEKDAYS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]).toUpperCase();
     if (scale.group === 'month') return MONTHS[d.getUTCMonth()].toUpperCase() + ' ' + d.getUTCFullYear();
     if (scale.group === 'decade') return d.getUTCFullYear() + 's';
     return String(d.getUTCFullYear());
@@ -140,9 +159,12 @@
     chart.style.setProperty('--dock-x', (scale.unit === 'week' ? 7 * dayPx * 37 / 75 : 24) + 'px');
     chart.style.width = xOf(rangeEnd) + 'px';
     chart.toggleAttribute('data-noshade', !scale.shade);
+    chart.toggleAttribute('data-hours', scale.unit === 'hour');
+    chart.style.setProperty('--day', 24 * HOUR / DAY * dayPx + 'px');
 
-    // Columns; the one containing today gets a highlighted label and a line at its start.
-    var now = startOf(TODAY, scale.unit);
+    // Columns; the one containing today gets a highlighted label and a line at its start
+    // (in hour view, the line sits at the current minute).
+    var now = nowCol();
     var cols = '';
     var lines = '';
     for (var t = rangeStart; t < rangeEnd; t = add(t, scale.unit, 1)) {
@@ -151,8 +173,11 @@
       cols += t === now
         ? '<div class="col now" style="width: ' + width + 'px" aria-current="date"><span>' + label + '</span></div>'
         : '<div class="col" style="width: ' + width + 'px">' + label + '</div>';
-      // Day/week views divide the chart at month boundaries; coarser views at every column.
-      if (t > rangeStart && !scale.shade) lines += '<div class="mline" style="left: ' + xOf(t) + 'px"></div>';
+      // Day/week views divide the chart at month boundaries; coarser views at every column,
+      // with a stronger line between days in hour view.
+      if (t > rangeStart && !scale.shade) {
+        lines += '<div class="mline' + (scale.unit === 'hour' && t % DAY === 0 ? ' day' : '') + '" style="left: ' + xOf(t) + 'px"></div>';
+      }
     }
     colsEl.innerHTML = cols;
 
@@ -165,7 +190,7 @@
     }
     groupsEl.innerHTML = groups;
     // The now-line goes last so it sits on top of any divider at the same spot.
-    mlinesEl.innerHTML = lines + '<div class="nowline" style="left: ' + xOf(now) + 'px"></div>';
+    mlinesEl.innerHTML = lines + '<div class="nowline" style="left: ' + xOf(scale.unit === 'hour' ? NOW : now) + 'px"></div>';
     renderPlan();
   }
 
@@ -203,7 +228,9 @@
   }
 
   // A whole-day `end` is exclusive, so the last day shown is the one before it.
+  // Within one day only the finish time is repeated: "28 Oct 09:30 – 11:30".
   function rangeLabel(row) {
+    if (row.end % 1 && Math.floor(row.end) === Math.floor(row.start)) return when(row.start) + ' – ' + timeOf(row.end);
     return when(row.start) + ' – ' + (row.end % 1 ? when(row.end) : dayLabel(row.end - 1));
   }
 
@@ -230,7 +257,7 @@
       var b = box(row, i);
       if (row.type === 'phase') {
         html += '<div class="pline" style="top: ' + (b.cy + 6) + 'px"></div>' +
-          '<div class="phase" data-id="' + esc(row.id) + '" title="' + esc(row.name + ' · from ' + dayLabel(row.start)) + '" style="left: ' + dayX(row.start) + 'px; top: ' + (b.cy - 11) + 'px"><i></i>' + esc(row.name) + '</div>';
+          '<div class="phase" data-id="' + esc(row.id) + '" title="' + esc(row.name + ' · from ' + when(row.start)) + '" style="left: ' + dayX(row.start) + 'px; top: ' + (b.cy - 11) + 'px"><i></i>' + esc(row.name) + '</div>';
       } else if (row.type === 'milestone') {
         html += '<div class="dia' + (row.id === freshId ? ' fresh' : '') + '" data-id="' + esc(row.id) + '" style="left: ' + b.x1 + 'px; top: ' + b.top + 'px" title="' +
           esc(row.name + ' · ' + when(row.day)) + '"></div>';
@@ -306,14 +333,15 @@
   }
 
   // At the home view the Today button goes quiet (outline, no arrow); away from it, it's
-  // solid with an arrow pointing back towards today.
+  // solid with an arrow pointing back towards today. In hour view it reads "Now".
   function syncTodayArrow() {
     var offset = scroller.scrollLeft - xOf(home());
     var here = Math.abs(offset) < 2;
-    var label = here ? 'Today' : offset < 0 ? 'Today →' : '← Today';
+    var word = scale.unit === 'hour' ? 'Now' : 'Today';
+    var label = here ? word : offset < 0 ? word + ' →' : '← ' + word;
     if (todayBtn.textContent !== label) todayBtn.textContent = label;
     todayBtn.classList.toggle('here', here);
-    todayBtn.title = here ? "You're viewing today" : 'Back to today';
+    todayBtn.title = here ? "You're viewing " + word.toLowerCase() : 'Back to ' + word.toLowerCase();
   }
 
   // Drag to pan: hold the left mouse button and drag to move the chart freely in any
@@ -435,11 +463,11 @@
       // Each row opens the edit form when clicked (see the task form below).
       var attrs = ' data-id="' + esc(row.id) + '" role="button" tabindex="0"';
       if (row.type === 'phase') {
-        return '<div class="trow ph"' + attrs + ' title="' + esc(row.name + ' · from ' + dayLabel(row.start)) + '"><i class="ic"></i><span class="tn">' + esc(row.name) + '</span></div>';
+        return '<div class="trow ph"' + attrs + ' title="' + esc(row.name + ' · from ' + when(row.start)) + '"><i class="ic"></i><span class="tn">' + esc(row.name) + '</span></div>';
       }
       if (row.type === 'milestone') {
         return '<div class="trow ms"' + attrs + ' title="' + esc(row.name + ' · ' + when(row.day)) + '"><i class="ic"></i>' +
-          '<span class="tn">' + esc(row.name) + '</span><span class="meta">' + dayLabel(row.day) + '</span></div>';
+          '<span class="tn">' + esc(row.name) + '</span><span class="meta">' + when(row.day) + '</span></div>';
       }
       var owner = data.people[row.owner];
       return '<div class="trow ' + (row.parent ? 'sub' : 'top') + '"' + attrs + ' title="' +
@@ -521,7 +549,7 @@
     syncZoom();
   }
 
-  // View switcher (D/W/M/Q/Y). Switching fits the new view to the screen. From a view's
+  // View switcher (H/D/W/M/Q/Y). Switching fits the new view to the screen. From a view's
   // home position you land on the new view's home; otherwise it starts at the column
   // containing the date at the left edge. The range is rebuilt around that column.
   var scaleBtns = Array.prototype.slice.call(document.querySelectorAll('[data-scale]'));
@@ -533,7 +561,8 @@
     zoomMode = 'fit';
     dayPx = dayPxFor(zoomMode);
     var anchor = atHome ? home() : startOf(leftTime, scale.unit);
-    rangeStart = add(startOf(anchor, scale.unit === 'day' ? 'week' : scale.unit), scale.unit, -scale.chunk);
+    var align = { hour: 'day', day: 'week' }[scale.unit] || scale.unit;
+    rangeStart = add(startOf(anchor, align), scale.unit, -scale.chunk);
     rangeEnd = add(anchor, scale.unit, scale.chunk);
     render();
     scroller.scrollLeft = xOf(anchor);
@@ -703,6 +732,12 @@
     return pad(Math.floor(mins / 60)) + ':' + pad(mins % 60);
   }
 
+  // hh:mm of a timestamp.
+  function clockOf(t) {
+    var d = new Date(t);
+    return pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
+  }
+
   function formType() {
     return form.elements.type.value;
   }
@@ -725,11 +760,12 @@
   function syncForm() {
     var type = formType();
     var word = type;
-    var allDay = form.elements.allDay.checked || type === 'phase';
-    Array.prototype.forEach.call(form.querySelectorAll('[data-for]'), function (el) {
-      el.hidden = el.getAttribute('data-for').split(' ').indexOf(type) < 0;
+    var allDay = form.elements.allDay.checked;
+    // data-for lists the types a field applies to; data-time fields also need All day off.
+    Array.prototype.forEach.call(form.querySelectorAll('[data-for],[data-time]'), function (el) {
+      var types = el.getAttribute('data-for');
+      el.hidden = (types && types.split(' ').indexOf(type) < 0) || (el.hasAttribute('data-time') && allDay);
     });
-    Array.prototype.forEach.call(form.querySelectorAll('[data-time]'), function (el) { el.hidden = allDay; });
     form.querySelector('[data-start-label]').textContent = type === 'task' ? 'Start' : type === 'milestone' ? 'Date' : 'Starts';
     form.querySelector('[data-nt-title]').textContent = (editing ? 'Edit ' : 'New ') + word;
     form.querySelector('[data-nt-submit]').textContent = editing ? 'Save changes' : 'Create ' + word;
@@ -792,7 +828,7 @@
       f.type.value = row.type;
       f.name.value = row.name;
       var start = row.type === 'milestone' ? row.day : row.start;
-      var timed = row.type !== 'phase' && (start % 1 !== 0 || (row.type === 'task' && row.end % 1 !== 0));
+      var timed = start % 1 !== 0 || (row.type === 'task' && row.end % 1 !== 0);
       f.allDay.checked = !timed;
       f.startDate.value = dateOf(start);
       if (timed) f.startTime.value = timeOf(start);
@@ -810,6 +846,17 @@
         var box = form.querySelector('[name="deps"][value="' + dep[0] + '"]');
         if (box) box.checked = true;
       });
+    } else if (scale.unit === 'hour') {
+      // Hour view: a one-hour slot starting on the next hour after now, or a quarter of the
+      // way into the view when now is off screen.
+      var left = timeAt(scroller.scrollLeft);
+      var right = timeAt(scroller.scrollLeft + scroller.clientWidth);
+      var t = NOW >= left && NOW < right ? startOf(NOW, 'hour') + HOUR : startOf((3 * left + right) / 4, 'hour');
+      f.allDay.checked = false;
+      f.startDate.value = isoDate(t);
+      f.startTime.value = clockOf(t);
+      f.endDate.value = isoDate(t + HOUR);
+      f.endTime.value = clockOf(t + HOUR);
     } else {
       // Start on the date at the left of the view if today is off screen, otherwise today.
       var leftDay = startOf(timeAt(scroller.scrollLeft), 'day');
@@ -857,11 +904,11 @@
     var name = f.name.value.trim();
     if (!name) return fail('Give it a name.', f.name);
     if (!f.startDate.value) return fail('Pick a date.', f.startDate);
-    var timed = type !== 'phase' && !f.allDay.checked;
+    var timed = !f.allDay.checked;
     var row = { type: type, name: name };
 
     if (type === 'phase') {
-      row.start = dayOf(f.startDate.value);
+      row.start = dayOf(f.startDate.value, timed && f.startTime.value);
     } else if (type === 'milestone') {
       row.day = dayOf(f.startDate.value, timed && f.startTime.value);
     } else {
@@ -997,6 +1044,16 @@
   form.elements.startDate.addEventListener('change', function () {
     var f = form.elements;
     if (f.startDate.value && f.endDate.value < f.startDate.value) f.endDate.value = f.startDate.value;
+  });
+
+  // Length buttons (timed tasks): set the finish that long after the start.
+  form.querySelector('[data-lengths]').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-mins]');
+    var f = form.elements;
+    if (!btn || !f.startDate.value || !f.startTime.value) return;
+    var end = PLAN_START + dayOf(f.startDate.value, f.startTime.value) * DAY + btn.getAttribute('data-mins') * 60000;
+    f.endDate.value = isoDate(end);
+    f.endTime.value = clockOf(end);
   });
   form.addEventListener('submit', function (e) {
     e.preventDefault();
