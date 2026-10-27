@@ -66,22 +66,18 @@
 <div class="scroll">
 <div class="chart">
 <div class="hd">
-<div class="months">
-<div class="month" style="width: 26.9167%">JUN 2026</div>
-<div class="month" style="width: 27.5833%">JUL 2026</div>
-<div class="month" style="width: 27.6667%">AUG 2026</div>
-<div class="month" style="width: 17.8333%; border-right: 0">SEP 2026</div>
-</div>
-<div class="weeks">
-<div class="week">Jun 1</div><div class="week">Jun 8</div><div class="week">Jun 15</div><div class="week">Jun 22</div><div class="week">Jun 29</div><div class="week">Jul 6</div><div class="week">Jul 13</div><div class="week">Jul 20</div><div class="week">Jul 27</div><div class="week">Aug 3</div><div class="week">Aug 10</div><div class="week">Aug 17</div><div class="week">Aug 24</div><div class="week">Aug 31</div><div class="week">Sep 7</div><div class="week">Sep 14</div>
-</div>
+<div class="months" data-months></div>
+<div class="weeks" data-weeks></div>
 </div>
 
 <div class="body">
 <div class="rows"></div>
-<div class="mline" style="left: 26.9167%"></div>
-<div class="mline" style="left: 54.5%"></div>
-<div class="mline" style="left: 82.1667%"></div>
+<div class="mlines" data-mlines></div>
+<div class="pline" style="top: 192px"></div>
+<div class="dock"><button class="today" type="button" data-today>← Today</button></div>
+
+<!-- The current plan, pinned to its start date on the timeline (see js/app.js) -->
+<div class="plan" data-plan>
 
 <svg class="deps" aria-hidden="true">
 <defs><marker id="ah" viewBox="0 0 8 8" refX="4" refY="7" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L4 7L7 1" fill="none" stroke="#9aa3ad" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></marker></defs>
@@ -110,13 +106,11 @@
 </g>
 </svg>
 
-<button class="today" type="button" disabled="" style="left: 3.0833%; top: 31px">← Today</button>
 
 <div class="bar dk" style="left: 0%; top: 75px; width: 16.25%; background: linear-gradient(90deg,#367f9c 0 58%,#4a95b2 58%)"><span class="t">Wireframes</span><span class="av" style="background: #8b5cf0">PS</span></div>
 <div class="bar dk" style="left: 16.1667%; top: 109px; width: 11.75%"><span class="t">UI mockups</span><span class="av" style="background: #8fb83a">JN</span></div>
 <div class="dia" style="left: calc(28.25% - 6px); top: 146px"></div>
 
-<div class="pline" style="top: 192px"></div>
 <div class="phase" style="top: 175px"><i></i>PHASE 3 — BUILD</div>
 
 <div class="bar dk" style="left: 0%; top: 209px; width: 57.4167%"><span class="t">Notifications service</span><span class="av" style="background: #dc4c4c">SK</span></div>
@@ -129,6 +123,7 @@
 <div class="bar lt" style="left: 78.9167%; top: 445px; width: 7.9167%"><span class="t">Dashboard layout</span><span class="av" style="background: #de4f87">AR</span></div>
 <div class="dia" style="left: calc(87.4167% - 6px); top: 482px"></div>
 <div class="bar dk" style="left: 35.9167%; top: 512px; width: 25.9167%"><span class="t">Admin dashboard</span><span class="av" style="background: #8b5cf0">PS</span></div>
+</div>
 </div>
 </div>
 </div>
