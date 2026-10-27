@@ -96,9 +96,12 @@
   var rangeEnd = add(home(), scale.unit, 2 * scale.chunk);
   var dayPx = dayPxFor(zoomMode);
 
-  // Where Today scrolls to: the start of the current column (this week's Monday in day view).
+  // Where Today scrolls to: one column before the current one, so yesterday / last week /
+  // last month / last quarter shows first and the current period second. Year view starts
+  // on the current year.
   function home() {
-    return startOf(TODAY, scale.unit === 'day' ? 'week' : scale.unit);
+    var now = startOf(TODAY, scale.unit);
+    return scale.unit === 'year' ? now : add(now, scale.unit, -1);
   }
 
   function dayPxFor(mode) {
@@ -481,17 +484,18 @@
     syncZoom();
   }
 
-  // View switcher (D/W/M/Q/Y). Switching fits the new view to the screen and starts it at
-  // the column containing the date at the left edge (so from the home view you land on
-  // today's day, week, month, quarter or year). The range is rebuilt around that column.
+  // View switcher (D/W/M/Q/Y). Switching fits the new view to the screen. From a view's
+  // home position you land on the new view's home; otherwise it starts at the column
+  // containing the date at the left edge. The range is rebuilt around that column.
   var scaleBtns = Array.prototype.slice.call(document.querySelectorAll('[data-scale]'));
 
   function setScale(key) {
     var leftTime = timeAt(scroller.scrollLeft);
+    var atHome = Math.abs(scroller.scrollLeft - xOf(home())) < 2;
     scale = SCALES[key];
     zoomMode = 'fit';
     dayPx = dayPxFor(zoomMode);
-    var anchor = startOf(leftTime, scale.unit);
+    var anchor = atHome ? home() : startOf(leftTime, scale.unit);
     rangeStart = add(startOf(anchor, scale.unit === 'day' ? 'week' : scale.unit), scale.unit, -scale.chunk);
     rangeEnd = add(anchor, scale.unit, scale.chunk);
     render();
