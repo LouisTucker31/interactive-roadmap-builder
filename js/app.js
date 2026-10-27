@@ -47,13 +47,23 @@
   var plan = chart.querySelector('[data-plan]');
   var todayBtn = chart.querySelector('[data-today]');
 
+  // Zoom scales the timeline horizontally: 100% = 100px per week. 'fit' sizes the
+  // plan's 16 weeks to the visible width and follows window resizes.
+  var BASE_WEEK_PX = 100;
+  var ZOOM_STEPS = [50, 75, 100, 125, 150, 200, 300];
+  var zoomMode = 'fit';
+
   var rangeStart = PLAN_START - CHUNK_WEEKS * WEEK;
   var weekCount = PLAN_WEEKS + CHUNK_WEEKS * 2;
-  var weekPx = fitWeek();
+  var weekPx = weekPxFor(zoomMode);
 
   // The plan's 16 weeks fill the visible chart, but never narrower than 75px a week.
   function fitWeek() {
     return Math.max(MIN_WEEK_PX, scroller.clientWidth / PLAN_WEEKS);
+  }
+
+  function weekPxFor(mode) {
+    return mode === 'fit' ? fitWeek() : mode / 100 * BASE_WEEK_PX;
   }
 
   function xOf(time) {
@@ -95,16 +105,17 @@
     mlinesEl.innerHTML = lines;
   }
 
-  // Grow the timeline by a chunk when the view gets within one screen of either end.
+  // Grow the timeline by chunks until the view is at least one screen from either end.
   // Prepending shifts everything right, so scrollLeft moves by the same amount to stay put.
   function extend() {
     var view = scroller.clientWidth;
-    if (scroller.scrollLeft < view) {
+    while (scroller.scrollLeft < view) {
       rangeStart -= CHUNK_WEEKS * WEEK;
       weekCount += CHUNK_WEEKS;
       render();
       scroller.scrollLeft += CHUNK_WEEKS * weekPx;
-    } else if (scroller.scrollLeft + view > scroller.scrollWidth - view) {
+    }
+    while (scroller.scrollLeft + view > scroller.scrollWidth - view) {
       weekCount += CHUNK_WEEKS;
       render();
     }
@@ -139,12 +150,122 @@
   // Keep the same date at the left edge when the window is resized.
   window.addEventListener('resize', function () {
     var leftTime = rangeStart + scroller.scrollLeft / weekPx * WEEK;
-    weekPx = fitWeek();
+    weekPx = weekPxFor(zoomMode);
     render();
     scroller.scrollLeft = xOf(leftTime);
+    extend();
+    syncZoom();
   });
+
+  // Zoom controls: −/+ step through ZOOM_STEPS, the % label opens a menu of set zooms.
+  var zoomOut = document.querySelector('[data-zoom-out]');
+  var zoomIn = document.querySelector('[data-zoom-in]');
+  var zoomLabel = document.querySelector('[data-zoom-label]');
+  var zoomMenu = document.querySelector('[data-zoom-menu]');
+
+  zoomMenu.innerHTML =
+    '<button type="button" role="menuitemradio" data-zoom="fit">Fit to screen</button>' +
+    '<div class="zsep" role="separator"></div>' +
+    ZOOM_STEPS.map(function (s) {
+      return '<button type="button" role="menuitemradio" data-zoom="' + s + '">' + s + '%</button>';
+    }).join('');
+  var zoomItems = Array.prototype.slice.call(zoomMenu.querySelectorAll('[data-zoom]'));
+
+  function zoomPct() {
+    return weekPx / BASE_WEEK_PX * 100;
+  }
+
+  function syncZoom() {
+    var pct = zoomPct();
+    zoomLabel.textContent = Math.round(pct) + '%';
+    zoomOut.disabled = pct <= ZOOM_STEPS[0] + 0.5;
+    zoomIn.disabled = pct >= ZOOM_STEPS[ZOOM_STEPS.length - 1] - 0.5;
+    zoomItems.forEach(function (item) {
+      item.setAttribute('aria-checked', String(item.getAttribute('data-zoom') === String(zoomMode)));
+    });
+  }
+
+  // Fit jumps back to the plan; other zooms keep the date in the middle of the view fixed.
+  function setZoom(mode) {
+    var view = scroller.clientWidth;
+    var centre = rangeStart + (scroller.scrollLeft + view / 2) / weekPx * WEEK;
+    zoomMode = mode;
+    weekPx = weekPxFor(mode);
+    render();
+    scroller.scrollLeft = mode === 'fit' ? xOf(PLAN_START) : xOf(centre) - view / 2;
+    extend();
+    syncTodayArrow();
+    syncZoom();
+  }
+
+  function stepZoom(dir) {
+    var pct = zoomPct();
+    var next = dir > 0
+      ? ZOOM_STEPS.filter(function (s) { return s > pct + 0.5; })[0]
+      : ZOOM_STEPS.filter(function (s) { return s < pct - 0.5; }).pop();
+    if (next) setZoom(next);
+  }
+
+  zoomOut.addEventListener('click', function () { stepZoom(-1); });
+  zoomIn.addEventListener('click', function () { stepZoom(1); });
+
+  function showZoomMenu(open) {
+    zoomMenu.hidden = !open;
+    zoomLabel.setAttribute('aria-expanded', String(open));
+    if (open) (zoomMenu.querySelector('[aria-checked="true"]') || zoomItems[0]).focus();
+  }
+
+  zoomLabel.addEventListener('click', function () { showZoomMenu(zoomMenu.hidden); });
+
+  zoomMenu.addEventListener('click', function (e) {
+    var item = e.target.closest('[data-zoom]');
+    if (!item) return;
+    var value = item.getAttribute('data-zoom');
+    setZoom(value === 'fit' ? 'fit' : Number(value));
+    showZoomMenu(false);
+    zoomLabel.focus();
+  });
+
+  zoomMenu.addEventListener('keydown', function (e) {
+    var i = zoomItems.indexOf(document.activeElement);
+    if (e.key === 'Escape') {
+      showZoomMenu(false);
+      zoomLabel.focus();
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      var n = zoomItems.length;
+      zoomItems[(i + (e.key === 'ArrowDown' ? 1 : n - 1)) % n].focus();
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!zoomMenu.hidden && !e.target.closest('.zwrap')) showZoomMenu(false);
+  });
+
+  // Full screen: shows the whole planner on the entire display. Hidden where the
+  // browser doesn't support it (e.g. iPhone Safari).
+  var fullscreenBtn = document.querySelector('[data-fullscreen]');
+
+  function syncFullscreen() {
+    var on = !!document.fullscreenElement;
+    fullscreenBtn.setAttribute('aria-pressed', String(on));
+    fullscreenBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
+    fullscreenBtn.title = on ? 'Exit full screen (Esc)' : 'Full screen';
+  }
+
+  if (document.fullscreenEnabled) {
+    fullscreenBtn.addEventListener('click', function () {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else root.requestFullscreen();
+    });
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    syncFullscreen();
+  } else {
+    fullscreenBtn.hidden = true;
+  }
 
   render();
   scroller.scrollLeft = xOf(PLAN_START);
   syncTodayArrow();
+  syncZoom();
 })();
