@@ -27,8 +27,14 @@
   // pinned to PLAN_START. Dates are UTC so daylight-saving changes never shift a day.
   var DAY = 864e5;
   var WEEK = 7 * DAY;
-  var PLAN_START = Date.UTC(2026, 5, 1); // Monday 1 Jun 2026: left edge of the home view
-  var PLAN_WEEKS = 16;                   // the plan runs Jun 1 – Sep 20
+  var PLAN_WEEKS = 16;                   // the plan spans 16 weeks
+
+  // Monday of the current week: the plan starts here, so Today always lands on it.
+  var PLAN_START = (function () {
+    var now = new Date();
+    var today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    return today - (new Date(today).getUTCDay() + 6) % 7 * DAY;
+  })();
   var MIN_WEEK_PX = 75;
   var CHUNK_WEEKS = 26;                  // weeks added each time an edge is reached
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
