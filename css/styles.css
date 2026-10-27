@@ -65,6 +65,9 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .trow .meta{flex:none;font:400 10px "JetBrains Mono",monospace;color:#7b828b}
 .trow .av{width:18px;height:18px;margin:0;border:0;font-size:7px}
 .trow.empty{margin-top:-68px;color:#7b828b;font-style:italic}
+.trow[data-id]{cursor:pointer}
+.trow[data-id]:hover{background:#eef1f4}
+.trow[data-id]:focus-visible{outline:2px solid #4790ad;outline-offset:-2px}
 .trow.empty button{padding:0;border:0;background:none;font:inherit;font-style:normal;font-weight:600;color:#3f86a3;cursor:pointer}
 .trow.empty button:hover{text-decoration:underline}
 .scroll{flex:1;min-width:0;overflow:auto;position:relative;overscroll-behavior-x:contain;cursor:grab}
@@ -187,6 +190,16 @@ button:disabled{cursor:not-allowed}
 /* A just-created bar or milestone pulses once */
 @keyframes fresh{0%,100%{box-shadow:0 0 0 0 rgba(71,144,173,0)}30%{box-shadow:0 0 0 4px rgba(71,144,173,.45)}}
 .bar.fresh,.dia.fresh{animation:fresh 1.4s ease-out 2}
+/* Everything on the plan opens its edit form when clicked */
+.plan .bar,.plan .dia,.plan .phase{cursor:pointer}
+.scroll.dragging .plan *{cursor:grabbing}
+.bar:hover,.dia:hover{box-shadow:0 0 0 2px #ffffff,0 0 0 3.5px #4790ad}
+.phase:hover{color:#3f86a3}
+.dlg-ft .del{margin-right:auto;color:#b4382f}
+.dlg-ft .del.armed{background:#c4403a;border-color:#c4403a;color:#ffffff}
+.dlg-ft .del.armed:hover{background:#ad352f}
+.kind input:disabled+span{cursor:default}
+.kind input:disabled:not(:checked)+span{opacity:.4}
 /* Theme toggle: moon in light mode, sun in dark mode */
 .ri .i-sun,[data-theme="dark"] .ri .i-moon{display:none}
 [data-theme="dark"] .ri .i-sun{display:block}
@@ -277,6 +290,11 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .own input:checked+span,[data-theme="dark"] .own input:focus-visible+span{box-shadow:0 0 0 2px #181b1f,0 0 0 4px #4790ad}
 [data-theme="dark"] .own.none span{background:#181b1f;color:#6b737c;border-color:#3a4047}
 [data-theme="dark"] .err{background:#3a1d1b;color:#f0a39d}
+[data-theme="dark"] .trow[data-id]:hover{background:#1c2024}
+[data-theme="dark"] .bar:hover,[data-theme="dark"] .dia:hover{box-shadow:0 0 0 2px #181c20,0 0 0 3.5px #4790ad}
+[data-theme="dark"] .dlg-ft .del{color:#f0a39d}
+[data-theme="dark"] .dlg-ft .del.armed{background:#c4403a;border-color:#c4403a;color:#ffffff}
+[data-theme="dark"] .dlg-ft .del.armed:hover{background:#ad352f}
 @media (max-width:980px){.kbd{display:none}}
 @media (max-width:760px){
 .app{height:auto;min-height:100vh}
