@@ -283,10 +283,15 @@
     }
   }
 
-  // Point the Today button's arrow towards the home view.
+  // At the home view the Today button goes quiet (outline, no arrow); away from it, it's
+  // solid with an arrow pointing back towards today.
   function syncTodayArrow() {
-    var label = scroller.scrollLeft < xOf(home()) - 1 ? 'Today →' : '← Today';
+    var offset = scroller.scrollLeft - xOf(home());
+    var here = Math.abs(offset) < 2;
+    var label = here ? 'Today' : offset < 0 ? 'Today →' : '← Today';
     if (todayBtn.textContent !== label) todayBtn.textContent = label;
+    todayBtn.classList.toggle('here', here);
+    todayBtn.title = here ? "You're viewing today" : 'Back to today';
   }
 
   // Drag to pan: hold the left mouse button and drag to move the chart freely in any
@@ -381,6 +386,7 @@
     render();
     scroller.scrollLeft = xOf(leftTime);
     extend();
+    syncTodayArrow();
     syncZoom();
     syncPanelScroll();
   }
