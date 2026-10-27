@@ -66,8 +66,8 @@
 <div class="scroll">
 <div class="chart">
 <div class="hd">
-<div class="months" data-months></div>
-<div class="weeks" data-weeks></div>
+<div class="groups" data-groups></div>
+<div class="cols" data-cols></div>
 </div>
 
 <div class="body">
@@ -97,7 +97,7 @@
 </div>
 <button class="ib" type="button" aria-label="Zoom in" data-zoom-in>+</button>
 <div class="seg" role="group" aria-label="Scale">
-<button type="button" disabled="">D</button><button type="button" disabled="" class="on" aria-pressed="true">W</button><button type="button" disabled="">M</button><button type="button" disabled="">Q</button><button type="button" disabled="">Y</button>
+<button type="button" data-scale="D" aria-pressed="false" title="Day">D</button><button type="button" data-scale="W" class="on" aria-pressed="true" title="Week">W</button><button type="button" data-scale="M" aria-pressed="false" title="Month">M</button><button type="button" data-scale="Q" aria-pressed="false" title="Quarter">Q</button><button type="button" data-scale="Y" aria-pressed="false" title="Year">Y</button>
 </div>
 </div>
 </footer>

@@ -45,17 +45,23 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 /* Width and --week (px per week) are set by js/app.js as the timeline grows */
 .chart{--week:75px;position:relative;min-height:100%;display:flex;flex-direction:column}
 .hd{position:sticky;top:0;z-index:5;background:#ffffff}
-.months{display:flex;height:17px;border-bottom:1px solid #eceff2}
-.month{flex:none;overflow:hidden;white-space:nowrap;font:700 9.5px "JetBrains Mono",monospace;letter-spacing:.09em;color:#2d3238;display:flex;align-items:center;justify-content:center;border-right:1px solid #e3e6ea}
-.weeks{display:flex;height:24px;border-bottom:1px solid #e3e6ea}
-.week{width:var(--week);flex:none;font:400 10px "JetBrains Mono",monospace;color:#5a6169;display:flex;align-items:center;justify-content:center;border-right:1px solid #eceff2;white-space:nowrap}
+.groups{display:flex;height:17px;border-bottom:1px solid #eceff2}
+.group{flex:none;overflow:clip;white-space:nowrap;font:700 9.5px "JetBrains Mono",monospace;letter-spacing:.09em;color:#2d3238;display:flex;align-items:center;justify-content:center;border-right:1px solid #e3e6ea}
+/* Group labels stick to the left edge so the current month/year stays readable */
+.group span{position:sticky;left:8px;padding:0 6px}
+.cols{display:flex;height:24px;border-bottom:1px solid #e3e6ea}
+.col{flex:none;overflow:hidden;font:400 10px "JetBrains Mono",monospace;color:#5a6169;display:flex;align-items:center;justify-content:center;border-right:1px solid #eceff2;white-space:nowrap}
 .body{position:relative;flex:1 0 auto;min-height:620px;background-image:repeating-linear-gradient(90deg,transparent 0 calc(var(--week)*5/7),#eef2f6 calc(var(--week)*5/7) var(--week));}
 .rows{position:absolute;inset:0;background-image:repeating-linear-gradient(180deg,transparent 0 33px,#f1f3f6 33px 33.6px)}
 .mlines{position:absolute;inset:0}
 .mline{position:absolute;top:0;bottom:0;width:1px;background:#e1e5ea}
 .plan{position:absolute;inset:0}
-/* Current week: highlighted header label and a line at the start of the week */
-.week.now span{background:#4790ad;color:#ffffff;font-weight:600;border-radius:9px;padding:2px 7px}
+/* Month, quarter and year views: no weekend shading; very narrow bars drop their label */
+.chart[data-noshade] .body{background-image:none}
+.bar.tiny{padding:0}
+.bar.tiny>*{display:none}
+/* Current period (today's column): highlighted header label and a line at its start */
+.col.now span{background:#4790ad;color:#ffffff;font-weight:600;border-radius:9px;padding:2px 7px}
 .nowline{position:absolute;top:0;bottom:0;width:2px;background:#4790ad}
 .deps{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible}
 .bar{position:absolute;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:space-between;padding:0 2px 0 8px;font-size:11.5px;white-space:nowrap;overflow:hidden}
@@ -67,7 +73,7 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .dia{position:absolute;width:12px;height:12px;background:#d4802c;transform:rotate(45deg);border-radius:1.5px}
 /* Sticky dock keeps the Today button on screen while the timeline scrolls */
 .dock{position:sticky;left:0;width:0;height:0;z-index:4}
-.today{position:absolute;left:calc(var(--week)*37/75);top:31px;white-space:nowrap;height:24px;padding:0 11px;border-radius:12px;border:0;background:#4790ad;color:#ffffff;font:500 10.5px Inter,sans-serif;display:flex;align-items:center;gap:4px;cursor:pointer;box-shadow:0 1px 2px rgba(20,40,60,.18)}
+.today{position:absolute;left:var(--dock-x,24px);top:31px;white-space:nowrap;height:24px;padding:0 11px;border-radius:12px;border:0;background:#4790ad;color:#ffffff;font:500 10.5px Inter,sans-serif;display:flex;align-items:center;gap:4px;cursor:pointer;box-shadow:0 1px 2px rgba(20,40,60,.18)}
 .phase{position:absolute;left:0;display:flex;text-transform:uppercase;align-items:center;gap:6px;font:700 10px Inter,sans-serif;letter-spacing:.04em;color:#22262b}
 .phase i{width:12px;height:12px;border-radius:50%;border:1.5px solid #c7c1ec;background:#ffffff;display:block;margin-left:-6px}
 .pline{position:absolute;left:0;right:0;height:4px;background:#cdc6f2;border-radius:2px}
@@ -130,10 +136,10 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .gut .caret{color:#8a919a}
 [data-theme="dark"] .hd{background:#131619}
 [data-theme="dark"] .scroll::-webkit-scrollbar-thumb{background:#363c43}
-[data-theme="dark"] .months{border-bottom-color:#262b31}
-[data-theme="dark"] .month{color:#d5d9de;border-right-color:#2b3036}
-[data-theme="dark"] .weeks{border-bottom-color:#2b3036}
-[data-theme="dark"] .week{color:#9aa1a9;border-right-color:#22272c}
+[data-theme="dark"] .groups{border-bottom-color:#262b31}
+[data-theme="dark"] .group{color:#d5d9de;border-right-color:#2b3036}
+[data-theme="dark"] .cols{border-bottom-color:#2b3036}
+[data-theme="dark"] .col{color:#9aa1a9;border-right-color:#22272c}
 [data-theme="dark"] .body{background-image:repeating-linear-gradient(90deg,transparent 0 calc(var(--week)*5/7),#181c20 calc(var(--week)*5/7) var(--week))}
 [data-theme="dark"] .rows{background-image:repeating-linear-gradient(180deg,transparent 0 33px,#1c2024 33px 33.6px)}
 [data-theme="dark"] .mline{background:#2b3036}

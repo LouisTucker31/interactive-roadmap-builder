@@ -22,85 +22,147 @@
 
   syncToggle();
 
-  // Infinite horizontal timeline. The axis (months, weeks, month lines) is generated for a
-  // window of weeks that grows whenever you scroll near either end; the plan block stays
-  // pinned to PLAN_START. Dates are UTC so daylight-saving changes never shift a day.
+  // Infinite horizontal timeline. The axis (group row, column row, divider lines) is
+  // generated for a date range that grows whenever you scroll near either end. Time maps
+  // linearly to x at dayPx pixels per day. Dates are UTC so daylight saving never shifts a day.
   var DAY = 864e5;
-  var WEEK = 7 * DAY;
-  var PLAN_WEEKS = 16;                   // the plan spans 16 weeks
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  var TODAY = (function () {
+    var now = new Date();
+    return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  })();
+
+  // Calendar maths on UTC timestamps. add() expects `t` to already be a unit start.
+  function startOf(t, unit) {
+    var d = new Date(t);
+    var y = d.getUTCFullYear();
+    var m = d.getUTCMonth();
+    switch (unit) {
+      case 'day': return Date.UTC(y, m, d.getUTCDate());
+      case 'week': return startOf(t, 'day') - (d.getUTCDay() + 6) % 7 * DAY; // Monday
+      case 'month': return Date.UTC(y, m, 1);
+      case 'quarter': return Date.UTC(y, m - m % 3, 1);
+      case 'year': return Date.UTC(y, 0, 1);
+      case 'decade': return Date.UTC(y - y % 10, 0, 1);
+    }
+  }
+
+  function add(t, unit, n) {
+    var d = new Date(t);
+    var y = d.getUTCFullYear();
+    var m = d.getUTCMonth();
+    switch (unit) {
+      case 'day': return t + n * DAY;
+      case 'week': return t + n * 7 * DAY;
+      case 'month': return Date.UTC(y, m + n, 1);
+      case 'quarter': return Date.UTC(y, m + 3 * n, 1);
+      case 'year': return Date.UTC(y + n, 0, 1);
+      case 'decade': return Date.UTC(y + 10 * n, 0, 1);
+    }
+  }
 
   // Monday of the current week: the plan starts here, so Today always lands on it.
-  var PLAN_START = (function () {
-    var now = new Date();
-    var today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-    return today - (new Date(today).getUTCDay() + 6) % 7 * DAY;
-  })();
-  var MIN_WEEK_PX = 75;
-  var CHUNK_WEEKS = 26;                  // weeks added each time an edge is reached
-  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var PLAN_START = startOf(TODAY, 'week');
+
+  // Views (D/W/M/Q/Y). Each has a column unit, a group unit for the row above, the column
+  // width at 100% zoom, how many days "Fit to screen" shows, the narrowest column fit will
+  // allow, and how many columns to add each time an edge is reached. Weekend shading only
+  // shows in day and week views. Day view chunks are whole weeks so shading stays aligned.
+  var SCALES = {
+    D: { unit: 'day', days: 1, group: 'month', basePx: 60, fitDays: 21, minPx: 28, chunk: 63, shade: true },
+    W: { unit: 'week', days: 7, group: 'month', basePx: 100, fitDays: 112, minPx: 75, chunk: 26, shade: true },
+    M: { unit: 'month', days: 30.44, group: 'year', basePx: 150, fitDays: 365, minPx: 60, chunk: 12 },
+    Q: { unit: 'quarter', days: 91.31, group: 'year', basePx: 240, fitDays: 730, minPx: 80, chunk: 8 },
+    Y: { unit: 'year', days: 365.25, group: 'decade', basePx: 360, fitDays: 1826, minPx: 80, chunk: 10 }
+  };
 
   var scroller = document.querySelector('.scroll');
   var chart = scroller.querySelector('.chart');
-  var monthsEl = chart.querySelector('[data-months]');
-  var weeksEl = chart.querySelector('[data-weeks]');
+  var groupsEl = chart.querySelector('[data-groups]');
+  var colsEl = chart.querySelector('[data-cols]');
   var mlinesEl = chart.querySelector('[data-mlines]');
   var plan = chart.querySelector('[data-plan]');
   var todayBtn = chart.querySelector('[data-today]');
 
-  // Zoom scales the timeline horizontally: 100% = 100px per week. 'fit' sizes the
-  // plan's 16 weeks to the visible width and follows window resizes.
-  var BASE_WEEK_PX = 100;
+  // Zoom scales the timeline horizontally: 100% = the view's basePx per column. 'fit'
+  // sizes the view's fitDays to the visible width and follows window resizes.
   var ZOOM_STEPS = [50, 75, 100, 125, 150, 200, 300];
   var zoomMode = 'fit';
+  var scale = SCALES.W;
 
-  var rangeStart = PLAN_START - CHUNK_WEEKS * WEEK;
-  var weekCount = PLAN_WEEKS + CHUNK_WEEKS * 2;
-  var weekPx = weekPxFor(zoomMode);
+  var rangeStart = add(home(), scale.unit, -scale.chunk);
+  var rangeEnd = add(home(), scale.unit, 2 * scale.chunk);
+  var dayPx = dayPxFor(zoomMode);
 
-  // The plan's 16 weeks fill the visible chart, but never narrower than 75px a week.
-  function fitWeek() {
-    return Math.max(MIN_WEEK_PX, scroller.clientWidth / PLAN_WEEKS);
+  // Where Today scrolls to: the start of the current column (this week's Monday in day view).
+  function home() {
+    return startOf(TODAY, scale.unit === 'day' ? 'week' : scale.unit);
   }
 
-  function weekPxFor(mode) {
-    return mode === 'fit' ? fitWeek() : mode / 100 * BASE_WEEK_PX;
+  function dayPxFor(mode) {
+    if (mode !== 'fit') return mode / 100 * scale.basePx / scale.days;
+    return Math.max(scale.minPx / scale.days, scroller.clientWidth / scale.fitDays);
   }
 
   function xOf(time) {
-    return (time - rangeStart) / WEEK * weekPx;
+    return (time - rangeStart) / DAY * dayPx;
+  }
+
+  function timeAt(x) {
+    return rangeStart + x / dayPx * DAY;
+  }
+
+  function colLabel(t, width) {
+    var d = new Date(t);
+    switch (scale.unit) {
+      case 'day': return (width >= 52 ? WEEKDAYS[d.getUTCDay()] + ' ' : '') + d.getUTCDate();
+      case 'week': return MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate();
+      case 'month': return MONTHS[d.getUTCMonth()];
+      case 'quarter': return 'Q' + (d.getUTCMonth() / 3 + 1);
+      case 'year': return String(d.getUTCFullYear());
+    }
+  }
+
+  function groupLabel(t) {
+    var d = new Date(t);
+    if (scale.group === 'month') return MONTHS[d.getUTCMonth()].toUpperCase() + ' ' + d.getUTCFullYear();
+    if (scale.group === 'decade') return d.getUTCFullYear() + 's';
+    return String(d.getUTCFullYear());
   }
 
   function render() {
-    var end = rangeStart + weekCount * WEEK;
-    chart.style.setProperty('--week', weekPx + 'px');
-    chart.style.width = weekCount * weekPx + 'px';
+    chart.style.setProperty('--week', 7 * dayPx + 'px');
+    chart.style.setProperty('--dock-x', (scale.unit === 'week' ? 7 * dayPx * 37 / 75 : 24) + 'px');
+    chart.style.width = xOf(rangeEnd) + 'px';
+    chart.toggleAttribute('data-noshade', !scale.shade);
 
-    // The current week (which starts at PLAN_START) gets a highlighted label.
-    var weeks = '';
-    for (var i = 0; i < weekCount; i++) {
-      var t = rangeStart + i * WEEK;
-      var w = new Date(t);
-      var label = MONTHS[w.getUTCMonth()] + ' ' + w.getUTCDate();
-      weeks += t === PLAN_START
-        ? '<div class="week now" aria-current="date"><span>' + label + '</span></div>'
-        : '<div class="week">' + label + '</div>';
+    // Columns; the one containing today gets a highlighted label and a line at its start.
+    var now = startOf(TODAY, scale.unit);
+    var cols = '';
+    var lines = '';
+    for (var t = rangeStart; t < rangeEnd; t = add(t, scale.unit, 1)) {
+      var width = xOf(add(t, scale.unit, 1)) - xOf(t);
+      var label = colLabel(t, width);
+      cols += t === now
+        ? '<div class="col now" style="width: ' + width + 'px" aria-current="date"><span>' + label + '</span></div>'
+        : '<div class="col" style="width: ' + width + 'px">' + label + '</div>';
+      // Day/week views divide the chart at month boundaries; coarser views at every column.
+      if (t > rangeStart && !scale.shade) lines += '<div class="mline" style="left: ' + xOf(t) + 'px"></div>';
     }
-    weeksEl.innerHTML = weeks;
+    colsEl.innerHTML = cols;
 
-    var months = '';
-    var lines = '<div class="nowline" style="left: ' + xOf(PLAN_START) + 'px"></div>';
-    var first = new Date(rangeStart);
-    var y = first.getUTCFullYear();
-    var m = first.getUTCMonth();
-    for (var start = Date.UTC(y, m, 1); start < end; start = Date.UTC(y, m, 1)) {
-      var next = Date.UTC(y, m + 1, 1);
-      var width = xOf(Math.min(next, end)) - xOf(Math.max(start, rangeStart));
-      months += '<div class="month" style="width: ' + width + 'px">' + MONTHS[m].toUpperCase() + ' ' + y + '</div>';
-      if (start > rangeStart) lines += '<div class="mline" style="left: ' + xOf(start) + 'px"></div>';
-      if (++m === 12) { m = 0; y++; }
+    var groups = '';
+    for (var g = startOf(rangeStart, scale.group); g < rangeEnd; g = add(g, scale.group, 1)) {
+      var next = add(g, scale.group, 1);
+      var gw = xOf(Math.min(next, rangeEnd)) - xOf(Math.max(g, rangeStart));
+      groups += '<div class="group" style="width: ' + gw + 'px"><span>' + groupLabel(g) + '</span></div>';
+      if (g > rangeStart && scale.shade) lines += '<div class="mline" style="left: ' + xOf(g) + 'px"></div>';
     }
-    monthsEl.innerHTML = months;
-    mlinesEl.innerHTML = lines;
+    groupsEl.innerHTML = groups;
+    // The now-line goes last so it sits on top of any divider at the same spot.
+    mlinesEl.innerHTML = lines + '<div class="nowline" style="left: ' + xOf(now) + 'px"></div>';
     renderPlan();
   }
 
@@ -154,7 +216,7 @@
         var fill = row.progress && !row.parent
           ? '; background: linear-gradient(90deg,#367f9c 0 ' + row.progress * 100 + '%,#4a95b2 ' + row.progress * 100 + '%)'
           : '';
-        html += '<div class="bar ' + (row.parent ? 'lt' : 'dk') + '" style="left: ' + b.x1 + 'px; top: ' + b.top +
+        html += '<div class="bar ' + (row.parent ? 'lt' : 'dk') + (b.x2 - b.x1 < 30 ? ' tiny' : '') + '" style="left: ' + b.x1 + 'px; top: ' + b.top +
           'px; width: ' + (b.x2 - b.x1) + 'px' + fill + '" title="' +
           esc(row.name + ' · ' + dayLabel(row.start) + ' – ' + dayLabel(row.end - 1)) + '">' +
           '<span class="t">' + esc(row.name) + '</span>' +
@@ -201,20 +263,20 @@
   function extend() {
     var view = scroller.clientWidth;
     while (scroller.scrollLeft < view) {
-      rangeStart -= CHUNK_WEEKS * WEEK;
-      weekCount += CHUNK_WEEKS;
+      var oldStart = rangeStart;
+      rangeStart = add(rangeStart, scale.unit, -scale.chunk);
       render();
-      scroller.scrollLeft += CHUNK_WEEKS * weekPx;
+      scroller.scrollLeft += xOf(oldStart);
     }
     while (scroller.scrollLeft + view > scroller.scrollWidth - view) {
-      weekCount += CHUNK_WEEKS;
+      rangeEnd = add(rangeEnd, scale.unit, scale.chunk);
       render();
     }
   }
 
   // Point the Today button's arrow towards the home view.
   function syncTodayArrow() {
-    var label = scroller.scrollLeft < xOf(PLAN_START) - 1 ? 'Today →' : '← Today';
+    var label = scroller.scrollLeft < xOf(home()) - 1 ? 'Today →' : '← Today';
     if (todayBtn.textContent !== label) todayBtn.textContent = label;
   }
 
@@ -235,13 +297,13 @@
   }, { passive: true });
 
   todayBtn.addEventListener('click', function () {
-    scroller.scrollTo({ left: xOf(PLAN_START), behavior: 'smooth' });
+    scroller.scrollTo({ left: xOf(home()), behavior: 'smooth' });
   });
 
   // Keep the same date at the left edge when the window is resized.
   window.addEventListener('resize', function () {
-    var leftTime = rangeStart + scroller.scrollLeft / weekPx * WEEK;
-    weekPx = weekPxFor(zoomMode);
+    var leftTime = timeAt(scroller.scrollLeft);
+    dayPx = dayPxFor(zoomMode);
     render();
     scroller.scrollLeft = xOf(leftTime);
     extend();
@@ -263,7 +325,7 @@
   var zoomItems = Array.prototype.slice.call(zoomMenu.querySelectorAll('[data-zoom]'));
 
   function zoomPct() {
-    return weekPx / BASE_WEEK_PX * 100;
+    return dayPx * scale.days / scale.basePx * 100;
   }
 
   function syncZoom() {
@@ -276,18 +338,47 @@
     });
   }
 
-  // Fit jumps back to the plan; other zooms keep the date in the middle of the view fixed.
+  // Fit jumps back to today; other zooms keep the date in the middle of the view fixed.
   function setZoom(mode) {
     var view = scroller.clientWidth;
-    var centre = rangeStart + (scroller.scrollLeft + view / 2) / weekPx * WEEK;
+    var centre = timeAt(scroller.scrollLeft + view / 2);
     zoomMode = mode;
-    weekPx = weekPxFor(mode);
+    dayPx = dayPxFor(mode);
     render();
-    scroller.scrollLeft = mode === 'fit' ? xOf(PLAN_START) : xOf(centre) - view / 2;
+    scroller.scrollLeft = mode === 'fit' ? xOf(home()) : xOf(centre) - view / 2;
     extend();
     syncTodayArrow();
     syncZoom();
   }
+
+  // View switcher (D/W/M/Q/Y). Switching fits the new view to the screen and starts it at
+  // the column containing the date at the left edge (so from the home view you land on
+  // today's day, week, month, quarter or year). The range is rebuilt around that column.
+  var scaleBtns = Array.prototype.slice.call(document.querySelectorAll('[data-scale]'));
+
+  function setScale(key) {
+    var leftTime = timeAt(scroller.scrollLeft);
+    scale = SCALES[key];
+    zoomMode = 'fit';
+    dayPx = dayPxFor(zoomMode);
+    var anchor = startOf(leftTime, scale.unit);
+    rangeStart = add(startOf(anchor, scale.unit === 'day' ? 'week' : scale.unit), scale.unit, -scale.chunk);
+    rangeEnd = add(anchor, scale.unit, scale.chunk);
+    render();
+    scroller.scrollLeft = xOf(anchor);
+    extend();
+    syncTodayArrow();
+    syncZoom();
+    scaleBtns.forEach(function (btn) {
+      var on = btn.getAttribute('data-scale') === key;
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', String(on));
+    });
+  }
+
+  scaleBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () { setScale(btn.getAttribute('data-scale')); });
+  });
 
   function stepZoom(dir) {
     var pct = zoomPct();
@@ -365,7 +456,7 @@
   };
 
   render();
-  scroller.scrollLeft = xOf(PLAN_START);
+  scroller.scrollLeft = xOf(home());
   syncTodayArrow();
   syncZoom();
 })();
