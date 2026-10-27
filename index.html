@@ -17,14 +17,14 @@
 <span class="pill"># PUBLIC</span>
 </nav>
 <div class="tools">
-<button class="btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg><span class="lbl">My tasks</span></button>
-<button class="btn" type="button" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><span class="lbl">Search</span><span class="kbd">⌘F</span></button>
-<button class="btn" type="button" aria-label="Commands"><span class="lbl" style="margin-left: 0">Commands</span><span class="kbd">⌘⇧P</span></button>
+<button class="btn" type="button" disabled=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg><span class="lbl">My tasks</span></button>
+<button class="btn" type="button" disabled="" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><span class="lbl">Search</span><span class="kbd">⌘F</span></button>
+<button class="btn" type="button" disabled="" aria-label="Commands"><span class="lbl" style="margin-left: 0">Commands</span><span class="kbd">⌘⇧P</span></button>
 <div class="grp">
-<button type="button" aria-label="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"></path><path d="M4 9h11a5 5 0 010 10h-3"></path></svg></button>
+<button type="button" disabled="" aria-label="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"></path><path d="M4 9h11a5 5 0 010 10h-3"></path></svg></button>
 <button type="button" aria-label="Redo" disabled=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5"></path><path d="M20 9H9a5 5 0 000 10h3"></path></svg></button>
 </div>
-<button class="btn" type="button">Actions<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 11px; height: 11px"><path d="M6 9l6 6 6-6"></path></svg></button>
+<button class="btn" type="button" disabled="">Actions<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 11px; height: 11px"><path d="M6 9l6 6 6-6"></path></svg></button>
 <div class="stack" aria-label="6 members">
 <span class="av" style="background: #dfae2f">DV</span>
 <span class="av" style="background: #de4f87">AR</span>
@@ -32,24 +32,24 @@
 <span class="av" style="background: #8b5cf0">PS</span>
 <span class="more">+2</span>
 </div>
-<button class="primary" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New task</button>
+<button class="primary" type="button" disabled=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New task</button>
 </div>
 </header>
 
 <main class="panel">
 <nav class="rail" aria-label="Views">
 <div class="logo" aria-hidden="true">P</div>
-<button class="ri on" type="button" aria-label="Timeline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M7 12h13M4 18h9"></path></svg></button>
-<button class="ri" type="button" aria-label="List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
-<button class="ri" type="button" aria-label="Calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path></svg></button>
-<button class="ri" type="button" aria-label="Board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="4.5" height="16" rx="1"></rect><rect x="10" y="4" width="4.5" height="11" rx="1"></rect><rect x="16" y="4" width="4" height="14" rx="1"></rect></svg></button>
-<button class="ri" type="button" aria-label="Workload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M3 19c0-3 2.5-5 5-5s5 2 5 5M15 11h6M15 15h6M17 19h4"></path></svg></button>
-<button class="ri" type="button" aria-label="Reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 3h6v3H9zM9 16v-3M12 16v-5M15 16v-2"></path></svg></button>
-<button class="ri" type="button" aria-label="Trash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg></button>
+<button class="ri on" type="button" aria-label="Timeline" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M7 12h13M4 18h9"></path></svg></button>
+<button class="ri" type="button" disabled="" aria-label="List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
+<button class="ri" type="button" disabled="" aria-label="Calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path></svg></button>
+<button class="ri" type="button" disabled="" aria-label="Board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="4.5" height="16" rx="1"></rect><rect x="10" y="4" width="4.5" height="11" rx="1"></rect><rect x="16" y="4" width="4" height="14" rx="1"></rect></svg></button>
+<button class="ri" type="button" disabled="" aria-label="Workload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M3 19c0-3 2.5-5 5-5s5 2 5 5M15 11h6M15 15h6M17 19h4"></path></svg></button>
+<button class="ri" type="button" disabled="" aria-label="Reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 3h6v3H9zM9 16v-3M12 16v-5M15 16v-2"></path></svg></button>
+<button class="ri" type="button" disabled="" aria-label="Trash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg></button>
 <div class="spacer"></div>
 <span class="av" style="background: #dfae2f">DV</span>
-<button class="ri" type="button" aria-label="Dark mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"></path></svg></button>
-<button class="ri" type="button" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"></path></svg></button>
+<button class="ri" type="button" disabled="" aria-label="Dark mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"></path></svg></button>
+<button class="ri" type="button" disabled="" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"></path></svg></button>
 </nav>
 
 <div class="gut"><div class="caret"><svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden="true"><path d="M8 5l10 7-10 7z"></path></svg></div></div>
@@ -101,7 +101,7 @@
 </g>
 </svg>
 
-<button class="today" type="button" style="left: 3.0833%; top: 31px">← Today</button>
+<button class="today" type="button" disabled="" style="left: 3.0833%; top: 31px">← Today</button>
 
 <div class="bar dk" style="left: 0%; top: 75px; width: 16.25%; background: linear-gradient(90deg,#367f9c 0 58%,#4a95b2 58%)"><span class="t">Wireframes</span><span class="av" style="background: #8b5cf0">PS</span></div>
 <div class="bar dk" style="left: 16.1667%; top: 109px; width: 11.75%"><span class="t">UI mockups</span><span class="av" style="background: #8fb83a">JN</span></div>
@@ -128,12 +128,12 @@
 <footer class="foot">
 <div class="l"><span><b>37</b> tasks</span><span class="dot">·</span><span><b>35</b> deps</span><span class="dot">·</span><span>All days</span><span class="dot">·</span><span>Auto-schedule</span></div>
 <div class="r">
-<button class="ib" type="button" aria-label="Fit to screen"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg></button>
-<button class="ib" type="button" aria-label="Zoom out">−</button>
+<button class="ib" type="button" disabled="" aria-label="Fit to screen"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg></button>
+<button class="ib" type="button" disabled="" aria-label="Zoom out">−</button>
 <span class="zoom">80%</span>
-<button class="ib" type="button" aria-label="Zoom in">+</button>
+<button class="ib" type="button" disabled="" aria-label="Zoom in">+</button>
 <div class="seg" role="group" aria-label="Scale">
-<button type="button">D</button><button type="button" class="on" aria-pressed="true">W</button><button type="button">M</button><button type="button">Q</button><button type="button">Y</button>
+<button type="button" disabled="">D</button><button type="button" disabled="" class="on" aria-pressed="true">W</button><button type="button" disabled="">M</button><button type="button" disabled="">Q</button><button type="button" disabled="">Y</button>
 </div>
 </div>
 </footer>
