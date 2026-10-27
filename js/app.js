@@ -226,6 +226,10 @@
     });
     plan.innerHTML = html;
 
+    // Leave a screen of blank space below the last row so the chart can always scroll down.
+    var lastRow = ROW_Y + data.rows.length * ROW_PX;
+    chartBody.style.minHeight = Math.max(620, lastRow + scroller.clientHeight - 41 - 2 * ROW_PX) + 'px';
+
     // Each arrow leaves the end of `from` and drops onto the start of `to`.
     depsEl.innerHTML = data.deps.map(function (dep) {
       var fi = rowIndex[dep[0]];
@@ -282,16 +286,41 @@
     if (todayBtn.textContent !== label) todayBtn.textContent = label;
   }
 
-  // Drag to pan: hold the left mouse button and drag to move the timeline in any
-  // direction (touch screens already pan natively). Buttons such as Today still click,
-  // and grabbing the scrollbar still works normally.
+  // Drag to pan: hold the left mouse button and drag to move the chart freely in any
+  // direction, diagonals included. Let go mid-drag and it keeps gliding, slowing to a stop
+  // like a map. Touch screens already pan (and fling) natively. Buttons such as Today still
+  // click, and grabbing the scrollbar still works normally.
+  var FRICTION = 0.995;  // glide speed kept per millisecond
   var drag = null;
+  var glide = 0;         // requestAnimationFrame id while gliding
+
+  function stopGlide() {
+    if (glide) cancelAnimationFrame(glide);
+    glide = 0;
+  }
+
+  // vx/vy are in px per ms, in the direction the content was moving.
+  function startGlide(vx, vy) {
+    var last = performance.now();
+    function step(now) {
+      var dt = Math.min(now - last, 32);
+      last = now;
+      scroller.scrollLeft -= vx * dt;
+      scroller.scrollTop -= vy * dt;
+      var keep = Math.pow(FRICTION, dt);
+      vx *= keep;
+      vy *= keep;
+      glide = Math.abs(vx) > 0.02 || Math.abs(vy) > 0.02 ? requestAnimationFrame(step) : 0;
+    }
+    glide = requestAnimationFrame(step);
+  }
 
   scroller.addEventListener('pointerdown', function (e) {
+    stopGlide();
     if (e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('button')) return;
     var r = scroller.getBoundingClientRect();
     if (e.clientX - r.left >= scroller.clientWidth || e.clientY - r.top >= scroller.clientHeight) return;
-    drag = { x: e.clientX, y: e.clientY, left: scroller.scrollLeft, top: scroller.scrollTop };
+    drag = { x: e.clientX, y: e.clientY, left: scroller.scrollLeft, top: scroller.scrollTop, trail: [] };
     try { scroller.setPointerCapture(e.pointerId); } catch (err) {}
     scroller.classList.add('dragging');
     e.preventDefault(); // don't start a text selection
@@ -301,28 +330,34 @@
     if (!drag) return;
     scroller.scrollLeft = drag.left - (e.clientX - drag.x);
     scroller.scrollTop = drag.top - (e.clientY - drag.y);
+    // Keep the last 100ms of movement to work out the release speed.
+    var now = e.timeStamp || performance.now();
+    drag.trail.push({ t: now, x: e.clientX, y: e.clientY });
+    while (drag.trail.length > 2 && now - drag.trail[0].t > 100) drag.trail.shift();
   });
 
-  function endDrag() {
+  function endDrag(e) {
     if (!drag) return;
+    var trail = drag.trail;
     drag = null;
     scroller.classList.remove('dragging');
+    if (trail.length < 2) return;
+    var a = trail[0];
+    var b = trail[trail.length - 1];
+    var now = (e && e.timeStamp) || performance.now();
+    var dt = b.t - a.t;
+    // Only glide if the mouse was still moving when it was released.
+    var cap = function (v) { return Math.max(-6, Math.min(6, v)); }; // px per ms
+    if (dt > 0 && now - b.t < 80) startGlide(cap((b.x - a.x) / dt), cap((b.y - a.y) / dt));
   }
 
   scroller.addEventListener('pointerup', endDrag);
   scroller.addEventListener('pointercancel', endDrag);
-  scroller.addEventListener('lostpointercapture', endDrag);
+  scroller.addEventListener('lostpointercapture', function () { endDrag(); });
 
-  // The wheel scrolls the timeline sideways; Shift + wheel scrolls up and down instead.
-  scroller.addEventListener('wheel', function (e) {
-    if (e.ctrlKey) return; // leave pinch / ctrl-zoom alone
-    var unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? scroller.clientWidth : 1;
-    var delta = (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * unit;
-    if (!delta) return;
-    e.preventDefault();
-    if (e.shiftKey) scroller.scrollTop += delta;
-    else scroller.scrollLeft += delta;
-  }, { passive: false });
+  // The wheel uses the browser's normal scrolling (up and down; Shift or a trackpad
+  // for sideways) and stops any glide in progress.
+  scroller.addEventListener('wheel', stopGlide, { passive: true });
 
   scroller.addEventListener('scroll', function () {
     extend();
@@ -331,6 +366,7 @@
   }, { passive: true });
 
   todayBtn.addEventListener('click', function () {
+    stopGlide();
     scroller.scrollTo({ left: xOf(home()), behavior: 'smooth' });
   });
 
@@ -392,10 +428,13 @@
     setPanel(!panel.classList.contains('open'));
   });
 
-  // Scrolling over the list moves the chart up and down with it.
+  // Scrolling over the list scrolls the chart with it (both share one scroll position).
   panel.querySelector('.gut-body').addEventListener('wheel', function (e) {
     e.preventDefault();
-    scroller.scrollTop += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+    var unit = e.deltaMode === 1 ? 16 : 1;
+    stopGlide();
+    scroller.scrollTop += e.deltaY * unit;
+    scroller.scrollLeft += e.deltaX * unit;
   }, { passive: false });
 
   renderTaskList();
