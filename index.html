@@ -61,7 +61,13 @@
 <button class="ri" type="button" disabled="" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"></path></svg></button>
 </nav>
 
-<div class="gut"><div class="caret"><svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden="true"><path d="M8 5l10 7-10 7z"></path></svg></div></div>
+<aside class="gut" aria-label="Task list" data-panel>
+<div class="gut-hd">
+<span class="gut-title">Task</span>
+<button class="caret" type="button" aria-expanded="false" aria-controls="task-list" aria-label="Show task list" title="Show task list" data-panel-toggle><svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden="true"><path d="M8 5l10 7-10 7z"></path></svg></button>
+</div>
+<div class="gut-body" id="task-list"><div class="gut-rows" data-task-rows></div></div>
+</aside>
 
 <div class="scroll">
 <div class="chart">

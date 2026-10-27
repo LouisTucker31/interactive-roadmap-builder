@@ -327,6 +327,7 @@
   scroller.addEventListener('scroll', function () {
     extend();
     syncTodayArrow();
+    syncPanelScroll();
   }, { passive: true });
 
   todayBtn.addEventListener('click', function () {
@@ -334,14 +335,71 @@
   });
 
   // Keep the same date at the left edge when the window is resized.
-  window.addEventListener('resize', function () {
+  // Watches the chart area itself, so it also catches the task panel opening or closing.
+  function onResize() {
     var leftTime = timeAt(scroller.scrollLeft);
     dayPx = dayPxFor(zoomMode);
     render();
     scroller.scrollLeft = xOf(leftTime);
     extend();
     syncZoom();
+    syncPanelScroll();
+  }
+
+  if (window.ResizeObserver) new ResizeObserver(onResize).observe(scroller);
+  else window.addEventListener('resize', onResize);
+
+  // Task list panel: one row per plan row, lined up with the chart and following its
+  // vertical scroll. The arrow opens and closes it; the choice is remembered per browser.
+  var panel = document.querySelector('[data-panel]');
+  var panelToggle = panel.querySelector('[data-panel-toggle]');
+  var taskRowsEl = panel.querySelector('[data-task-rows]');
+  var chartBody = chart.querySelector('.body');
+
+  function renderTaskList() {
+    taskRowsEl.innerHTML = data.rows.map(function (row) {
+      if (row.type === 'phase') {
+        return '<div class="trow ph"><i class="ic"></i><span class="tn">' + esc(row.name) + '</span></div>';
+      }
+      if (row.type === 'milestone') {
+        return '<div class="trow ms" title="' + esc(row.name + ' · ' + dayLabel(row.day)) + '"><i class="ic"></i>' +
+          '<span class="tn">' + esc(row.name) + '</span><span class="meta">' + dayLabel(row.day) + '</span></div>';
+      }
+      var owner = data.people[row.owner];
+      return '<div class="trow ' + (row.parent ? 'sub' : 'top') + '" title="' +
+        esc(row.name + ' · ' + dayLabel(row.start) + ' – ' + dayLabel(row.end - 1)) + '"><i class="ic"></i>' +
+        '<span class="tn">' + esc(row.name) + '</span>' +
+        (row.progress ? '<span class="meta">' + Math.round(row.progress * 100) + '%</span>' : '') +
+        (owner ? '<span class="av" style="background: ' + owner.color + '">' + esc(row.owner) + '</span>' : '') +
+        '</div>';
+    }).join('');
+  }
+
+  function syncPanelScroll() {
+    taskRowsEl.style.height = chartBody.offsetHeight + 'px';
+    taskRowsEl.style.transform = 'translateY(' + -scroller.scrollTop + 'px)';
+  }
+
+  function setPanel(open) {
+    panel.classList.toggle('open', open);
+    panelToggle.setAttribute('aria-expanded', String(open));
+    panelToggle.setAttribute('aria-label', open ? 'Hide task list' : 'Show task list');
+    panelToggle.title = open ? 'Hide task list' : 'Show task list';
+    try { localStorage.setItem('taskPanel', open ? 'open' : 'closed'); } catch (e) {}
+  }
+
+  panelToggle.addEventListener('click', function () {
+    setPanel(!panel.classList.contains('open'));
   });
+
+  // Scrolling over the list moves the chart up and down with it.
+  panel.querySelector('.gut-body').addEventListener('wheel', function (e) {
+    e.preventDefault();
+    scroller.scrollTop += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+  }, { passive: false });
+
+  renderTaskList();
+  try { if (localStorage.getItem('taskPanel') === 'open') setPanel(true); } catch (e) {}
 
   // Zoom controls: −/+ step through ZOOM_STEPS, the % label opens a menu of set zooms.
   var zoomOut = document.querySelector('[data-zoom-out]');
@@ -485,6 +543,7 @@
       rowIndex = {};
       data.rows.forEach(function (row, i) { if (row.id) rowIndex[row.id] = i; });
       renderPlan();
+      renderTaskList();
     }
   };
 
