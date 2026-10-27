@@ -266,7 +266,9 @@
       var oldStart = rangeStart;
       rangeStart = add(rangeStart, scale.unit, -scale.chunk);
       render();
-      scroller.scrollLeft += xOf(oldStart);
+      var shift = xOf(oldStart);
+      scroller.scrollLeft += shift;
+      if (drag) drag.left += shift; // keep an in-progress drag anchored
     }
     while (scroller.scrollLeft + view > scroller.scrollWidth - view) {
       rangeEnd = add(rangeEnd, scale.unit, scale.chunk);
@@ -279,6 +281,37 @@
     var label = scroller.scrollLeft < xOf(home()) - 1 ? 'Today →' : '← Today';
     if (todayBtn.textContent !== label) todayBtn.textContent = label;
   }
+
+  // Drag to pan: hold the left mouse button and drag to move the timeline in any
+  // direction (touch screens already pan natively). Buttons such as Today still click,
+  // and grabbing the scrollbar still works normally.
+  var drag = null;
+
+  scroller.addEventListener('pointerdown', function (e) {
+    if (e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('button')) return;
+    var r = scroller.getBoundingClientRect();
+    if (e.clientX - r.left >= scroller.clientWidth || e.clientY - r.top >= scroller.clientHeight) return;
+    drag = { x: e.clientX, y: e.clientY, left: scroller.scrollLeft, top: scroller.scrollTop };
+    try { scroller.setPointerCapture(e.pointerId); } catch (err) {}
+    scroller.classList.add('dragging');
+    e.preventDefault(); // don't start a text selection
+  });
+
+  scroller.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    scroller.scrollLeft = drag.left - (e.clientX - drag.x);
+    scroller.scrollTop = drag.top - (e.clientY - drag.y);
+  });
+
+  function endDrag() {
+    if (!drag) return;
+    drag = null;
+    scroller.classList.remove('dragging');
+  }
+
+  scroller.addEventListener('pointerup', endDrag);
+  scroller.addEventListener('pointercancel', endDrag);
+  scroller.addEventListener('lostpointercapture', endDrag);
 
   // The wheel scrolls the timeline sideways; Shift + wheel scrolls up and down instead.
   scroller.addEventListener('wheel', function (e) {
