@@ -53,6 +53,9 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .mlines{position:absolute;inset:0}
 .mline{position:absolute;top:0;bottom:0;width:1px;background:#e1e5ea}
 .plan{position:absolute;top:0;bottom:0}
+/* Current week: highlighted header label and a line at the start of the week */
+.week.now span{background:#4790ad;color:#ffffff;font-weight:600;border-radius:9px;padding:2px 7px}
+.nowline{position:absolute;top:0;bottom:0;width:2px;background:#4790ad}
 .deps{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible}
 .bar{position:absolute;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:space-between;padding:0 2px 0 8px;font-size:11.5px;white-space:nowrap;overflow:hidden}
 .bar span.t{overflow:hidden;text-overflow:ellipsis}

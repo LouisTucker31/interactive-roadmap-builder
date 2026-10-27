@@ -67,15 +67,20 @@
     plan.style.left = xOf(PLAN_START) + 'px';
     plan.style.width = PLAN_WEEKS * weekPx + 'px';
 
+    // The current week (which starts at PLAN_START) gets a highlighted label.
     var weeks = '';
     for (var i = 0; i < weekCount; i++) {
-      var w = new Date(rangeStart + i * WEEK);
-      weeks += '<div class="week">' + MONTHS[w.getUTCMonth()] + ' ' + w.getUTCDate() + '</div>';
+      var t = rangeStart + i * WEEK;
+      var w = new Date(t);
+      var label = MONTHS[w.getUTCMonth()] + ' ' + w.getUTCDate();
+      weeks += t === PLAN_START
+        ? '<div class="week now" aria-current="date"><span>' + label + '</span></div>'
+        : '<div class="week">' + label + '</div>';
     }
     weeksEl.innerHTML = weeks;
 
     var months = '';
-    var lines = '';
+    var lines = '<div class="nowline" style="left: ' + xOf(PLAN_START) + 'px"></div>';
     var first = new Date(rangeStart);
     var y = first.getUTCFullYear();
     var m = first.getUTCMonth();
