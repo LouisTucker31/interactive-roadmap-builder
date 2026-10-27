@@ -419,6 +419,10 @@
   var chartBody = chart.querySelector('.body');
 
   function renderTaskList() {
+    if (!data.rows.length) {
+      taskRowsEl.innerHTML = '<div class="trow empty">Nothing here yet.&nbsp;<button type="button" data-empty-add>Add a task</button></div>';
+      return;
+    }
     taskRowsEl.innerHTML = data.rows.map(function (row) {
       if (row.type === 'phase') {
         return '<div class="trow ph"><i class="ic"></i><span class="tn">' + esc(row.name) + '</span></div>';
@@ -819,6 +823,10 @@
   }
 
   newBtn.addEventListener('click', openForm);
+  // The empty task list has its own "Add a task" link.
+  taskRowsEl.addEventListener('click', function (e) {
+    if (e.target.closest('[data-empty-add]')) openForm();
+  });
   form.addEventListener('change', syncForm);
   form.elements.progress.addEventListener('input', syncForm);
   // Keep the finish on or after the start when the start moves past it.

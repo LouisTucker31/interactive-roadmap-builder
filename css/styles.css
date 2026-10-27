@@ -39,7 +39,7 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 /* Task list panel: a 24px gutter holding the arrow when closed, a 260px list when open.
    Its header matches the chart header height and its rows sit on the chart's 33.6px row
    grid (two empty rows first, where the Today button sits) so each row lines up with its bar. */
-.gut{width:24px;flex:none;border-right:1px solid #eef0f3;background:#ffffff;display:flex;flex-direction:column;overflow:hidden;transition:width .18s ease}
+.gut{width:24px;flex:none;border-right:1px solid #e6e9ed;background:#f6f7f9;display:flex;flex-direction:column;overflow:hidden;transition:width .18s ease}
 .gut.open{width:260px}
 .gut-hd{height:41px;flex:none;display:flex;align-items:flex-end;justify-content:flex-end}
 .gut.open .gut-hd{align-items:center;padding-left:12px;border-bottom:1px solid #e3e6ea}
@@ -51,7 +51,7 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .gut.open .caret svg{transform:rotate(180deg)}
 .gut-body{flex:1;min-height:0;overflow:hidden;visibility:hidden}
 .gut.open .gut-body{visibility:visible}
-.gut-rows{width:260px;padding-top:67.2px;background-image:repeating-linear-gradient(180deg,transparent 0 33px,#f1f3f6 33px 33.6px)}
+.gut-rows{width:260px;padding-top:67.2px;background-image:repeating-linear-gradient(180deg,transparent 0 33px,#eaedf0 33px 33.6px)}
 .trow{height:33.6px;display:flex;align-items:center;gap:8px;padding:0 10px 0 12px;font-size:11.5px;color:#1b1f24;white-space:nowrap}
 .trow .tn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .trow .ic{width:7px;height:7px;flex:none;border-radius:50%;background:#418dab}
@@ -64,6 +64,9 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .trow.ph .ic{width:12px;height:12px;background:#ffffff;border:1.5px solid #c7c1ec}
 .trow .meta{flex:none;font:400 10px "JetBrains Mono",monospace;color:#7b828b}
 .trow .av{width:18px;height:18px;margin:0;border:0;font-size:7px}
+.trow.empty{color:#7b828b;font-style:italic}
+.trow.empty button{padding:0;border:0;background:none;font:inherit;font-style:normal;font-weight:600;color:#3f86a3;cursor:pointer}
+.trow.empty button:hover{text-decoration:underline}
 .scroll{flex:1;min-width:0;overflow:auto;position:relative;overscroll-behavior-x:contain;cursor:grab}
 .scroll.dragging{cursor:grabbing;user-select:none}
 /* Hide the sideways scrollbar (the timeline is endless); keep a slim vertical one */
@@ -213,7 +216,7 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .ri:hover:not(:disabled){color:#f1f3f5;background:#1c2024}
 [data-theme="dark"] .ri.on{color:#f1f3f5}
 [data-theme="dark"] .ri.on::before{background:#5aa6c4}
-[data-theme="dark"] .gut{background:#131619;border-right-color:#22272c}
+[data-theme="dark"] .gut{background:#15181b;border-right-color:#22272c}
 [data-theme="dark"] .gut .caret{color:#8a919a}
 [data-theme="dark"] .gut .caret:hover{background:#20242a;color:#f1f3f5}
 [data-theme="dark"] .gut.open .gut-hd{border-bottom-color:#2b3036}
@@ -225,6 +228,8 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .trow.ph{color:#e4e7ea}
 [data-theme="dark"] .trow.ph .ic{background:#131619;border-color:#6e63b8}
 [data-theme="dark"] .trow .meta{color:#8a919a}
+[data-theme="dark"] .trow.empty{color:#7b828b}
+[data-theme="dark"] .trow.empty button{color:#7fb6cc}
 [data-theme="dark"] .hd{background:#131619}
 [data-theme="dark"] .scroll::-webkit-scrollbar-thumb{background:#363c43}
 [data-theme="dark"] .groups{border-bottom-color:#262b31}
