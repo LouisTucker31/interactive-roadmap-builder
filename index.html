@@ -24,11 +24,11 @@
 <header class="top">
 <nav class="crumb" aria-label="Breadcrumb">
 <span class="ws">Workspace</span><span class="sep">/</span><span class="name">Ex HAILSTORM</span>
-<span class="pill"># National Gas Transmission</span>
+<div class="tagwrap"><button class="pill" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="tag-pop" data-tag-btn></button><div class="tagpop" id="tag-pop" role="dialog" aria-label="Project tag" hidden data-tag-pop></div></div>
 </nav>
 <div class="tools">
 <button class="btn" type="button" disabled=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg><span class="lbl">My tasks</span></button>
-<button class="btn" type="button" disabled="" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><span class="lbl">Search</span><span class="kbd">⌘F</span></button>
+<div class="search" data-search><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><input type="text" placeholder="Search" aria-label="Search the plan" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-results" data-search-input><span class="kbd" data-search-kbd>⌘F</span><div class="sresults" id="search-results" role="listbox" aria-label="Search results" hidden data-search-results></div></div>
 <button class="btn" type="button" disabled="" aria-label="Commands"><span class="lbl" style="margin-left: 0">Commands</span><span class="kbd">⌘⇧P</span></button>
 <div class="grp">
 <button type="button" disabled="" aria-label="Undo" title="Undo (Ctrl+Z)" data-undo><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"></path><path d="M4 9h11a5 5 0 010 10h-3"></path></svg></button>
@@ -166,7 +166,7 @@
 
 <div class="fld" data-for="task"><span class="fl">Progress <output data-progress-out>0%</output></span><input type="range" name="progress" min="0" max="100" step="5" value="0" aria-label="Progress"></div>
 
-<div class="fld" data-for="task milestone"><span class="fl">Depends on <em>can't start until these finish</em></span><div class="deps-list" data-dep-options></div></div>
+<div class="fld" data-for="task milestone"><button class="fold" type="button" aria-expanded="false" aria-controls="dep-options" data-deps-toggle><svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden="true"><path d="M8 5l10 7-10 7z"></path></svg><span class="fl">Depends on <em>can't start until these finish</em></span><span class="fold-n" data-deps-count></span></button><div class="deps-list" id="dep-options" hidden data-dep-options></div></div>
 
 <p class="err" role="alert" data-nt-error hidden></p>
 </div>

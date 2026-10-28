@@ -1024,6 +1024,8 @@
     // A subtask sits under its parent, so its phase comes from there.
     form.elements.phase.disabled = type === 'task' && !!form.elements.parent.value;
     form.querySelector('[data-progress-out]').textContent = form.elements.progress.value + '%';
+    var deps = form.querySelectorAll('[name="deps"]:checked').length;
+    form.querySelector('[data-deps-count]').textContent = deps ? deps + ' selected' : '';
   }
 
   // Phases split the rows into sections: rows before the first phase have none.
@@ -1121,6 +1123,7 @@
       f.startDate.value = isoDate(day);
     }
     errEl.hidden = true;
+    foldDeps(false);
     syncForm();
     dialog.showModal();
     f.name.focus();
@@ -1278,6 +1281,17 @@
       hidePersonBox();
     }
   });
+
+  // Depends on folds away, closed each time the form opens; its heading counts what's ticked.
+  var depsToggle = form.querySelector('[data-deps-toggle]');
+  var depsList = form.querySelector('[data-dep-options]');
+
+  function foldDeps(open) {
+    depsToggle.setAttribute('aria-expanded', String(open));
+    depsList.hidden = !open;
+  }
+
+  depsToggle.addEventListener('click', function () { foldDeps(depsList.hidden); });
 
   function openEdit(id) {
     if (rowIndex[id] != null) openForm(data.rows[rowIndex[id]]);
@@ -2276,6 +2290,331 @@
   var savedPage;
   try { savedPage = localStorage.getItem('roadmapPage'); } catch (e) {}
   setPage(savedPage === 'list' ? 'list' : 'timeline');
+
+  // Project tag: the tag beside the project name. Tags are a shared list (kept in this
+  // browser apart from the plan), so other projects can use the same tag; this project
+  // has one or none. Clicking the tag opens a popup to pick a different one, find or
+  // create one, edit a tag's name and colour, delete it, or take it off this project.
+  var tagBtn = document.querySelector('[data-tag-btn]');
+  var tagPop = document.querySelector('[data-tag-pop]');
+  var TAG_DEFAULT = { id: 'national-gas-transmission', name: 'National Gas Transmission', color: '#418dab' };
+  var tags = null;
+  var projectTag = TAG_DEFAULT.id;
+  var tagEditing = null; // the tag open in the editor, or null for the list
+
+  function loadTags() {
+    var saved, proj;
+    try { saved = JSON.parse(localStorage.getItem('roadmapTags')); } catch (e) {}
+    try { proj = JSON.parse(localStorage.getItem('roadmapProject')); } catch (e) {}
+    tags = Array.isArray(saved) ? saved : [TAG_DEFAULT];
+    projectTag = proj && 'tag' in proj ? proj.tag : TAG_DEFAULT.id;
+  }
+
+  function saveTags() {
+    try {
+      localStorage.setItem('roadmapTags', JSON.stringify(tags));
+      localStorage.setItem('roadmapProject', JSON.stringify({ tag: projectTag }));
+    } catch (e) {}
+  }
+
+  function tagById(id) {
+    return tags.filter(function (t) { return t.id === id; })[0] || null;
+  }
+
+  function renderTagBtn() {
+    var t = tagById(projectTag);
+    tagBtn.textContent = t ? '# ' + t.name : '+ Add tag';
+    tagBtn.classList.toggle('empty', !t);
+    tagBtn.style.setProperty('--c', t ? t.color : '');
+    tagBtn.title = t ? 'Project tag · click to change' : 'Tag this project';
+  }
+
+  var PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13 7l4 4"></path></svg>';
+
+  function renderTagPop() {
+    if (tagEditing) {
+      var t = tagEditing;
+      tagPop.innerHTML = '<div class="tp-hd">Edit tag</div>' +
+        '<div class="tp-body"><input type="text" maxlength="40" value="' + esc(t.name) + '" aria-label="Tag name" data-tag-name>' +
+        '<div class="pcolors" role="radiogroup" aria-label="Tag colour">' + COLORS.map(function (c) {
+          return '<label class="sw sm"><input type="radio" name="tagColor" value="' + c[1] + '"' + (c[1] === t.color ? ' checked' : '') +
+            ' aria-label="' + c[0] + '"><span style="background: ' + c[1] + '" title="' + c[0] + '"></span></label>';
+        }).join('') + '</div>' +
+        '<p class="tp-note">Changes show on every project with this tag.</p><p class="tp-err" hidden data-tag-err></p></div>' +
+        '<div class="tp-ft"><button class="btn del" type="button" data-tag-delete>Delete tag</button>' +
+        '<button class="btn" type="button" data-tag-back>Cancel</button><button class="primary" type="button" data-tag-save>Save</button></div>';
+      tagPop.querySelector('[data-tag-name]').select();
+      return;
+    }
+    tagPop.innerHTML = '<div class="tp-hd">Project tag</div>' +
+      '<div class="tp-body"><input type="text" maxlength="40" placeholder="Find or create a tag" aria-label="Find or create a tag" data-tag-q>' +
+      '<div class="tp-list" role="listbox" aria-label="Tags" data-tag-list></div></div>' +
+      (tagById(projectTag) ? '<div class="tp-ft"><button class="tp-remove" type="button" data-tag-remove>Remove tag from this project</button></div>' : '');
+    renderTagList();
+    tagPop.querySelector('[data-tag-q]').focus();
+  }
+
+  function renderTagList() {
+    var input = tagPop.querySelector('[data-tag-q]');
+    var q = input.value.trim().replace(/\s+/g, ' ');
+    var shown = tags.filter(function (t) { return t.name.toLowerCase().indexOf(q.toLowerCase()) >= 0; });
+    var exact = tags.some(function (t) { return t.name.toLowerCase() === q.toLowerCase(); });
+    tagPop.querySelector('[data-tag-list]').innerHTML = shown.map(function (t) {
+      var on = t.id === projectTag;
+      return '<div class="tp-row' + (on ? ' on' : '') + '"><button type="button" class="tp-pick" role="option" aria-selected="' + on + '" data-tag-pick="' + esc(t.id) + '">' +
+        '<i style="background: ' + esc(t.color) + '"></i><span>' + esc(t.name) + '</span></button>' +
+        '<button type="button" class="tp-edit" aria-label="Edit ' + esc(t.name) + '" title="Edit tag" data-tag-edit="' + esc(t.id) + '">' + PENCIL + '</button></div>';
+    }).join('') +
+      (q && !exact ? '<button type="button" class="tp-create" data-tag-create>+ Create tag “' + esc(q) + '”</button>' : '') +
+      (!shown.length && !q ? '<p class="tp-empty">No tags yet. Type a name to create one.</p>' : '');
+  }
+
+  function openTagPop(open) {
+    tagEditing = null;
+    tagPop.hidden = !open;
+    tagBtn.setAttribute('aria-expanded', String(open));
+    if (open) renderTagPop();
+  }
+
+  function pickTag(id) {
+    projectTag = id;
+    saveTags();
+    renderTagBtn();
+    openTagPop(false);
+    tagBtn.focus();
+  }
+
+  function createTag(name) {
+    var base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'tag';
+    var id = base;
+    for (var n = 2; tagById(id); n++) id = base + '-' + n;
+    tags.push({ id: id, name: name, color: COLORS[tags.length % COLORS.length][1] });
+    pickTag(id);
+  }
+
+  function saveTagEdit() {
+    var name = tagPop.querySelector('[data-tag-name]').value.trim().replace(/\s+/g, ' ');
+    var err = tagPop.querySelector('[data-tag-err]');
+    var clash = tags.filter(function (t) { return t !== tagEditing && t.name.toLowerCase() === name.toLowerCase(); })[0];
+    if (!name || clash) {
+      err.textContent = name ? 'There is already a tag called ' + clash.name + '.' : 'Give the tag a name.';
+      err.hidden = false;
+      return tagPop.querySelector('[data-tag-name]').focus();
+    }
+    var colorIn = tagPop.querySelector('[name="tagColor"]:checked');
+    var edited = { id: tagEditing.id, name: name, color: colorIn ? colorIn.value : tagEditing.color };
+    tags = tags.map(function (t) { return t === tagEditing ? edited : t; });
+    saveTags();
+    renderTagBtn();
+    tagEditing = null;
+    renderTagPop();
+  }
+
+  tagBtn.addEventListener('click', function () { openTagPop(tagPop.hidden); });
+  tagPop.addEventListener('input', function (e) { if (e.target.matches('[data-tag-q]')) renderTagList(); });
+  tagPop.addEventListener('click', function (e) {
+    var t = e.target;
+    var pick = t.closest('[data-tag-pick]');
+    var edit = t.closest('[data-tag-edit]');
+    if (pick) return pickTag(pick.getAttribute('data-tag-pick'));
+    if (edit) {
+      tagEditing = tagById(edit.getAttribute('data-tag-edit'));
+      return renderTagPop();
+    }
+    if (t.closest('[data-tag-create]')) return createTag(tagPop.querySelector('[data-tag-q]').value.trim().replace(/\s+/g, ' '));
+    if (t.closest('[data-tag-remove]')) return pickTag(null);
+    if (t.closest('[data-tag-back]')) {
+      tagEditing = null;
+      return renderTagPop();
+    }
+    if (t.closest('[data-tag-save]')) return saveTagEdit();
+    var del = t.closest('[data-tag-delete]');
+    if (del) {
+      // Asks once: the first click turns the button into a confirm.
+      if (!del.classList.contains('armed')) {
+        del.classList.add('armed');
+        del.textContent = 'Delete for every project?';
+        return;
+      }
+      var gone = tagEditing.id;
+      tags = tags.filter(function (x) { return x.id !== gone; });
+      if (projectTag === gone) projectTag = null;
+      saveTags();
+      renderTagBtn();
+      tagEditing = null;
+      renderTagPop();
+    }
+  });
+  tagPop.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (tagEditing) {
+        tagEditing = null;
+        return renderTagPop();
+      }
+      openTagPop(false);
+      return tagBtn.focus();
+    }
+    if (e.key !== 'Enter') return;
+    if (e.target.matches('[data-tag-name]')) {
+      e.preventDefault();
+      return saveTagEdit();
+    }
+    if (e.target.matches('[data-tag-q]')) {
+      // Enter picks the tag with that name, or the only match, or creates it.
+      e.preventDefault();
+      var q = e.target.value.trim().replace(/\s+/g, ' ');
+      if (!q) return;
+      var matches = tags.filter(function (t) { return t.name.toLowerCase().indexOf(q.toLowerCase()) >= 0; });
+      var exact = tags.filter(function (t) { return t.name.toLowerCase() === q.toLowerCase(); })[0];
+      if (exact) pickTag(exact.id);
+      else if (matches.length === 1) pickTag(matches[0].id);
+      else createTag(q);
+    }
+  });
+  document.addEventListener('pointerdown', function (e) {
+    if (!tagPop.hidden && !e.target.closest('.tagwrap')) openTagPop(false);
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'roadmapTags' && e.key !== 'roadmapProject') return;
+    loadTags();
+    renderTagBtn();
+    if (!tagPop.hidden && !tagEditing) renderTagList();
+  });
+
+  loadTags();
+  renderTagBtn();
+
+  // Search: type in the top bar to find anything in the plan by its name, phase, person
+  // or type. Results update as you type; click one (or pick it with ↑/↓ and Enter) to go
+  // to it on the page you're on, where it lights up for a moment. Ctrl+F (⌘F) jumps here.
+  var searchIn = document.querySelector('[data-search-input]');
+  var searchRes = document.querySelector('[data-search-results]');
+  var searchHits = [];
+  var searchSel = 0;
+  var MAC = /Mac|iPhone|iPad/.test(navigator.platform);
+  document.querySelector('[data-search-kbd]').textContent = MAC ? '⌘F' : 'Ctrl F';
+
+  // The name with every searched-for word marked.
+  function markWords(name, words) {
+    var hit = [];
+    var low = name.toLowerCase();
+    words.forEach(function (w) {
+      for (var i = low.indexOf(w); i >= 0; i = low.indexOf(w, i + 1)) {
+        for (var k = i; k < i + w.length; k++) hit[k] = true;
+      }
+    });
+    var out = '';
+    for (var j = 0; j < name.length; j++) {
+      if (hit[j] && !hit[j - 1]) out += '<mark>';
+      out += esc(name.charAt(j));
+      if (hit[j] && !hit[j + 1]) out += '</mark>';
+    }
+    return out;
+  }
+
+  function runSearch() {
+    var q = searchIn.value.trim().toLowerCase();
+    if (!q) return showResults(false);
+    var words = q.split(/\s+/);
+    searchHits = data.rows.map(function (r, i) {
+      var who = personById(r.person);
+      var kind = r.type === 'task' ? (r.parent ? 'subtask' : 'task') : r.type;
+      var hay = [r.name, phaseName(r), who ? who.name : '', kind].join(' ').toLowerCase();
+      if (!words.every(function (w) { return hay.indexOf(w) >= 0; })) return null;
+      var name = r.name.toLowerCase();
+      // Names starting with the search come first, then names containing it, then the rest.
+      return { r: r, rank: name.indexOf(q) === 0 ? 0 : name.indexOf(q) > 0 ? 1 : 2, i: i };
+    }).filter(Boolean).sort(function (a, b) { return a.rank - b.rank || a.i - b.i; }).slice(0, 8).map(function (h) { return h.r; });
+    searchSel = 0;
+    searchRes.innerHTML = searchHits.length ? searchHits.map(function (r, i) {
+      var who = personById(r.person);
+      var ic = r.type === 'phase' ? '<i class="lic ph"></i>' : r.type === 'milestone' ? '<i class="lic ms"></i>'
+        : '<i class="lic' + (r.parent ? ' sub' : '') + '" style="' + colorVar(r).slice(2) + '"></i>';
+      var meta = [r.type === 'task' ? (r.parent ? 'Subtask' : 'Task') : r.type === 'milestone' ? 'Milestone' : 'Phase', phaseName(r), who ? who.name : '']
+        .filter(Boolean).map(esc).join(' · ');
+      return '<div class="sr" role="option" id="sr-' + i + '" data-id="' + esc(r.id) + '">' + ic +
+        '<span class="sr-t"><span class="sr-n">' + markWords(r.name, words) + '</span><span class="sr-m">' + meta + '</span></span>' +
+        '<span class="sr-d">' + esc(itemLabel(r)) + '</span></div>';
+    }).join('') : '<div class="sr-none">Nothing matches “' + esc(searchIn.value.trim()) + '”</div>';
+    showResults(true);
+    syncSearchSel();
+  }
+
+  function showResults(open) {
+    searchRes.hidden = !open;
+    searchIn.setAttribute('aria-expanded', String(open));
+    if (!open) searchIn.removeAttribute('aria-activedescendant');
+  }
+
+  function syncSearchSel() {
+    Array.prototype.forEach.call(searchRes.querySelectorAll('.sr'), function (el, i) {
+      el.setAttribute('aria-selected', String(i === searchSel));
+      if (i === searchSel) {
+        searchIn.setAttribute('aria-activedescendant', el.id);
+        el.scrollIntoView({ block: 'nearest' });
+      }
+    });
+  }
+
+  // Go to a row on whichever page is open and light it up for a moment.
+  function goToItem(id) {
+    showResults(false);
+    searchIn.value = '';
+    searchIn.blur();
+    if (rowIndex[id] == null) return;
+    if (app.getAttribute('data-page') !== 'list') return goToRow(id);
+    var sel = '.lrow[data-id="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]';
+    if (!listBody.querySelector(sel)) clearFilters(); // it was filtered out
+    freshId = id;
+    renderList();
+    var tr = listBody.querySelector(sel);
+    if (tr) tr.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    setTimeout(function () { if (freshId === id) freshId = null; }, 2200);
+  }
+
+  searchIn.addEventListener('input', runSearch);
+  searchIn.addEventListener('focus', function () { if (searchIn.value.trim()) runSearch(); });
+  searchIn.addEventListener('blur', function () { showResults(false); });
+  searchIn.addEventListener('keydown', function (e) {
+    var n = searchHits.length;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (!searchRes.hidden) return showResults(false);
+      searchIn.value = '';
+      return searchIn.blur();
+    }
+    if (searchRes.hidden || !n) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      searchSel = (searchSel + (e.key === 'ArrowDown' ? 1 : n - 1)) % n;
+      syncSearchSel();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      goToItem(searchHits[searchSel].id);
+    }
+  });
+  // mousedown, so the click lands before the box loses focus and the results close.
+  searchRes.addEventListener('mousedown', function (e) {
+    e.preventDefault();
+    var el = e.target.closest('.sr[data-id]');
+    if (el) goToItem(el.getAttribute('data-id'));
+  });
+  searchRes.addEventListener('mousemove', function (e) {
+    var el = e.target.closest('.sr');
+    var i = Array.prototype.indexOf.call(searchRes.querySelectorAll('.sr'), el);
+    if (el && i !== searchSel) {
+      searchSel = i;
+      syncSearchSel();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'f' && !dialog.open) {
+      e.preventDefault();
+      searchIn.focus();
+      searchIn.select();
+    }
+  });
 
   // Tooltips: hovering (or tabbing to) anything with a title shows it in the app's own
   // small popup, and an icon-only button shows its aria-label. The title is set aside
