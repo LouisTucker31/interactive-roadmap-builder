@@ -1188,8 +1188,22 @@
     t = scale.unit === 'hour' ? Math.floor(t / (HOUR / 4)) * HOUR / 4 : startOf(t, 'day');
     var y = clientY - r.top;
     var row = data.rows[Math.floor((y - ROW_Y) / ROW_PX + 0.5)];
-    var phase = !row ? null : row.type === 'phase' ? row.id : phaseOf(row.parent ? data.rows[rowIndex[row.parent]] : row);
+    var phase = !row ? phaseAt(t) : row.type === 'phase' ? row.id : phaseOf(row.parent ? data.rows[rowIndex[row.parent]] : row);
     return { time: t, phase: phase, y: y };
+  }
+
+  // Below the rows, the phase whose band spans time `t` (the latest-starting one if they
+  // overlap): up to its end, or for an open-ended phase up to the next phase's start.
+  function phaseAt(t) {
+    var d = (t - PLAN_START) / DAY;
+    var found = '';
+    data.rows.forEach(function (row) {
+      if (row.type !== 'phase' || d < row.start) return;
+      var next = data.rows[sectionEnd(row.id)];
+      var end = row.end != null ? row.end : next && next.start > row.start ? next.start : Infinity;
+      if (d < end) found = row.id;
+    });
+    return found;
   }
 
   scroller.addEventListener('pointermove', function (e) {
@@ -1199,7 +1213,8 @@
     if (!spot) return;
     ghost.style.left = xOf(spot.time) + 'px';
     ghost.firstChild.style.top = spot.y + 'px';
-    ghost.firstChild.textContent = '+ ' + (scale.unit === 'hour' ? clockOf(spot.time) : dayLabel((spot.time - PLAN_START) / DAY));
+    ghost.firstChild.textContent = '+ ' + (scale.unit === 'hour' ? clockOf(spot.time) : dayLabel((spot.time - PLAN_START) / DAY)) +
+      (spot.phase ? ' · ' + data.rows[rowIndex[spot.phase]].name : '');
   });
   scroller.addEventListener('pointerleave', function () { ghost.hidden = true; });
 
