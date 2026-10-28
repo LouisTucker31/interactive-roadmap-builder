@@ -2164,7 +2164,82 @@
 
   clearBtn.addEventListener('click', clearFilters);
 
+  // Drag to scroll the list with the mouse, in any direction, gliding on after a fling
+  // like the timeline. A press that doesn't move still clicks (a row opens for editing);
+  // buttons, menus and fields work as normal.
+  var listScroll = listEl.querySelector('.lscroll');
+  var lDrag = null;
+  var lDragged = false; // the last press dragged, so its click is ignored
+  var lGlide = 0;
+
+  function stopListGlide() {
+    if (lGlide) cancelAnimationFrame(lGlide);
+    lGlide = 0;
+  }
+
+  listScroll.addEventListener('pointerdown', function (e) {
+    stopListGlide();
+    lDragged = false;
+    if (e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('button, input, select, a')) return;
+    var r = listScroll.getBoundingClientRect();
+    if (e.clientX - r.left >= listScroll.clientWidth || e.clientY - r.top >= listScroll.clientHeight) return; // the scrollbars
+    lDrag = { x: e.clientX, y: e.clientY, left: listScroll.scrollLeft, top: listScroll.scrollTop, id: e.pointerId, trail: [] };
+    e.preventDefault(); // no text selection
+  });
+
+  listScroll.addEventListener('pointermove', function (e) {
+    if (!lDrag) return;
+    if (!e.buttons) return endListDrag(e); // released outside the window
+    if (!lDragged && Math.abs(e.clientX - lDrag.x) + Math.abs(e.clientY - lDrag.y) > 4) {
+      lDragged = true;
+      try { listScroll.setPointerCapture(lDrag.id); } catch (err) {}
+      listScroll.classList.add('dragging');
+    }
+    if (!lDragged) return;
+    listScroll.scrollLeft = lDrag.left - (e.clientX - lDrag.x);
+    listScroll.scrollTop = lDrag.top - (e.clientY - lDrag.y);
+    var now = e.timeStamp || performance.now();
+    lDrag.trail.push({ t: now, x: e.clientX, y: e.clientY });
+    while (lDrag.trail.length > 2 && now - lDrag.trail[0].t > 100) lDrag.trail.shift();
+  });
+
+  function endListDrag(e) {
+    if (!lDrag) return;
+    var trail = lDrag.trail;
+    lDrag = null;
+    listScroll.classList.remove('dragging');
+    if (trail.length < 2) return;
+    var a = trail[0];
+    var b = trail[trail.length - 1];
+    var dt = b.t - a.t;
+    var now = (e && e.timeStamp) || performance.now();
+    if (!(dt > 0 && now - b.t < 80)) return; // only glide if still moving when let go
+    var cap = function (v) { return Math.max(-6, Math.min(6, v)); };
+    var vx = cap((b.x - a.x) / dt);
+    var vy = cap((b.y - a.y) / dt);
+    var last = performance.now();
+    function step(t) {
+      var d = Math.min(t - last, 32);
+      last = t;
+      listScroll.scrollLeft -= vx * d;
+      listScroll.scrollTop -= vy * d;
+      var keep = Math.pow(FRICTION, d);
+      vx *= keep;
+      vy *= keep;
+      lGlide = Math.abs(vx) > 0.02 || Math.abs(vy) > 0.02 ? requestAnimationFrame(step) : 0;
+    }
+    lGlide = requestAnimationFrame(step);
+  }
+
+  listScroll.addEventListener('pointerup', endListDrag);
+  listScroll.addEventListener('pointercancel', endListDrag);
+  listScroll.addEventListener('wheel', stopListGlide, { passive: true });
+
   listBody.addEventListener('click', function (e) {
+    if (lDragged) {
+      lDragged = false;
+      return;
+    }
     if (e.target.closest('[data-list-clear]')) return clearFilters();
     if (e.target.closest('[data-list-add]')) return openForm();
     var tr = e.target.closest('.lrow[data-id]');
