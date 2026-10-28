@@ -60,8 +60,9 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .trow.sub .tn{color:#3a4048}
 .trow.sub .ic{background:transparent;border:1.5px solid #8cc3da;border-color:color-mix(in srgb,var(--c,#418dab) 55%,#ffffff)}
 .trow.ms .ic{width:8px;height:8px;border-radius:1.5px;background:#d4802c;transform:rotate(45deg)}
-.trow.ph{font:700 10px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#22262b}
-.trow.ph .ic{width:12px;height:12px;background:#ffffff;border:1.5px solid #c7c1ec}
+.trow.ph{font:700 10.5px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#2d2560;background:#f1eefb;border-top:1px solid #e2dcf7}
+.trow.ph[data-id]:hover{background:#e9e4f9}
+.trow.ph .ic{width:12px;height:12px;background:#ffffff;border:2px solid #a596ea}
 .trow .meta{flex:none;font:400 10px "JetBrains Mono",monospace;color:#7b828b}
 .trow.empty{margin-top:-68px;color:#7b828b;font-style:italic}
 .trow[data-id]{cursor:pointer}
@@ -133,9 +134,14 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .dock{position:sticky;left:0;top:41px;width:0;height:0;z-index:4}
 .today{position:absolute;left:var(--dock-x,24px);top:31px;white-space:nowrap;height:24px;padding:0 11px;border-radius:12px;border:0;background:#4790ad;color:#ffffff;font:500 10.5px Inter,sans-serif;display:flex;align-items:center;gap:4px;cursor:pointer;box-shadow:0 1px 2px rgba(20,40,60,.18)}
 .today.here{background:#ffffff;color:#3f86a3;box-shadow:inset 0 0 0 1.5px #4790ad}
-.phase{position:absolute;left:0;display:flex;text-transform:uppercase;align-items:center;gap:6px;font:700 10px Inter,sans-serif;letter-spacing:.04em;color:#22262b}
-.phase i{width:12px;height:12px;border-radius:50%;border:1.5px solid #c7c1ec;background:#ffffff;display:block;margin-left:-6px}
-.pline{position:absolute;left:0;right:0;height:4px;background:#cdc6f2;border-radius:2px}
+/* Phases: a bolder label and line than tasks, and a tinted band behind their whole section */
+.phase{position:absolute;left:0;display:flex;text-transform:uppercase;align-items:center;gap:7px;font:700 11px Inter,sans-serif;letter-spacing:.05em;color:#2d2560}
+.phase i{width:14px;height:14px;border-radius:50%;border:2px solid #a596ea;background:#ffffff;display:block;margin-left:-7px}
+.pline{position:absolute;left:0;right:0;height:4px;background:#bfb3f0;border-radius:2px}
+.bands{position:absolute;inset:0;pointer-events:none}
+.band{position:absolute;background:rgba(132,88,224,.055);border-left:2px solid rgba(132,88,224,.3);border-radius:0 6px 6px 0}
+/* A milestone with a finish: a line from its start diamond to its finish diamond */
+.mlink{position:absolute;height:2px;background:#e3a76a;cursor:pointer}
 /* Hovering empty chart space: a guide at the time a click would add something */
 .ghost{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed #8fbdd0;pointer-events:none}
 .ghost span{position:absolute;left:5px;transform:translateY(-50%);white-space:nowrap;height:18px;line-height:18px;padding:0 7px;border-radius:9px;background:#e6f2f7;color:#2f6f89;font:500 10px Inter,sans-serif}
@@ -181,7 +187,7 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .peek-ft{display:flex;justify-content:flex-end;padding:10px 12px;border-top:1px solid #eceff2}
 .peek-ft .btn{height:28px}
 .peek-ft .btn svg{flex:none}
-.pcap{position:absolute;width:12px;height:12px;margin-left:-6px;border-radius:50%;border:1.5px solid #c7c1ec;background:#ffffff;box-sizing:border-box}
+.pcap{position:absolute;width:12px;height:12px;margin-left:-6px;border-radius:50%;border:2px solid #a596ea;background:#ffffff;box-sizing:border-box}
 .foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 20px 12px;font-size:10.5px;color:#4a5159}
 .foot .l{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .foot b{font-weight:600;color:#1b1f24}
@@ -313,7 +319,8 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .trow{color:#e4e7ea}
 [data-theme="dark"] .trow.sub .tn{color:#c9ced4}
 [data-theme="dark"] .trow.sub .ic{border-color:#3f7f99;border-color:color-mix(in srgb,var(--c,#418dab) 75%,#131619)}
-[data-theme="dark"] .trow.ph{color:#e4e7ea}
+[data-theme="dark"] .trow.ph{color:#ddd6fb;background:#1c1930;border-top-color:#2c2647}
+[data-theme="dark"] .trow.ph[data-id]:hover{background:#231f3b}
 [data-theme="dark"] .trow.ph .ic{background:#131619;border-color:#6e63b8}
 [data-theme="dark"] .trow .meta{color:#8a919a}
 [data-theme="dark"] .trow.empty{color:#7b828b}
@@ -334,9 +341,11 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .bar.lt{background:#1f4352;color:#cfe8f3}
 [data-theme="dark"] .bar.lt{background-color:color-mix(in srgb,var(--c,#418dab) 38%,#131619);color:color-mix(in srgb,var(--c,#418dab) 30%,#ffffff)}
 [data-theme="dark"] .today.here{background:#131619;color:#7fb6cc;box-shadow:inset 0 0 0 1.5px #4790ad}
-[data-theme="dark"] .phase{color:#e4e7ea}
+[data-theme="dark"] .phase{color:#ddd6fb}
+[data-theme="dark"] .band{background:rgba(132,88,224,.08);border-left-color:rgba(132,88,224,.45)}
+[data-theme="dark"] .mlink{background:#9a6430}
 [data-theme="dark"] .phase i{background:#131619;border-color:#6e63b8}
-[data-theme="dark"] .pline{background:#4b4380}
+[data-theme="dark"] .pline{background:#5a4f9a}
 [data-theme="dark"] .ghost{border-left-color:#3f7f99}
 [data-theme="dark"] .ghost span{background:#1a3540;color:#9fd0e3}
 [data-theme="dark"] .pcap{background:#131619;border-color:#6e63b8}

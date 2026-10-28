@@ -81,7 +81,8 @@
 <div class="mlines" data-mlines></div>
 <div class="dock"><button class="today" type="button" data-today>← Today</button></div>
 
-<!-- Plan rows and dependency arrows are drawn from js/data.js by js/app.js -->
+<!-- Plan rows and dependency arrows are drawn from js/data.js by js/app.js; phase bands sit behind them -->
+<div class="bands" data-bands></div>
 <svg class="deps" aria-hidden="true">
 <defs><marker id="ah" viewBox="0 0 8 8" refX="4" refY="7" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L4 7L7 1" fill="none" stroke="#9aa3ad" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></marker></defs>
 <g fill="none" stroke="#b3bbc4" stroke-width="1.1" stroke-linecap="square" data-deps></g>
@@ -127,7 +128,7 @@
 
 <div class="when">
 <div class="fld"><span class="fl" data-start-label>Start</span><div class="dt"><input type="date" name="startDate" aria-label="Start date" required><input type="time" name="startTime" aria-label="Start time" value="09:00" data-time></div></div>
-<div class="fld" data-for="task phase"><span class="fl"><span data-end-label>Finish</span><button class="clr" type="button" hidden data-end-clear>Clear</button></span><div class="dt"><input type="date" name="endDate" aria-label="Finish date" required><input type="time" name="endTime" aria-label="Finish time" value="17:00" data-time></div></div>
+<div class="fld"><span class="fl"><span data-end-label>Finish</span><button class="clr" type="button" hidden data-end-clear>Clear</button></span><div class="dt"><input type="date" name="endDate" aria-label="Finish date"><input type="time" name="endTime" aria-label="Finish time" value="17:00" data-time></div></div>
 </div>
 <label class="chk"><input type="checkbox" name="allDay" checked> All day</label>
 <div class="fld" data-for="task"><span class="fl">Colour</span><div class="swatches" role="radiogroup" aria-label="Colour" data-colors></div></div>

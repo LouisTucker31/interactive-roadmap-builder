@@ -8,7 +8,7 @@
 //   { id: 'wireframes', type: 'task', name: 'Wireframes', start: 0, end: 18, color: '#8458e0', progress: 0.58 }
 //   { id: 'email-templates', type: 'task', parent: 'notifications', name: 'Email templates', start: 32, end: 43 }
 //   { id: 'standup', type: 'task', name: 'Stand-up', start: 2 + 10 / 24 }   (no end: happens at a moment, day 2 10:00)
-//   { id: 'design-signoff', type: 'milestone', name: 'Design sign-off', day: 32 }
+//   { id: 'design-signoff', type: 'milestone', name: 'Design sign-off', day: 32 }   (add end: 34 for a start and finish diamond)
 //   { type: 'phase', name: 'Phase 3 — Build', start: 0 }
 window.ROADMAP = {
   rows: [],

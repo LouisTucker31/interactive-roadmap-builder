@@ -223,6 +223,7 @@
   var ROW_Y = 85;
   var ROW_PX = 34;
   var depsEl = chart.querySelector('[data-deps]');
+  var bandsEl = chart.querySelector('[data-bands]');
   var freshId = null; // a just-created row, flashed briefly
   var movingId = null; // the row being dragged to a new time
   var rowIndex = {};
@@ -257,10 +258,10 @@
     return when(row.start) + ' – ' + (row.end % 1 ? when(row.end) : dayLabel(row.end - 1));
   }
 
-  // When a row happens. A milestone is a single moment, and so is a task with no `end`
-  // ("at 10:00"); a phase can have an optional `end`, and without one it runs until the next phase.
+  // When a row happens. Tasks and milestones without an `end` happen at a moment ("at
+  // 10:00"); a phase without one runs until the next phase. A milestone starts at `day`.
   function itemLabel(row) {
-    if (row.type === 'milestone') return when(row.day);
+    if (row.type === 'milestone') return row.end != null ? rangeLabel({ start: row.day, end: row.end }) : when(row.day);
     if (row.type === 'phase') return row.end != null ? rangeLabel(row) : 'from ' + when(row.start);
     return row.end != null ? rangeLabel(row) : when(row.start);
   }
@@ -277,7 +278,8 @@
     return /^#[0-9a-f]{6}$/i.test(row.color || '') ? '; --c: ' + row.color : '';
   }
 
-  // Milestones and tasks without a finish are drawn as a mark at one moment, not a bar.
+  // Milestones and tasks without a finish are drawn as marks, not bars: a milestone with
+  // a finish is a diamond at each end joined by a line.
   function isPoint(row) {
     return row.type === 'milestone' || (row.type === 'task' && row.end == null);
   }
@@ -293,7 +295,8 @@
     var cy = ROW_Y + i * ROW_PX;
     if (isPoint(row)) {
       var x = dayX(row.type === 'milestone' ? row.day : row.start);
-      return { x1: x - 6, x2: x + 6, cx: x, cy: cy, top: cy - 6 };
+      var xe = row.end != null ? dayX(row.end) : x; // a milestone's finish diamond
+      return { x1: x - 6, x2: xe + 6, cx: x, ex: xe, cy: cy, top: cy - 6 };
     }
     var h = row.parent ? 18 : 20;
     return { x1: dayX(row.start), x2: dayX(row.end), cy: cy, top: cy - h / 2 };
@@ -301,6 +304,7 @@
 
   function renderPlan() {
     var html = '';
+    var bands = '';
     data.rows.forEach(function (row, i) {
       var b = box(row, i);
       var tip = ' data-id="' + esc(row.id) + '" title="' + esc(row.name + ' · ' + itemLabel(row)) + '"';
@@ -310,8 +314,19 @@
         var span = row.end != null ? 'left: ' + b.x1 + 'px; width: ' + (b.x2 - b.x1) + 'px; ' : '';
         html += '<div class="pline" style="' + span + 'top: ' + (b.cy + 6) + 'px"></div>' +
           (row.end != null ? '<div class="pcap" style="left: ' + b.x2 + 'px; top: ' + (b.cy + 2) + 'px"></div>' : '') +
-          '<div class="phase' + state + '"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + (b.cy - 11) + 'px"><i></i>' + esc(row.name) + '</div>';
+          '<div class="phase' + state + '"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + (b.cy - 12) + 'px"><i></i>' + esc(row.name) + '</div>';
+        // A tinted band behind the whole section, over the phase's time: up to its end, or
+        // for an open-ended phase up to the next phase's start (or the end of the timeline).
+        var next = data.rows[sectionEnd(row.id)];
+        var bx2 = row.end != null ? b.x2 : next && dayX(next.start) > b.x1 ? dayX(next.start) : xOf(rangeEnd);
+        bands += '<div class="band" style="left: ' + b.x1 + 'px; width: ' + (bx2 - b.x1) + 'px; top: ' + (b.cy - ROW_PX / 2) +
+          'px; height: ' + (sectionEnd(row.id) - i) * ROW_PX + 'px"></div>';
       } else if (row.type === 'milestone') {
+        // A diamond, or with a finish, a diamond at each end joined by a line.
+        if (row.end != null) {
+          html += '<div class="mlink' + state + '"' + tip + ' style="left: ' + b.cx + 'px; width: ' + (b.ex - b.cx) + 'px; top: ' + (b.cy - 1) + 'px"></div>' +
+            '<div class="dia' + state + '"' + tip + ' style="left: ' + (b.ex - 6) + 'px; top: ' + b.top + 'px"></div>';
+        }
         html += '<div class="dia' + state + '"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + b.top + 'px"></div>';
       } else if (row.end == null) {
         // A task at a moment: a ring (filled with a tick once done) with its name beside it.
@@ -330,6 +345,7 @@
       }
     });
     plan.innerHTML = html;
+    bandsEl.innerHTML = bands;
 
     // Leave a screen of blank space below the last row so the chart can always scroll down.
     var lastRow = ROW_Y + data.rows.length * ROW_PX;
@@ -539,13 +555,12 @@
       }
       if (row.type === 'milestone') {
         return '<div class="trow ms"' + attrs + tip(row.name + ' · ' + itemLabel(row)) + '><i class="ic"></i>' +
-          '<span class="tn">' + esc(row.name) + '</span><span class="meta">' + itemLabel(row) + '</span>' + more + '</div>';
+          '<span class="tn">' + esc(row.name) + '</span>' + more + '</div>';
       }
       return '<div class="trow ' + (row.parent ? 'sub' : 'top') + '"' + attrs + tip(row.name + ' · ' + itemLabel(row)) +
         '><i class="ic"' + (row.color ? ' style="' + colorVar(row).slice(2) + '"' : '') + '></i>' +
         '<span class="tn">' + esc(row.name) + '</span>' +
-        (row.progress ? '<span class="meta">' + Math.round(row.progress * 100) + '%</span>'
-          : row.end == null ? '<span class="meta">' + itemLabel(row) + '</span>' : '') +
+        (row.progress ? '<span class="meta">' + Math.round(row.progress * 100) + '%</span>' : '') +
         more + '</div>';
     }).join('') +
       // The empty row after the last one adds a new task; it only shows itself on hover.
@@ -765,7 +780,6 @@
     var shift = (saved.planStart - PLAN_START) / DAY;
     data.rows = saved.rows.map(function (r) {
       if (r.base != null) return base[r.base];
-      if (r.type === 'milestone') delete r.end; // briefly allowed; milestones are single moments
       delete r.owner; // tasks used to have owners; they have colours now
       ['start', 'end', 'day'].forEach(function (k) { if (r[k] != null) r[k] += shift; });
       return r;
@@ -812,8 +826,6 @@
   var errEl = form.querySelector('[data-nt-error]');
   var deleteBtn = form.querySelector('[data-nt-delete]');
   var editing = null; // the row being edited, or null when creating
-  var defaultEnd = {}; // the finish a new task starts with
-  var formTypeShown = 'task'; // the type the form last showed fields for
 
   function isoDate(t) {
     return new Date(t).toISOString().slice(0, 10);
@@ -874,18 +886,9 @@
       var types = el.getAttribute('data-for');
       el.hidden = (types && types.split(' ').indexOf(type) < 0) || (el.hasAttribute('data-time') && allDay);
     });
-    // A task's or phase's finish is optional (a task without one happens at a moment) and
-    // a milestone has none. A new row starts with no end when switched to a phase, and
-    // gets its default back when switched to a task.
-    if (!editing && type !== formTypeShown) {
-      if (type !== 'task') form.elements.endDate.value = '';
-      else if (!form.elements.endDate.value) {
-        form.elements.endDate.value = defaultEnd.date;
-        form.elements.endTime.value = defaultEnd.time;
-      }
-    }
-    formTypeShown = type;
-    form.querySelector('[data-start-label]').textContent = type === 'task' ? 'Start' : type === 'milestone' ? 'Date' : 'Starts';
+    // Every type's finish is optional, and a new row starts without one: a task or
+    // milestone without one happens at a moment, a phase runs until the next phase.
+    form.querySelector('[data-start-label]').textContent = type === 'task' ? 'Start' : 'Starts';
     form.querySelector('[data-end-label]').innerHTML = (type === 'task' ? 'Finish' : 'Ends') + ' <em>optional</em>';
     form.querySelector('[data-end-clear]').hidden = !form.elements.endDate.value;
     form.querySelector('[data-nt-title]').textContent = (editing ? 'Edit ' : 'New ') + word;
@@ -968,30 +971,23 @@
         if (box) box.checked = true;
       });
     } else if (spot && scale.unit !== 'hour') {
-      // A clicked day: just that day in day view, otherwise five days from it.
-      f.startDate.value = isoDate(spot.time);
-      f.endDate.value = isoDate(spot.time + (scale.unit === 'day' ? 0 : 4 * DAY));
+      f.startDate.value = isoDate(spot.time); // the clicked day
     } else if (scale.unit === 'hour') {
-      // Hour view: a one-hour slot from the clicked time, or starting on the next hour after
-      // now, or a quarter of the way into the view when now is off screen.
+      // Hour view: at the clicked time, or the next hour after now, or a quarter of the
+      // way into the view when now is off screen.
       var left = timeAt(scroller.scrollLeft);
       var right = timeAt(scroller.scrollLeft + scroller.clientWidth);
       var t = spot ? spot.time : NOW >= left && NOW < right ? startOf(NOW, 'hour') + HOUR : startOf((3 * left + right) / 4, 'hour');
       f.allDay.checked = false;
       f.startDate.value = isoDate(t);
       f.startTime.value = clockOf(t);
-      f.endDate.value = isoDate(t + HOUR);
-      f.endTime.value = clockOf(t + HOUR);
     } else {
       // Start on the date at the left of the view if today is off screen, otherwise today.
       var leftDay = startOf(timeAt(scroller.scrollLeft), 'day');
       var rightDay = timeAt(scroller.scrollLeft + scroller.clientWidth);
       var day = TODAY >= leftDay && TODAY < rightDay ? TODAY : leftDay;
       f.startDate.value = isoDate(day);
-      f.endDate.value = isoDate(day + 4 * DAY);
     }
-    defaultEnd = { date: f.endDate.value, time: f.endTime.value };
-    formTypeShown = 'task';
     errEl.hidden = true;
     syncForm();
     dialog.showModal();
@@ -1035,7 +1031,7 @@
     var row = { type: type, name: name };
 
     var start = dayOf(f.startDate.value, timed && f.startTime.value);
-    if (type !== 'milestone' && f.endDate.value) {
+    if (f.endDate.value) {
       // All-day rows finish at the end of the finish date.
       row.end = timed ? dayOf(f.endDate.value, f.endTime.value) : dayOf(f.endDate.value) + 1;
       if (row.end <= start) return fail('The finish needs to be after the start.', f.endDate);
@@ -1321,8 +1317,8 @@
     if (sort && sort.on && e.key === 'Escape') endSort(true);
   });
 
-  // Item details popup: what a clicked bar, milestone or phase is, when it happens, who
-  // owns it, what it depends on and what's waiting on it, with an Edit button to change
+  // Item details popup: what a clicked bar, milestone or phase is, when it happens, how
+  // it's going, what it depends on and what's waiting on it, with an Edit button to change
   // it. It sits just below the item (above it near the bottom of the screen) and closes
   // with Esc, the ×, a click elsewhere or scrolling the chart.
   var peek = document.querySelector('[data-peek]');
@@ -1330,8 +1326,9 @@
 
   // "5 days" for all-day rows; "1d 2h 30m" style for timed ones.
   function duration(row) {
-    var mins = Math.round((row.end - row.start) * 1440);
-    if (!(row.start % 1) && !(row.end % 1)) return mins / 1440 + (mins === 1440 ? ' day' : ' days');
+    var start = row.type === 'milestone' ? row.day : row.start;
+    var mins = Math.round((row.end - start) * 1440);
+    if (!(start % 1) && !(row.end % 1)) return mins / 1440 + (mins === 1440 ? ' day' : ' days');
     return [[Math.floor(mins / 1440), 'd'], [Math.floor(mins / 60) % 24, 'h'], [mins % 60, 'm']].filter(function (p) {
       return p[0];
     }).map(function (p) { return p[0] + p[1]; }).join(' ');
@@ -1356,7 +1353,7 @@
     peek.querySelector('[data-peek-title]').textContent = row.name;
 
     var items = [['When', esc(itemLabel(row))]];
-    if (row.type !== 'milestone' && row.end != null) items.push(['Length', duration(row)]);
+    if (row.end != null) items.push(['Length', duration(row)]);
     if (row.type === 'task') {
       var pct = Math.round((row.progress || 0) * 100);
       items.push(['Progress', '<span class="peek-pg"><b style="width: ' + pct + '%"></b></span>' + pct + '%']);
