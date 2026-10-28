@@ -427,8 +427,7 @@
   }, { passive: true });
 
   todayBtn.addEventListener('click', function () {
-    stopGlide();
-    scroller.scrollTo({ left: xOf(home()), behavior: 'smooth' });
+    scrollToTime(home(), 0);
   });
 
   // Keep the same date at the left edge when the window is resized.
@@ -459,23 +458,26 @@
       taskRowsEl.innerHTML = '<div class="trow empty">Nothing here yet.&nbsp;<button type="button" data-empty-add>Add a task</button></div>';
       return;
     }
+    // Clicking a row scrolls the chart to it; the ⋯ button that shows on hover edits it
+    // (see the task form below).
+    var more = '<button type="button" class="more" data-row-edit tabindex="-1" aria-label="Edit" title="Edit">' +
+      '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg></button>';
     taskRowsEl.innerHTML = data.rows.map(function (row) {
-      // Each row opens the edit form when clicked (see the task form below).
       var attrs = ' data-id="' + esc(row.id) + '" role="button" tabindex="0"';
+      function tip(text) { return ' title="' + esc(text + ' · click to go to it, E to edit') + '"'; }
       if (row.type === 'phase') {
-        return '<div class="trow ph"' + attrs + ' title="' + esc(row.name + ' · from ' + when(row.start)) + '"><i class="ic"></i><span class="tn">' + esc(row.name) + '</span></div>';
+        return '<div class="trow ph"' + attrs + tip(row.name + ' · from ' + when(row.start)) + '><i class="ic"></i><span class="tn">' + esc(row.name) + '</span>' + more + '</div>';
       }
       if (row.type === 'milestone') {
-        return '<div class="trow ms"' + attrs + ' title="' + esc(row.name + ' · ' + when(row.day)) + '"><i class="ic"></i>' +
-          '<span class="tn">' + esc(row.name) + '</span><span class="meta">' + when(row.day) + '</span></div>';
+        return '<div class="trow ms"' + attrs + tip(row.name + ' · ' + when(row.day)) + '><i class="ic"></i>' +
+          '<span class="tn">' + esc(row.name) + '</span><span class="meta">' + when(row.day) + '</span>' + more + '</div>';
       }
       var owner = data.people[row.owner];
-      return '<div class="trow ' + (row.parent ? 'sub' : 'top') + '"' + attrs + ' title="' +
-        esc(row.name + ' · ' + rangeLabel(row)) + '"><i class="ic"></i>' +
+      return '<div class="trow ' + (row.parent ? 'sub' : 'top') + '"' + attrs + tip(row.name + ' · ' + rangeLabel(row)) + '><i class="ic"></i>' +
         '<span class="tn">' + esc(row.name) + '</span>' +
         (row.progress ? '<span class="meta">' + Math.round(row.progress * 100) + '%</span>' : '') +
         (owner ? '<span class="av" style="background: ' + owner.color + '">' + esc(row.owner) + '</span>' : '') +
-        '</div>';
+        more + '</div>';
     }).join('');
   }
 
@@ -554,6 +556,33 @@
   // containing the date at the left edge. The range is rebuilt around that column.
   var scaleBtns = Array.prototype.slice.call(document.querySelectorAll('[data-scale]'));
 
+  // Rebuild the timeline around one moment: a chunk either side of its column, with the
+  // start lined up to a whole day (hour view), week (day view) or period.
+  function recentre(time) {
+    var anchor = startOf(time, scale.unit);
+    var align = { hour: 'day', day: 'week' }[scale.unit] || scale.unit;
+    rangeStart = add(startOf(anchor, align), scale.unit, -scale.chunk);
+    rangeEnd = add(anchor, scale.unit, scale.chunk);
+    render();
+  }
+
+  // Scroll so `time` sits `inset` px from the left edge (and optionally to `top`). Nearby
+  // targets glide there; one off the built timeline, or more than a few screens away when
+  // `jumpFar` is set, is jumped to directly so the chart doesn't fly past months of columns.
+  function scrollToTime(time, inset, top, jumpFar) {
+    var view = scroller.clientWidth;
+    var left = xOf(time) - inset;
+    stopGlide();
+    if (time < rangeStart || time >= rangeEnd || (jumpFar && Math.abs(left - scroller.scrollLeft) > 4 * view)) {
+      recentre(time);
+      scroller.scrollLeft = left = xOf(time) - inset;
+      extend();
+      left = scroller.scrollLeft;
+      syncTodayArrow();
+    }
+    scroller.scrollTo({ left: left, top: top == null ? scroller.scrollTop : Math.max(0, top), behavior: 'smooth' });
+  }
+
   function setScale(key) {
     var leftTime = timeAt(scroller.scrollLeft);
     var atHome = Math.abs(scroller.scrollLeft - xOf(home())) < 2;
@@ -561,10 +590,7 @@
     zoomMode = 'fit';
     dayPx = dayPxFor(zoomMode);
     var anchor = atHome ? home() : startOf(leftTime, scale.unit);
-    var align = { hour: 'day', day: 'week' }[scale.unit] || scale.unit;
-    rangeStart = add(startOf(anchor, align), scale.unit, -scale.chunk);
-    rangeEnd = add(anchor, scale.unit, scale.chunk);
-    render();
+    recentre(anchor);
     scroller.scrollLeft = xOf(anchor);
     extend();
     syncTodayArrow();
@@ -991,18 +1017,20 @@
     dialog.close();
   }
 
-  // Bring a new or edited row into view and flash it briefly.
-  function reveal(row, i) {
-    var b = box(row, i);
-    var x1 = row.type === 'phase' ? dayX(row.start) : b.x1;
+  // Bring a row into view and flash it briefly: after it's created or edited, and when
+  // it's clicked in the task list. Its start lands a little in from the left edge unless
+  // it's already on screen (`always` scrolls there regardless).
+  function reveal(row, i, always) {
+    var start = PLAN_START + (row.type === 'milestone' ? row.day : row.start) * DAY;
     var view = scroller.clientWidth;
-    var left = scroller.scrollLeft;
-    if (x1 < left || x1 > left + view - 60) left = x1 - Math.min(120, view / 4);
+    var x = xOf(start);
+    var inset = Math.min(120, view / 4);
+    var offscreen = start < rangeStart || start >= rangeEnd || x < scroller.scrollLeft || x > scroller.scrollLeft + view - 60;
     var top = scroller.scrollTop;
-    var y = b.cy + 41; // 41px header above the chart body
+    var y = box(row, i).cy + 41; // 41px header above the chart body
     if (y < top + 80 || y > top + scroller.clientHeight - 40) top = y - scroller.clientHeight / 2;
-    stopGlide();
-    scroller.scrollTo({ left: left, top: Math.max(0, top), behavior: 'smooth' });
+    if (always || offscreen) scrollToTime(start, inset, top, true);
+    else scrollToTime(timeAt(scroller.scrollLeft), 0, top);
     freshId = row.id;
     renderPlan();
     setTimeout(function () { if (freshId === row.id) freshId = null; }, 1600);
@@ -1011,16 +1039,28 @@
   newBtn.addEventListener('click', function () { openForm(); });
   deleteBtn.addEventListener('click', deleteRow);
 
-  // Click a row in the task list to edit it (Enter or Space when it has focus).
+  // Click a row in the task list to scroll the chart to it (Enter or Space when it has
+  // focus); its ⋯ button, shown on hover, opens it for editing (E from the keyboard).
   // The empty task list has its own "Add a task" link.
+  function goToRow(id) {
+    var i = rowIndex[id];
+    if (i != null) reveal(data.rows[i], i, true);
+  }
+
   taskRowsEl.addEventListener('click', function (e) {
     if (e.target.closest('[data-empty-add]')) return openForm();
     var tr = e.target.closest('.trow[data-id]');
-    if (tr) openEdit(tr.getAttribute('data-id'));
+    if (!tr) return;
+    if (e.target.closest('[data-row-edit]')) openEdit(tr.getAttribute('data-id'));
+    else goToRow(tr.getAttribute('data-id'));
   });
   taskRowsEl.addEventListener('keydown', function (e) {
     var tr = e.target.closest('.trow[data-id]');
-    if (tr && (e.key === 'Enter' || e.key === ' ')) {
+    if (!tr || e.target.closest('[data-row-edit]')) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      goToRow(tr.getAttribute('data-id'));
+    } else if (e.key === 'e' || e.key === 'E') {
       e.preventDefault();
       openEdit(tr.getAttribute('data-id'));
     }

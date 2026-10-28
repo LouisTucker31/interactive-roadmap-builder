@@ -68,6 +68,11 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .trow[data-id]{cursor:pointer}
 .trow[data-id]:hover{background:#eef1f4}
 .trow[data-id]:focus-visible{outline:2px solid #4790ad;outline-offset:-2px}
+.trow .more{display:none;flex:none;width:24px;height:22px;margin-right:-4px;padding:0;place-items:center;border:0;border-radius:5px;background:none;color:#5d646d;cursor:pointer}
+.trow .more svg{width:14px;height:14px;fill:currentColor}
+.trow .more:hover{background:#dde2e8;color:#1b1f24}
+.trow[data-id]:hover .more,.trow[data-id]:focus-visible .more{display:grid}
+.trow[data-id]:hover .meta,.trow[data-id]:hover .av,.trow[data-id]:focus-visible .meta,.trow[data-id]:focus-visible .av{display:none}
 .trow.empty button{padding:0;border:0;background:none;font:inherit;font-style:normal;font-weight:600;color:#3f86a3;cursor:pointer}
 .trow.empty button:hover{text-decoration:underline}
 .scroll{flex:1;min-width:0;overflow:auto;position:relative;overscroll-behavior-x:contain;cursor:grab}
@@ -302,6 +307,8 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .lengths button{background:#131619;border-color:#2b3036;color:#c9ced4}
 [data-theme="dark"] .lengths button:hover{background:#20242a;border-color:#3a4047}
 [data-theme="dark"] .trow[data-id]:hover{background:#1c2024}
+[data-theme="dark"] .trow .more{color:#9aa1a9}
+[data-theme="dark"] .trow .more:hover{background:#2a3036;color:#e4e7ea}
 [data-theme="dark"] .bar:hover,[data-theme="dark"] .dia:hover{box-shadow:0 0 0 2px #181c20,0 0 0 3.5px #4790ad}
 [data-theme="dark"] .dlg-ft .del{color:#f0a39d}
 [data-theme="dark"] .dlg-ft .del.armed{background:#c4403a;border-color:#c4403a;color:#ffffff}
