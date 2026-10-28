@@ -84,6 +84,14 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .trow[data-id]:hover .meta,.trow[data-id]:hover .av,.trow[data-id]:focus-visible .meta,.trow[data-id]:focus-visible .av{display:none}
 .trow.empty button{padding:0;border:0;background:none;font:inherit;font-style:normal;font-weight:600;color:#3f86a3;cursor:pointer}
 .trow.empty button:hover{text-decoration:underline}
+/* Dragging rows to reorder: the picked-up rows dim and a line shows where they'll land */
+.gut-rows{position:relative;user-select:none}
+.trow.lifted{opacity:.35}
+.sort-line{position:absolute;left:8px;right:8px;height:2px;margin-top:-1px;background:#4790ad;border-radius:1px;pointer-events:none}
+.sort-line::before{content:"";position:absolute;left:-3px;top:-3px;width:8px;height:8px;box-sizing:border-box;border:2px solid #4790ad;border-radius:50%;background:#f6f7f9}
+.sort-line.sub{left:26px}
+.gut.sorting,.gut.sorting *{cursor:grabbing!important;user-select:none}
+.gut.sorting .trow[data-id]:hover{background:none}
 .scroll{flex:1;min-width:0;overflow:auto;position:relative;overscroll-behavior-x:contain;cursor:grab}
 .scroll.dragging{cursor:grabbing;user-select:none}
 /* Hide the sideways scrollbar (the timeline is endless); keep a slim vertical one */
@@ -287,6 +295,7 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .ri.on{color:#f1f3f5}
 [data-theme="dark"] .ri.on::before{background:#5aa6c4}
 [data-theme="dark"] .gut{background:#15181b;border-right-color:#22272c}
+[data-theme="dark"] .sort-line::before{background:#15181b}
 [data-theme="dark"] .gut .caret{color:#8a919a}
 [data-theme="dark"] .gut .caret:hover{background:#20242a;color:#f1f3f5}
 [data-theme="dark"] .gut.open .gut-hd{border-bottom-color:#2b3036}
