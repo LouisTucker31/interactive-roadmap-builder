@@ -79,7 +79,7 @@
   // Views (H/D/W/M/Q/Y). Each has a column unit, a group unit for the row above, the column
   // width at 100% zoom, how many days "Fit to screen" shows, the narrowest column fit will
   // allow, and how many columns to add each time an edge is reached. Weekend shading only
-  // shows in day and week views; the hour view shades the hours outside 8am–6pm instead.
+  // shows in day and week views; the hour view shades the hours outside 7am–6pm instead.
   // Day view chunks are whole weeks, and hour view chunks whole days, so shading stays aligned.
   var SCALES = {
     H: { unit: 'hour', days: 1 / 24, group: 'day', basePx: 64, fitDays: 0.5, minPx: 40, chunk: 48 },

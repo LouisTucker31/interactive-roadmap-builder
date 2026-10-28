@@ -113,8 +113,8 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .plan{position:absolute;inset:0}
 /* Month, quarter and year views: no weekend shading; very narrow bars drop their label */
 .chart[data-noshade] .body{background-image:none}
-/* Hour view: shade outside 8am–6pm, with a stronger line between days */
-.chart[data-hours] .body{background-image:linear-gradient(90deg,#f3f5f8 0 calc(var(--day)/3),transparent calc(var(--day)/3) calc(var(--day)*.75),#f3f5f8 calc(var(--day)*.75));background-size:var(--day) 100%}
+/* Hour view: a light shade outside 7am–6pm, with a stronger line between days */
+.chart[data-hours] .body{background-image:linear-gradient(90deg,#f8f9fb 0 calc(var(--day)*7/24),transparent calc(var(--day)*7/24) calc(var(--day)*.75),#f8f9fb calc(var(--day)*.75));background-size:var(--day) 100%}
 .mline.day{background:#c3cad2}
 .bar.tiny{padding:0}
 .bar.tiny>*{display:none}
@@ -335,7 +335,7 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .rows{background-image:repeating-linear-gradient(180deg,transparent 0 33px,#1c2024 33px 34px)}
 [data-theme="dark"] .mline{background:#2b3036}
 [data-theme="dark"] .mline.day{background:#454c54}
-[data-theme="dark"] .chart[data-hours] .body{background-image:linear-gradient(90deg,#15181c 0 calc(var(--day)/3),transparent calc(var(--day)/3) calc(var(--day)*.75),#15181c calc(var(--day)*.75))}
+[data-theme="dark"] .chart[data-hours] .body{background-image:linear-gradient(90deg,#15181b 0 calc(var(--day)*7/24),transparent calc(var(--day)*7/24) calc(var(--day)*.75),#15181b calc(var(--day)*.75))}
 [data-theme="dark"] .deps g{stroke:#4d555e}
 [data-theme="dark"] .deps marker path{stroke:#6a737d}
 [data-theme="dark"] .bar.lt{background:#1f4352;color:#cfe8f3}
