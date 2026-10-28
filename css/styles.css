@@ -137,7 +137,6 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .today.here{background:#ffffff;color:#3f86a3;box-shadow:inset 0 0 0 1.5px #4790ad}
 /* Phases: a bolder label and line than tasks, and a tinted band behind their whole section */
 .phase{position:absolute;left:0;display:flex;text-transform:uppercase;align-items:center;gap:7px;font:700 11px Inter,sans-serif;letter-spacing:.05em;color:#2d2560}
-.phase i{width:14px;height:14px;border-radius:50%;border:2px solid #a596ea;background:#ffffff;display:block;margin-left:-7px}
 .pline{position:absolute;left:0;right:0;height:4px;background:#bfb3f0;border-radius:2px}
 .bands{position:absolute;inset:0;pointer-events:none}
 .band{position:absolute;background:rgba(132,88,224,.055);border-left:2px solid rgba(132,88,224,.3);border-radius:0 6px 6px 0}
@@ -188,7 +187,7 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .peek-ft{display:flex;justify-content:flex-end;padding:10px 12px;border-top:1px solid #eceff2}
 .peek-ft .btn{height:28px}
 .peek-ft .btn svg{flex:none}
-.pcap{position:absolute;width:12px;height:12px;margin-left:-6px;border-radius:50%;border:2px solid #a596ea;background:#ffffff;box-sizing:border-box}
+.pcap{position:absolute;width:12px;height:12px;margin-left:-6px;border-radius:50%;border:2px solid #a596ea;background:#ffffff;box-sizing:border-box;cursor:pointer}
 .foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 20px 12px;font-size:10.5px;color:#4a5159}
 .foot .l{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .foot b{font-weight:600;color:#1b1f24}
@@ -345,7 +344,6 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .phase{color:#ddd6fb}
 [data-theme="dark"] .band{background:rgba(132,88,224,.08);border-left-color:rgba(132,88,224,.45)}
 [data-theme="dark"] .mlink{background:#9a6430}
-[data-theme="dark"] .phase i{background:#131619;border-color:#6e63b8}
 [data-theme="dark"] .pline{background:#5a4f9a}
 [data-theme="dark"] .ghost{border-left-color:#3f7f99}
 [data-theme="dark"] .ghost span{background:#1a3540;color:#9fd0e3}
@@ -566,6 +564,25 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .pp-sel .pp-del{color:#f0a39d}
 [data-theme="dark"] .pp-sel .pp-del.armed{color:#ffffff}
 [data-theme="dark"] .newp{background:#15181b;border-color:#2b3036}
+/* Day groups (day view and coarser): a day's timed items as one capsule, a dot per row */
+.group-day{position:absolute;box-sizing:border-box;border-radius:9px;background:rgba(65,141,171,.1);border:1.5px solid rgba(65,141,171,.45);cursor:pointer;transition:background .12s,border-color .12s}
+.group-day i{position:absolute;left:50%;width:8px;height:8px;margin:-4px 0 0 -4px;box-sizing:border-box;border-radius:50%;border:2px solid var(--c,#418dab);background:#ffffff}
+.group-day i.sub{width:6px;height:6px;margin:-3px 0 0 -3px;border-width:1.5px}
+.group-day i.ms{border-radius:1.5px;border:0;background:#d4802c;transform:rotate(45deg)}
+.group-day i.ph{width:10px;height:10px;margin:-5px 0 0 -5px;border-color:#a596ea}
+.group-lbl{position:absolute;display:flex;align-items:center;gap:6px;height:20px;padding:0 9px;border-radius:10px;background:#ffffff;border:1px solid #d5e3ea;box-shadow:0 1px 3px rgba(20,40,60,.08);font:400 11px Inter,sans-serif;color:#3a4048;white-space:nowrap;cursor:pointer}
+.group-lbl b{font-weight:600;color:#1b1f24}
+.group-lbl em{font-style:normal;font-weight:600;color:#3f86a3;margin-left:4px}
+.group-day:hover,.group-day:focus-visible{background:rgba(65,141,171,.18);border-color:#418dab;outline:0}
+.group-lbl:hover{border-color:#418dab}
+[data-theme="dark"] .group-day{background:rgba(90,166,196,.12);border-color:rgba(90,166,196,.45)}
+[data-theme="dark"] .group-day:hover,[data-theme="dark"] .group-day:focus-visible{background:rgba(90,166,196,.22);border-color:#5aa6c4}
+[data-theme="dark"] .group-day i{background:#131619}
+[data-theme="dark"] .group-day i.ms{background:#d4802c}
+[data-theme="dark"] .group-day i.ph{border-color:#6e63b8}
+[data-theme="dark"] .group-lbl{background:#181b1f;border-color:#2b3a42;color:#c9ced4}
+[data-theme="dark"] .group-lbl b{color:#f1f3f5}
+[data-theme="dark"] .group-lbl em{color:#6fb6d2}
 /* Project tag: the pill takes the tag's colour (--c); clicking opens the tag popup */
 .tagwrap{position:relative;display:inline-flex}
 button.pill{cursor:pointer;line-height:1;white-space:nowrap}

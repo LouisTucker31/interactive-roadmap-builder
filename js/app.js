@@ -319,10 +319,80 @@
     return { x1: dayX(row.start), x2: dayX(row.end), cy: cy, top: cy - h / 2 };
   }
 
+  // Day view and coarser: items timed within a single day would pile up on top of each
+  // other at that day, so runs of them (one row after another, all on the same day) are
+  // drawn as one group instead, with a dot per row. Clicking a group opens the hour view
+  // at that day. All-day items, and anything longer than a day, draw as usual.
+  var grouped = {}; // row id → its group, while drawn grouped
+
+  function intraday(row) {
+    var s = startDay(row);
+    if (s % 1 === 0 && (row.end == null || row.end % 1 === 0)) return false; // all-day
+    return row.end == null || row.end <= Math.floor(s) + 1;
+  }
+
+  function dayGroups() {
+    var groups = [];
+    var run = null;
+    if (scale.unit !== 'hour') {
+      data.rows.forEach(function (row, i) {
+        var day = intraday(row) ? Math.floor(startDay(row)) : null;
+        if (day != null && run && run.day === day) {
+          run.to = i;
+          return;
+        }
+        if (run && run.to > run.from) groups.push(run);
+        run = day != null ? { day: day, from: i, to: i } : null;
+      });
+      if (run && run.to > run.from) groups.push(run);
+    }
+    grouped = {};
+    groups.forEach(function (g) {
+      for (var i = g.from; i <= g.to; i++) grouped[data.rows[i].id] = g;
+    });
+    return groups;
+  }
+
+  function groupHtml(g) {
+    var rows = data.rows.slice(g.from, g.to + 1);
+    var first = Math.min.apply(null, rows.map(startDay));
+    var last = Math.max.apply(null, rows.map(function (r) { return r.end != null ? r.end : startDay(r); }));
+    var x1 = dayX(g.day);
+    var x2 = dayX(g.day + 1);
+    var w = Math.max(x2 - x1, 18);
+    var left = (x1 + x2) / 2 - w / 2;
+    var top = ROW_Y + g.from * ROW_PX - 13;
+    var n = rows.length;
+    var span = timeOf(first) + '–' + timeOf(last);
+    var dots = rows.map(function (r, k) {
+      var cls = r.type === 'phase' ? 'ph' : r.type === 'milestone' ? 'ms' : r.parent ? 'sub' : '';
+      return '<i class="' + cls + '" style="top: ' + (13 + k * ROW_PX) + 'px' + colorVar(r) + '"></i>';
+    }).join('');
+    var tip = ' data-group="' + g.day + '" title="' + n + ' items on ' + dayLabel(g.day) + ', ' + span + ' · click to see them by the hour"';
+    return '<div class="group-day"' + tip + ' role="button" tabindex="0" style="left: ' + left + 'px; top: ' + top + 'px; width: ' + w +
+      'px; height: ' + ((n - 1) * ROW_PX + 26) + 'px">' + dots + '</div>' +
+      '<div class="group-lbl"' + tip + ' style="left: ' + (left + w + 8) + 'px; top: ' + (top + 2) + 'px"><b>' + n + ' items</b> · ' +
+      dayLabel(g.day) + ' ' + span + '<em>View by the hour →</em></div>';
+  }
+
+  // Open the hour view at a group's day, starting just before its first item.
+  function openDay(day) {
+    var rows = data.rows.filter(function (r) { return grouped[r.id] && grouped[r.id].day === day; });
+    var first = rows.length ? Math.min.apply(null, rows.map(startDay)) : day + 9 / 24;
+    var t = PLAN_START + first * DAY - HOUR;
+    setScale('H');
+    recentre(t);
+    scroller.scrollLeft = xOf(t);
+    extend();
+    syncTodayArrow();
+  }
+
   function renderPlan() {
     var html = '';
     var bands = '';
+    dayGroups().forEach(function (g) { html += groupHtml(g); });
     data.rows.forEach(function (row, i) {
+      if (grouped[row.id]) return; // drawn as part of a day group
       var b = box(row, i);
       var who = personById(row.person);
       var tip = ' data-id="' + esc(row.id) + '" title="' + esc(row.name + ' · ' + itemLabel(row) + (who ? ' · ' + who.name : '')) + '"';
@@ -330,9 +400,11 @@
       if (row.type === 'phase') {
         // An open-ended phase's line runs the whole width; one with an end stops there.
         var span = row.end != null ? 'left: ' + b.x1 + 'px; width: ' + (b.x2 - b.x1) + 'px; ' : '';
+        // A circle on the line marks the start, and another the end when there is one.
         html += '<div class="pline" style="' + span + 'top: ' + (b.cy + 6) + 'px"></div>' +
-          (row.end != null ? '<div class="pcap" style="left: ' + b.x2 + 'px; top: ' + (b.cy + 2) + 'px"></div>' : '') +
-          '<div class="phase' + state + '"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + (b.cy - 12) + 'px"><i></i>' + esc(row.name) + '</div>';
+          '<div class="pcap' + state + '"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + (b.cy + 2) + 'px"></div>' +
+          (row.end != null ? '<div class="pcap' + state + '"' + tip + ' style="left: ' + b.x2 + 'px; top: ' + (b.cy + 2) + 'px"></div>' : '') +
+          '<div class="phase' + state + '"' + tip + ' style="left: ' + (b.x1 - 6) + 'px; top: ' + (b.cy - 13) + 'px">' + esc(row.name) + '</div>';
         // A tinted band behind the whole section, over the phase's time: up to its end, or
         // for an open-ended phase up to the next phase's start (or the end of the timeline).
         var next = data.rows[sectionEnd(row.id)];
@@ -371,7 +443,7 @@
 
     // Each arrow leaves the end of `from` and drops onto the start of `to`.
     depsEl.innerHTML = data.deps.filter(function (dep) {
-      return rowIndex[dep[0]] != null && rowIndex[dep[1]] != null;
+      return rowIndex[dep[0]] != null && rowIndex[dep[1]] != null && !grouped[dep[0]] && !grouped[dep[1]];
     }).map(function (dep) {
       var fi = rowIndex[dep[0]];
       var ti = rowIndex[dep[1]];
@@ -394,9 +466,9 @@
     var counts = {
       tasks: data.rows.filter(function (r) { return r.type === 'task'; }).length,
       milestones: data.rows.filter(function (r) { return r.type === 'milestone'; }).length,
-      deps: data.deps.length
+      phases: data.rows.filter(function (r) { return r.type === 'phase'; }).length
     };
-    var words = { tasks: ['task', 'tasks'], milestones: ['milestone', 'milestones'], deps: ['dep', 'deps'] };
+    var words = { tasks: ['task', 'tasks'], milestones: ['milestone', 'milestones'], phases: ['phase', 'phases'] };
     Object.keys(counts).forEach(function (key) {
       var n = counts[key];
       document.querySelector('[data-stat="' + key + '"]').innerHTML = '<b>' + n + '</b> ' + words[key][n === 1 ? 0 : 1];
@@ -891,17 +963,44 @@
   function syncUndo() {
     undoBtn.disabled = !undoStack.length;
     redoBtn.disabled = !redoStack.length;
+    // Kept for the tab, so a refresh doesn't lose it.
+    try { sessionStorage.setItem('roadmapHistory', JSON.stringify({ undo: undoStack, redo: redoStack, current: current })); } catch (e) {}
+  }
+
+  // At start-up: carry on the tab's history if it ends at the plan as loaded.
+  function loadHistory() {
+    current = snapshot();
+    var saved;
+    try { saved = JSON.parse(sessionStorage.getItem('roadmapHistory')); } catch (e) {}
+    if (saved && saved.current === current && Array.isArray(saved.undo) && Array.isArray(saved.redo)) {
+      undoStack = saved.undo;
+      redoStack = saved.redo;
+    }
+    syncUndo();
   }
 
   undoBtn.addEventListener('click', function () { stepHistory(true); });
   redoBtn.addEventListener('click', function () { stepHistory(false); });
   document.addEventListener('keydown', function (e) {
-    if (!(e.ctrlKey || e.metaKey) || e.altKey || dialog.open) return;
-    if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return; // their own undo
+    if (dialog.open || e.altKey || !e.key) return;
+    var typing = e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]');
+    if (typing) return; // fields keep their own undo and typing
     var key = e.key.toLowerCase();
-    if (key === 'z' || key === 'y') {
+    if (e.ctrlKey || e.metaKey) {
+      if (key === 'z' || key === 'y') {
+        e.preventDefault();
+        stepHistory(key === 'z' && !e.shiftKey);
+      }
+      return;
+    }
+    // Single keys: N adds a task, T goes back to today on the timeline.
+    if (e.shiftKey || e.repeat) return;
+    if (key === 'n') {
       e.preventDefault();
-      stepHistory(key === 'z' && !e.shiftKey);
+      openForm();
+    } else if (key === 't' && app.getAttribute('data-page') !== 'list') {
+      e.preventDefault();
+      scrollToTime(home(), 0);
     }
   });
 
@@ -1444,6 +1543,7 @@
   // The empty task list has its own "Add a task" link, and the blank row under the last
   // one adds a task too.
   function goToRow(id) {
+    if (grouped[id]) setScale('H'); // inside a day group: show it by the hour
     var i = rowIndex[id];
     if (i != null) reveal(data.rows[i], i, true);
   }
@@ -1485,7 +1585,7 @@
 
   function spotAt(clientX, clientY) {
     var hit = document.elementFromPoint(clientX, clientY);
-    if (!hit || !chartBody.contains(hit) || hit.closest('button, .plan [data-id]')) return null;
+    if (!hit || !chartBody.contains(hit) || hit.closest('button, .plan [data-id], [data-group]')) return null;
     var r = chartBody.getBoundingClientRect();
     var t = timeAt(clientX - r.left);
     t = scale.unit === 'hour' ? Math.floor(t / (HOUR / 4)) * HOUR / 4 : startOf(t, 'day');
@@ -1733,6 +1833,8 @@
       return;
     }
     var hit = document.elementFromPoint(e.clientX, e.clientY);
+    var day = hit && hit.closest('[data-group]');
+    if (day) return openDay(+day.getAttribute('data-group'));
     var el = hit && hit.closest('.plan [data-id]');
     if (el) return openPeek(el.getAttribute('data-id'), el, e.clientX);
     var spot = spotAt(e.clientX, e.clientY);
@@ -1819,6 +1921,15 @@
     if (move && e.key === 'Escape') drop(true);
   });
 
+  // A day group opens from the keyboard too.
+  plan.addEventListener('keydown', function (e) {
+    var g = e.target.closest('[data-group]');
+    if (g && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      openDay(+g.getAttribute('data-group'));
+    }
+  });
+
   form.addEventListener('change', syncForm);
   form.elements.progress.addEventListener('input', syncForm);
   // Keep the finish on or after the start when the start moves past it.
@@ -1899,8 +2010,9 @@
     return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + year + (day % 1 ? ' ' + timeOf(day) : '');
   }
 
+  // The phase a row is in; a phase row is its own phase.
   function phaseName(row) {
-    if (row.type === 'phase') return '';
+    if (row.type === 'phase') return row.name;
     var ph = phaseOf(row.parent && rowIndex[row.parent] != null ? data.rows[rowIndex[row.parent]] : row);
     return ph ? data.rows[rowIndex[ph]].name : '';
   }
@@ -2531,7 +2643,7 @@
       var who = personById(r.person);
       var ic = r.type === 'phase' ? '<i class="lic ph"></i>' : r.type === 'milestone' ? '<i class="lic ms"></i>'
         : '<i class="lic' + (r.parent ? ' sub' : '') + '" style="' + colorVar(r).slice(2) + '"></i>';
-      var meta = [r.type === 'task' ? (r.parent ? 'Subtask' : 'Task') : r.type === 'milestone' ? 'Milestone' : 'Phase', phaseName(r), who ? who.name : '']
+      var meta = [r.type === 'task' ? (r.parent ? 'Subtask' : 'Task') : r.type === 'milestone' ? 'Milestone' : 'Phase', r.type === 'phase' ? '' : phaseName(r), who ? who.name : '']
         .filter(Boolean).map(esc).join(' · ');
       return '<div class="sr" role="option" id="sr-' + i + '" data-id="' + esc(r.id) + '">' + ic +
         '<span class="sr-t"><span class="sr-n">' + markWords(r.name, words) + '</span><span class="sr-m">' + meta + '</span></span>' +
@@ -2753,6 +2865,5 @@
   syncTodayArrow();
   syncZoom();
   syncScaleBtns();
-  current = snapshot(); // the starting point for undo
-  syncUndo();
+  loadHistory();
 })();
