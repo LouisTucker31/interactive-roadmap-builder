@@ -869,11 +869,13 @@
     }).join('') || '<p class="deps-empty">Nothing to depend on yet. Tasks and milestones you add appear here.</p>';
   }
 
-  // Opens the form empty to create a row, or filled in from `row` to edit it.
-  function openForm(row) {
+  // Opens the form empty to create a row, or filled in from `row` to edit it. `spot`
+  // (from clicking empty chart space) gives a new row's start time and phase.
+  function openForm(row, spot) {
     editing = row && row.type ? row : null;
     form.reset();
     fillOptions(editing);
+    if (spot && spot.phase != null) form.elements.phase.value = spot.phase;
     var f = form.elements;
     Array.prototype.forEach.call(f.type, function (r) { r.disabled = !!editing; });
     deleteBtn.hidden = !editing;
@@ -901,12 +903,16 @@
         var box = form.querySelector('[name="deps"][value="' + dep[0] + '"]');
         if (box) box.checked = true;
       });
+    } else if (spot && scale.unit !== 'hour') {
+      // A clicked day: just that day in day view, otherwise five days from it.
+      f.startDate.value = isoDate(spot.time);
+      f.endDate.value = isoDate(spot.time + (scale.unit === 'day' ? 0 : 4 * DAY));
     } else if (scale.unit === 'hour') {
-      // Hour view: a one-hour slot starting on the next hour after now, or a quarter of the
-      // way into the view when now is off screen.
+      // Hour view: a one-hour slot from the clicked time, or starting on the next hour after
+      // now, or a quarter of the way into the view when now is off screen.
       var left = timeAt(scroller.scrollLeft);
       var right = timeAt(scroller.scrollLeft + scroller.clientWidth);
-      var t = NOW >= left && NOW < right ? startOf(NOW, 'hour') + HOUR : startOf((3 * left + right) / 4, 'hour');
+      var t = spot ? spot.time : NOW >= left && NOW < right ? startOf(NOW, 'hour') + HOUR : startOf((3 * left + right) / 4, 'hour');
       f.allDay.checked = false;
       f.startDate.value = isoDate(t);
       f.startTime.value = clockOf(t);
@@ -1103,8 +1109,35 @@
     }
   });
 
-  // Click a bar, milestone or phase label in the chart to edit it. A drag that moved
-  // the chart doesn't count as a click.
+  // What a click at a screen point would add: the time under it (to the day, or to the
+  // quarter hour in hour view) and the phase of the row it's level with. Null over a
+  // plan item, a button or anywhere outside the chart body.
+  var ghost = chartBody.querySelector('[data-ghost]');
+
+  function spotAt(clientX, clientY) {
+    var hit = document.elementFromPoint(clientX, clientY);
+    if (!hit || !chartBody.contains(hit) || hit.closest('button, .plan [data-id]')) return null;
+    var r = chartBody.getBoundingClientRect();
+    var t = timeAt(clientX - r.left);
+    t = scale.unit === 'hour' ? Math.floor(t / (HOUR / 4)) * HOUR / 4 : startOf(t, 'day');
+    var y = clientY - r.top;
+    var row = data.rows[Math.floor((y - ROW_Y) / ROW_PX + 0.5)];
+    var phase = !row ? null : row.type === 'phase' ? row.id : phaseOf(row.parent ? data.rows[rowIndex[row.parent]] : row);
+    return { time: t, phase: phase, y: y };
+  }
+
+  scroller.addEventListener('pointermove', function (e) {
+    var spot = e.pointerType === 'mouse' && !drag && spotAt(e.clientX, e.clientY);
+    ghost.hidden = !spot;
+    if (!spot) return;
+    ghost.style.left = xOf(spot.time) + 'px';
+    ghost.firstChild.style.top = spot.y + 'px';
+    ghost.firstChild.textContent = '+ ' + (scale.unit === 'hour' ? clockOf(spot.time) : dayLabel((spot.time - PLAN_START) / DAY));
+  });
+  scroller.addEventListener('pointerleave', function () { ghost.hidden = true; });
+
+  // Click a bar, milestone or phase label in the chart to edit it, or empty space to add
+  // something at that time. A drag that moved the chart doesn't count as a click.
   scroller.addEventListener('click', function (e) {
     if (dragMoved) {
       dragMoved = false;
@@ -1112,7 +1145,12 @@
     }
     var hit = document.elementFromPoint(e.clientX, e.clientY);
     var el = hit && hit.closest('.plan [data-id]');
-    if (el) openEdit(el.getAttribute('data-id'));
+    if (el) return openEdit(el.getAttribute('data-id'));
+    var spot = spotAt(e.clientX, e.clientY);
+    if (spot) {
+      ghost.hidden = true;
+      openForm(null, spot);
+    }
   });
 
   form.addEventListener('change', syncForm);
