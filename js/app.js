@@ -202,6 +202,7 @@
   var ROW_PX = 34;
   var depsEl = chart.querySelector('[data-deps]');
   var freshId = null; // a just-created row, flashed briefly
+  var movingId = null; // the row being dragged to a new time
   var rowIndex = {};
   data.rows.forEach(function (row, i) { if (row.id) rowIndex[row.id] = i; });
   data.rows.forEach(function (row, i) { // every row needs an id to be edited
@@ -264,20 +265,21 @@
     data.rows.forEach(function (row, i) {
       var b = box(row, i);
       var tip = ' data-id="' + esc(row.id) + '" title="' + esc(row.name + ' · ' + itemLabel(row)) + '"';
+      var state = (row.id === freshId ? ' fresh' : '') + (row.id === movingId ? ' moving' : '');
       if (row.type === 'phase') {
         // An open-ended phase's line runs the whole width; one with an end stops there.
         var span = row.end != null ? 'left: ' + b.x1 + 'px; width: ' + (b.x2 - b.x1) + 'px; ' : '';
         html += '<div class="pline" style="' + span + 'top: ' + (b.cy + 6) + 'px"></div>' +
           (row.end != null ? '<div class="pcap" style="left: ' + b.x2 + 'px; top: ' + (b.cy + 2) + 'px"></div>' : '') +
-          '<div class="phase"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + (b.cy - 11) + 'px"><i></i>' + esc(row.name) + '</div>';
+          '<div class="phase' + state + '"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + (b.cy - 11) + 'px"><i></i>' + esc(row.name) + '</div>';
       } else if (row.type === 'milestone') {
-        html += '<div class="dia' + (row.id === freshId ? ' fresh' : '') + '"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + b.top + 'px"></div>';
+        html += '<div class="dia' + state + '"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + b.top + 'px"></div>';
       } else {
         var owner = data.people[row.owner];
         var fill = row.progress && !row.parent
           ? '; background: linear-gradient(90deg,#367f9c 0 ' + row.progress * 100 + '%,#4a95b2 ' + row.progress * 100 + '%)'
           : '';
-        html += '<div class="bar ' + (row.parent ? 'lt' : 'dk') + (b.x2 - b.x1 < 30 ? ' tiny' : '') + (row.id === freshId ? ' fresh' : '') + '" data-id="' + esc(row.id) +
+        html += '<div class="bar ' + (row.parent ? 'lt' : 'dk') + (b.x2 - b.x1 < 30 ? ' tiny' : '') + state + '" data-id="' + esc(row.id) +
           '" style="left: ' + b.x1 + 'px; top: ' + b.top + 'px; width: ' + (b.x2 - b.x1) + 'px' + fill + '" title="' +
           esc(row.name + ' · ' + rangeLabel(row)) + '">' +
           '<span class="t">' + esc(row.name) + '</span>' +
@@ -395,13 +397,23 @@
     try { scroller.setPointerCapture(e.pointerId); } catch (err) {}
     scroller.classList.add('dragging');
     e.preventDefault(); // don't start a text selection
+    // Pressing a plan item and holding still picks it up to move (see hold-to-move below).
+    var item = e.target.closest('.plan [data-id]');
+    if (item) {
+      item.classList.add('holding');
+      hold = { id: item.getAttribute('data-id'), el: item, timer: setTimeout(lift, HOLD_MS) };
+    }
   });
 
   scroller.addEventListener('pointermove', function (e) {
+    if (move) return moveTo(e.clientX);
     if (!drag) return;
     scroller.scrollLeft = drag.left - (e.clientX - drag.x);
     scroller.scrollTop = drag.top - (e.clientY - drag.y);
-    if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 4) dragMoved = true;
+    if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 4) {
+      dragMoved = true;
+      cancelHold();
+    }
     // Keep the last 100ms of movement to work out the release speed.
     var now = e.timeStamp || performance.now();
     drag.trail.push({ t: now, x: e.clientX, y: e.clientY });
@@ -409,6 +421,8 @@
   });
 
   function endDrag(e) {
+    cancelHold();
+    if (move) return drop(false);
     if (!drag) return;
     var trail = drag.trail;
     drag = null;
@@ -435,6 +449,7 @@
     extend();
     syncTodayArrow();
     syncPanelScroll();
+    if (move && move.lastX != null) moveTo(move.lastX); // keep a moving item under the mouse
   }, { passive: true });
 
   todayBtn.addEventListener('click', function () {
@@ -1127,6 +1142,7 @@
   }
 
   scroller.addEventListener('pointermove', function (e) {
+    if (move) return;
     var spot = e.pointerType === 'mouse' && !drag && spotAt(e.clientX, e.clientY);
     ghost.hidden = !spot;
     if (!spot) return;
@@ -1151,6 +1167,83 @@
       ghost.hidden = true;
       openForm(null, spot);
     }
+  });
+
+  // Hold-to-move: press a bar, milestone or phase label and hold still for HOLD_MS to
+  // pick it up, then drag it sideways to a new time (to the quarter hour in hour view,
+  // otherwise to the day). A task's subtasks come with it. Moving the mouse before then
+  // pans the chart as usual; Esc while moving puts it back. Moved rows are copies saved
+  // like created ones, so js/data.js rows stay untouched.
+  var HOLD_MS = 400;
+  var hold = null; // a press on a plan item, waiting to see if it's held still
+  var move = null; // the item being moved: its rows before the move and the shift so far
+
+  function cancelHold() {
+    if (!hold) return;
+    clearTimeout(hold.timer);
+    hold.el.classList.remove('holding');
+    hold = null;
+  }
+
+  function lift() {
+    var i = rowIndex[hold.id];
+    hold = null;
+    if (i == null || !drag) return;
+    var row = data.rows[i];
+    var n = row.type === 'task' && !row.parent ? childCount(row) : 0;
+    var x = drag.trail.length ? drag.trail[drag.trail.length - 1].x : drag.x;
+    move = { from: i, before: data.rows.slice(i, i + 1 + n), t0: timeAt(x - chart.getBoundingClientRect().left), shift: 0 };
+    drag = null;
+    dragMoved = true; // the release isn't a click
+    scroller.classList.remove('dragging');
+    scroller.classList.add('moving');
+    movingId = row.id;
+    renderPlan();
+    showMove();
+  }
+
+  function shifted(row, d) {
+    var copy = {};
+    Object.keys(row).forEach(function (k) { copy[k] = row[k]; });
+    ['start', 'end', 'day'].forEach(function (k) { if (copy[k] != null) copy[k] += d; });
+    copy.added = true;
+    return copy;
+  }
+
+  function moveTo(clientX) {
+    move.lastX = clientX;
+    var d = (timeAt(clientX - chart.getBoundingClientRect().left) - move.t0) / DAY;
+    d = scale.unit === 'hour' ? Math.round(d * 96) / 96 : Math.round(d);
+    if (d === move.shift) return;
+    move.shift = d;
+    move.before.forEach(function (r, k) { data.rows[move.from + k] = shifted(r, d); });
+    renderPlan();
+    showMove();
+  }
+
+  // The guide line marks the moving item's start, labelled with its new dates.
+  function showMove() {
+    var row = data.rows[move.from];
+    var b = box(row, move.from);
+    ghost.hidden = false;
+    ghost.style.left = dayX(row.type === 'milestone' ? row.day : row.start) + 'px';
+    ghost.firstChild.style.top = b.cy - 22 + 'px';
+    ghost.firstChild.textContent = itemLabel(row);
+  }
+
+  function drop(cancel) {
+    var m = move;
+    move = null;
+    movingId = null;
+    scroller.classList.remove('moving');
+    ghost.hidden = true;
+    if (cancel || !m.shift) m.before.forEach(function (r, k) { data.rows[m.from + k] = r; });
+    refresh();
+    if (!cancel && m.shift) savePlan();
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (move && e.key === 'Escape') drop(true);
   });
 
   form.addEventListener('change', syncForm);
