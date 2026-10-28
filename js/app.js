@@ -278,6 +278,23 @@
     return /^#[0-9a-f]{6}$/i.test(row.color || '') ? '; --c: ' + row.color : '';
   }
 
+  // People: any row can have a `person` (an id from data.people). People are added from
+  // the task form and saved with the plan; each new one gets the next avatar colour.
+  var AVATAR_COLORS = ['#dfae2f', '#de4f87', '#e57f3a', '#8b5cf0', '#2f9585', '#418dab', '#cf4646', '#4f9a3a'];
+
+  function personById(id) {
+    return id ? data.people.filter(function (p) { return p.id === id; })[0] || null : null;
+  }
+
+  function initials(name) {
+    var words = name.trim().split(/\s+/);
+    return (words[0].charAt(0) + (words.length > 1 ? words[words.length - 1].charAt(0) : '')).toUpperCase();
+  }
+
+  function avatar(p) {
+    return '<span class="pav" style="background: ' + esc(p.color || AVATAR_COLORS[0]) + '" aria-hidden="true">' + esc(initials(p.name)) + '</span>';
+  }
+
   // Milestones and tasks without a finish are drawn as marks, not bars: a milestone with
   // a finish is a diamond at each end joined by a line.
   function isPoint(row) {
@@ -307,7 +324,8 @@
     var bands = '';
     data.rows.forEach(function (row, i) {
       var b = box(row, i);
-      var tip = ' data-id="' + esc(row.id) + '" title="' + esc(row.name + ' · ' + itemLabel(row)) + '"';
+      var who = personById(row.person);
+      var tip = ' data-id="' + esc(row.id) + '" title="' + esc(row.name + ' · ' + itemLabel(row) + (who ? ' · ' + who.name : '')) + '"';
       var state = (row.id === freshId ? ' fresh' : '') + (row.id === movingId ? ' moving' : '');
       if (row.type === 'phase') {
         // An open-ended phase's line runs the whole width; one with an end stops there.
@@ -332,7 +350,7 @@
         // A task at a moment: a ring (filled with a tick once done) with its name beside it.
         html += '<div class="pt' + (row.parent ? ' lt' : '') + (row.progress >= 1 ? ' done' : '') + state + '"' + tip +
           ' style="left: ' + b.x1 + 'px; top: ' + (b.cy - 10) + 'px' + colorVar(row) + '"><i></i>' +
-          '<span class="t">' + esc(row.name) + '</span></div>';
+          '<span class="t">' + esc(row.name) + '</span>' + (who ? avatar(who) : '') + '</div>';
       } else {
         // Progress darkens the done part of the bar, whatever its colour.
         var fill = row.progress && !row.parent
@@ -340,8 +358,8 @@
           : '';
         html += '<div class="bar ' + (row.parent ? 'lt' : 'dk') + (b.x2 - b.x1 < 30 ? ' tiny' : '') + state + '" data-id="' + esc(row.id) +
           '" style="left: ' + b.x1 + 'px; top: ' + b.top + 'px; width: ' + (b.x2 - b.x1) + 'px' + fill + colorVar(row) + '" title="' +
-          esc(row.name + ' · ' + rangeLabel(row)) + '">' +
-          '<span class="t">' + esc(row.name) + '</span></div>';
+          esc(row.name + ' · ' + rangeLabel(row) + (who ? ' · ' + who.name : '')) + '">' +
+          '<span class="t">' + esc(row.name) + '</span>' + (who && b.x2 - b.x1 >= 70 ? avatar(who) : '') + '</div>';
       }
     });
     plan.innerHTML = html;
@@ -774,10 +792,13 @@
     var sig = JSON.stringify([base, data.deps]);
     data.base = base;
     data.baseDeps = data.deps.slice(); // a copy: edits add to data.deps in place
+    if (!data.basePeople) data.basePeople = (data.people || []).slice();
+    data.people = data.basePeople.slice();
     data.sig = sig;
     var saved;
     try { saved = JSON.parse(localStorage.getItem('roadmapPlan')); } catch (e) {}
     if (!saved || saved.sig !== sig) return;
+    if (saved.people) data.people = saved.people;
     var shift = (saved.planStart - PLAN_START) / DAY;
     data.rows = saved.rows.map(function (r) {
       if (r.base != null) return base[r.base];
@@ -796,7 +817,8 @@
         var i = data.base.indexOf(r);
         return i >= 0 ? { base: i } : r;
       }),
-      deps: data.deps
+      deps: data.deps,
+      people: data.people
     };
     try { localStorage.setItem('roadmapPlan', JSON.stringify(plan)); } catch (e) {}
   }
@@ -817,7 +839,8 @@
         var i = data.base.indexOf(r);
         return i >= 0 ? { base: i } : r;
       }),
-      deps: data.deps
+      deps: data.deps,
+      people: data.people
     });
   }
 
@@ -848,6 +871,7 @@
     var s = JSON.parse(current);
     data.rows = s.rows.map(function (r) { return r.base != null ? data.base[r.base] : r; }).filter(Boolean);
     data.deps = s.deps;
+    data.people = s.people;
     closePeek();
     refresh();
     writePlan();
@@ -1021,6 +1045,9 @@
         ' aria-label="' + c[0] + '"><span style="background: ' + c[1] + '" title="' + c[0] + '"></span></label>';
     }).join('');
 
+    fillPeople('');
+    showNewPerson(false);
+
     form.querySelector('[data-dep-options]').innerHTML = data.rows.filter(function (r) {
       return (r.type === 'task' || r.type === 'milestone') && r !== row;
     }).map(function (r) {
@@ -1059,6 +1086,7 @@
         if (swatch) swatch.checked = true;
       }
       if (row.type !== 'phase') f.phase.value = phaseOf(row.parent ? data.rows[rowIndex[row.parent]] : row);
+      if (personById(row.person)) fillPeople(row.person);
       data.deps.forEach(function (dep) {
         if (dep[1] !== row.id) return;
         var box = form.querySelector('[name="deps"][value="' + dep[0] + '"]');
@@ -1088,6 +1116,67 @@
     f.name.focus();
     if (editing) f.name.select();
   }
+
+  // Person picker: Unassigned, everyone so far, and "New person…", which opens a name
+  // box under it. Adding someone who already exists (same name) just picks them.
+  var personSel = form.elements.person;
+  var newPersonEl = form.querySelector('[data-new-person]');
+  var NEW_PERSON = '+new';
+
+  function fillPeople(value) {
+    personSel.innerHTML = '<option value="">Unassigned</option>' + data.people.map(function (p) {
+      return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>';
+    }).join('') + '<option value="' + NEW_PERSON + '">+ New person…</option>';
+    personSel.value = value;
+    personSel.setAttribute('data-was', value);
+  }
+
+  function showNewPerson(open) {
+    newPersonEl.hidden = !open;
+    form.elements.newPerson.value = '';
+    if (open) form.elements.newPerson.focus();
+  }
+
+  function addPerson() {
+    var name = form.elements.newPerson.value.trim().replace(/\s+/g, ' ');
+    if (!name) return form.elements.newPerson.focus();
+    var p = data.people.filter(function (q) { return q.name.toLowerCase() === name.toLowerCase(); })[0];
+    if (!p) {
+      var base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'person';
+      var id = base;
+      for (var n = 2; personById(id); n++) id = base + '-' + n;
+      p = { id: id, name: name, color: AVATAR_COLORS[data.people.length % AVATAR_COLORS.length] };
+      data.people.push(p);
+    }
+    fillPeople(p.id);
+    showNewPerson(false);
+    personSel.focus();
+  }
+
+  personSel.addEventListener('change', function () {
+    if (personSel.value === NEW_PERSON) {
+      personSel.value = personSel.getAttribute('data-was') || '';
+      showNewPerson(true);
+    } else {
+      personSel.setAttribute('data-was', personSel.value);
+    }
+  });
+  form.querySelector('[data-add-person]').addEventListener('click', addPerson);
+  form.querySelector('[data-cancel-person]').addEventListener('click', function () {
+    showNewPerson(false);
+    personSel.focus();
+  });
+  // Enter adds the person (rather than submitting the form); Esc closes just the name box.
+  form.elements.newPerson.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addPerson();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      showNewPerson(false);
+      personSel.focus();
+    }
+  });
 
   function openEdit(id) {
     if (rowIndex[id] != null) openForm(data.rows[rowIndex[id]]);
@@ -1138,6 +1227,9 @@
       if (f.color.value) row.color = f.color.value;
       if (+f.progress.value) row.progress = f.progress.value / 100;
     }
+    // A name typed into New person but not yet added is added now.
+    if (!newPersonEl.hidden && f.newPerson.value.trim()) addPerson();
+    if (personById(f.person.value)) row.person = f.person.value;
     row.id = editing ? editing.id : uniqueId(name);
     row.added = true;
 
@@ -1463,6 +1555,8 @@
     peek.querySelector('[data-peek-title]').textContent = row.name;
 
     var items = [['When', esc(itemLabel(row))]];
+    var who = personById(row.person);
+    if (who) items.push(['Person', avatar(who) + esc(who.name)]);
     if (row.end != null) items.push(['Length', duration(row)]);
     if (row.type === 'task') {
       var pct = Math.round((row.progress || 0) * 100);
@@ -1755,6 +1849,12 @@
         var s = statusOf(r);
         return '<span class="st ' + s + '">' + (s === 'ms' ? 'Milestone' : STATUS[s]) + '</span>';
       } },
+    { key: 'person', label: 'Person',
+      val: function (r) { var p = personById(r.person); return p ? p.name.toLowerCase() : '~'; }, // unassigned sorts last
+      cell: function (r) {
+        var p = personById(r.person);
+        return p ? '<span class="lperson">' + avatar(p) + esc(p.name) + '</span>' : '<span class="nil">Unassigned</span>';
+      } },
     { key: 'deps', label: 'Depends on',
       val: function (r) { return depsOf(r).length; },
       cell: function (r) {
@@ -1781,12 +1881,13 @@
       var ph = row.type === 'phase' ? row.id : phaseOf(row.parent && rowIndex[row.parent] != null ? data.rows[rowIndex[row.parent]] : row);
       if ((f.phase === '-' ? '' : f.phase) !== ph) return false;
     }
+    if (f.person && (f.person === '-' ? !!personById(row.person) : row.person !== f.person)) return false;
     return true;
   }
 
   function filtering() {
     var f = listState.filters;
-    return !!(f.q || f.type || f.status || f.phase);
+    return !!(f.q || f.type || f.status || f.phase || f.person);
   }
 
   // The rows to show, in order. In plan order a phase stays as a heading while anything
@@ -1855,6 +1956,14 @@
     phaseSel.innerHTML = '<option value="">All phases</option><option value="-">No phase</option>' + phases.map(function (p) {
       return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>';
     }).join('');
+    if (listState.filters.person && listState.filters.person !== '-' && !personById(listState.filters.person)) {
+      delete listState.filters.person;
+      saveList();
+    }
+    listEl.querySelector('[data-lf="person"]').innerHTML = '<option value="">Anyone</option><option value="-">Unassigned</option>' +
+      data.people.map(function (p) {
+        return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>';
+      }).join('');
     filterEls.forEach(function (el) { el.value = listState.filters[el.getAttribute('data-lf')] || ''; });
 
     var hiddenN = LIST_COLS.length - cols.length;

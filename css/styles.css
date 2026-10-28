@@ -521,6 +521,16 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .st.ms{background:#35260f;color:#f0b06c}
 [data-theme="dark"] .lrow.fresh td{animation-name:lfreshd}
 @keyframes lfreshd{0%,30%{background:#1d3440}}
+/* People: initials in a coloured circle */
+.pav{flex:none;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;color:#ffffff;font:600 7.5px/1 Inter,sans-serif;letter-spacing:.02em}
+.bar .pav{width:16px;height:16px;font-size:7px;margin-left:6px;box-shadow:0 0 0 1.5px rgba(255,255,255,.75)}
+.pt .pav{width:16px;height:16px;font-size:7px}
+.peek-body .pav{margin-right:-2px}
+.lperson{display:inline-flex;align-items:center;gap:7px}
+.newp{display:flex;gap:6px;margin-top:4px}
+.newp[hidden]{display:none}
+.newp input{flex:1}
+.newp .btn{height:30px}
 /* Button tooltips (see the end of js/app.js) */
 .tip{position:fixed;z-index:60;max-width:240px;padding:4px 8px;border-radius:5px;background:#1b1f24;color:#ffffff;font:500 11px/1.35 Inter,system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;box-shadow:0 4px 12px rgba(20,30,40,.18)}
 .tip[hidden]{display:none}

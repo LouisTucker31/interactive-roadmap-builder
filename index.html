@@ -100,6 +100,7 @@
 <select aria-label="Type" data-lf="type"><option value="">All types</option><option value="task">Tasks</option><option value="milestone">Milestones</option><option value="phase">Phases</option></select>
 <select aria-label="Status" data-lf="status"><option value="">Any status</option><option value="open">Not started</option><option value="active">In progress</option><option value="done">Done</option></select>
 <select aria-label="Phase" data-lf="phase"></select>
+<select aria-label="Person" data-lf="person"></select>
 <button class="lclear" type="button" hidden data-lf-clear>Clear filters</button>
 <span class="lcount" data-list-count></span>
 <div class="cwrap">
@@ -154,6 +155,10 @@
 </div>
 <label class="chk"><input type="checkbox" name="allDay" checked> All day</label>
 <div class="fld" data-for="task"><span class="fl">Colour</span><div class="swatches" role="radiogroup" aria-label="Colour" data-colors></div></div>
+<div class="fld"><span class="fl">Person</span>
+<select name="person" aria-label="Person" data-people></select>
+<div class="newp" hidden data-new-person><input type="text" name="newPerson" maxlength="60" placeholder="New person's name" autocomplete="off" aria-label="New person's name"><button class="btn" type="button" data-add-person>Add</button><button class="btn" type="button" data-cancel-person>Cancel</button></div>
+</div>
 
 <div class="two">
 <label class="fld" data-for="task milestone"><span class="fl">Phase</span><select name="phase" data-phases></select></label>

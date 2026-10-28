@@ -1,7 +1,7 @@
 // Roadmap shown on the Gantt chart. Rows are drawn top to bottom in this order.
 // Days are offsets from the Monday of the current week (day 0); a task's `end` is the
 // day it finishes before (exclusive). Subtasks name their `parent` and draw lighter.
-// A task's `color` is optional (blue by default).
+// A task's `color` is optional (blue by default). Any row can name a `person` from `people`.
 // Starts empty: add tasks, milestones and phases with the New task button.
 //
 // Row shapes:
@@ -14,5 +14,9 @@ window.ROADMAP = {
   rows: [],
 
   // [from, to]: `to` can't start until `from` is done, e.g. ['wireframes', 'ui-mockups'].
-  deps: []
+  deps: [],
+
+  // People to put on rows, e.g. { id: 'priya-shah', name: 'Priya Shah', color: '#8b5cf0' }.
+  // More can be added from the task form; those are saved in the browser with the plan.
+  people: []
 };
