@@ -773,6 +773,7 @@
     var base = data.rows.slice();
     var sig = JSON.stringify([base, data.deps]);
     data.base = base;
+    data.baseDeps = data.deps;
     data.sig = sig;
     var saved;
     try { saved = JSON.parse(localStorage.getItem('roadmapPlan')); } catch (e) {}
@@ -808,12 +809,34 @@
     });
   }
 
+  // Every change goes through here, so the timeline, task list and list view all stay in step.
   function refresh() {
     reindex();
     renderPlan();
     renderTaskList();
     syncPanelScroll();
+    renderList();
   }
+
+  // Another tab saved the plan: load its version so every open tab shows the same plan.
+  // Waits while something here is mid-change (a move, a reorder or the open form).
+  var staleTabs = false;
+
+  function reloadPlan() {
+    if (move || sort || dialog.open) {
+      staleTabs = true;
+      return;
+    }
+    staleTabs = false;
+    data.rows = data.base.slice();
+    data.deps = data.baseDeps;
+    loadPlan();
+    refresh();
+  }
+
+  window.addEventListener('storage', function (e) {
+    if (e.key === 'roadmapPlan') reloadPlan();
+  });
 
   // Task form: creates a task, milestone or phase row, or edits one. Everything js/data.js
   // can describe can be entered here: name, dates (optionally with times), colour, phase,
@@ -1130,6 +1153,7 @@
     else scrollToTime(timeAt(scroller.scrollLeft), 0, top);
     freshId = row.id;
     renderPlan();
+    renderList();
     setTimeout(function () { if (freshId === row.id) freshId = null; }, 1600);
   }
 
@@ -1544,6 +1568,357 @@
   dialog.addEventListener('click', function (e) {
     if (e.target === dialog) dialog.close();
   });
+
+  dialog.addEventListener('close', function () { if (staleTabs) reloadPlan(); });
+
+  // List view: the same plan as a table, one row per plan row. Click a column heading to
+  // sort by it (again for descending, a third time back to plan order); filter by name,
+  // type, status or phase; hide columns from their heading or the Columns menu, which
+  // also brings them back. In plan order, phases head their sections and subtasks sit
+  // indented under their task. Clicking a row edits it with the same form as the timeline,
+  // so a change made on either page shows on both. Sort, filters and hidden columns are
+  // remembered in this browser.
+  var app = document.querySelector('.app');
+  var listEl = document.querySelector('[data-list]');
+  var listHead = listEl.querySelector('[data-list-head]');
+  var listBody = listEl.querySelector('[data-list-body]');
+  var listCount = listEl.querySelector('[data-list-count]');
+  var colsBtn = listEl.querySelector('[data-cols-btn]');
+  var colsMenu = listEl.querySelector('[data-cols-menu]');
+  var filterEls = Array.prototype.slice.call(listEl.querySelectorAll('[data-lf]'));
+  var clearBtn = listEl.querySelector('[data-lf-clear]');
+  var pageBtns = Array.prototype.slice.call(document.querySelectorAll('[data-page-btn]'));
+
+  var STATUS = { open: 'Not started', active: 'In progress', done: 'Done' };
+  var STATUS_RANK = { open: 0, active: 1, done: 2, ms: 3 };
+
+  var listState = { sort: null, dir: 1, hidden: [], filters: {} };
+  try {
+    var savedList = JSON.parse(localStorage.getItem('roadmapList'));
+    if (savedList) Object.keys(listState).forEach(function (k) { if (savedList[k] != null) listState[k] = savedList[k]; });
+  } catch (e) {}
+
+  function saveList() {
+    try { localStorage.setItem('roadmapList', JSON.stringify(listState)); } catch (e) {}
+  }
+
+  function startDay(row) {
+    return row.type === 'milestone' ? row.day : row.start;
+  }
+
+  // The last day shown: a whole-day finish is exclusive, so it's the day before.
+  function finishDay(row) {
+    return row.end == null ? null : row.end % 1 ? row.end : row.end - 1;
+  }
+
+  // "11 Jul", with the year when it isn't this year and the time when one was given.
+  function listDate(day) {
+    var d = new Date(PLAN_START + Math.floor(day) * DAY);
+    var year = d.getUTCFullYear() !== new Date(TODAY).getUTCFullYear() ? ' ' + d.getUTCFullYear() : '';
+    return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + year + (day % 1 ? ' ' + timeOf(day) : '');
+  }
+
+  function phaseName(row) {
+    if (row.type === 'phase') return '';
+    var ph = phaseOf(row.parent && rowIndex[row.parent] != null ? data.rows[rowIndex[row.parent]] : row);
+    return ph ? data.rows[rowIndex[ph]].name : '';
+  }
+
+  // A task's own progress; a phase's is the average of the tasks in its section. Null
+  // when there's nothing to measure (milestones, empty phases).
+  function progressOf(row) {
+    if (row.type === 'task') return row.progress || 0;
+    if (row.type !== 'phase') return null;
+    var tasks = data.rows.slice(rowIndex[row.id] + 1, sectionEnd(row.id)).filter(function (r) { return r.type === 'task'; });
+    if (!tasks.length) return null;
+    return tasks.reduce(function (sum, r) { return sum + (r.progress || 0); }, 0) / tasks.length;
+  }
+
+  function statusOf(row) {
+    if (row.type === 'milestone') return 'ms';
+    var p = progressOf(row);
+    return p == null || p === 0 ? 'open' : p >= 1 ? 'done' : 'active';
+  }
+
+  function depsOf(row) {
+    return data.deps.filter(function (d) { return d[1] === row.id && rowIndex[d[0]] != null; }).map(function (d) {
+      return data.rows[rowIndex[d[0]]];
+    });
+  }
+
+  // Each column: its heading, the value it sorts by and the cell it draws. Name can't be hidden.
+  var LIST_COLS = [
+    { key: 'name', label: 'Name', fixed: true,
+      val: function (r) { return r.name.toLowerCase(); },
+      cell: function (r) {
+        var ic = r.type === 'phase' ? '<i class="lic ph"></i>' : r.type === 'milestone' ? '<i class="lic ms"></i>'
+          : '<i class="lic' + (r.parent ? ' sub' : '') + '" style="' + colorVar(r).slice(2) + '"></i>';
+        return '<div class="cname-in">' + ic + '<span class="ln">' + esc(r.name) + '</span></div>';
+      } },
+    { key: 'type', label: 'Type',
+      val: function (r) { return r.type === 'task' && r.parent ? 'subtask' : r.type; },
+      cell: function (r) { return r.type === 'task' ? (r.parent ? 'Subtask' : 'Task') : r.type === 'milestone' ? 'Milestone' : 'Phase'; } },
+    { key: 'phase', label: 'Phase',
+      val: function (r) { return phaseName(r).toLowerCase() || '~'; }, // no phase sorts last
+      cell: function (r) { return esc(phaseName(r)) || '<span class="nil">—</span>'; } },
+    { key: 'start', label: 'Start', mono: true,
+      val: startDay,
+      cell: function (r) { return listDate(startDay(r)); } },
+    { key: 'end', label: 'Finish', mono: true,
+      val: function (r) { var f = finishDay(r); return f == null ? Infinity : f; },
+      cell: function (r) { var f = finishDay(r); return f == null ? '<span class="nil">—</span>' : listDate(f); } },
+    { key: 'days', label: 'Length', mono: true, right: true,
+      val: function (r) { return r.end == null ? -1 : r.end - startDay(r); },
+      cell: function (r) { return r.end == null ? '<span class="nil">—</span>' : duration(r); } },
+    { key: 'progress', label: 'Progress',
+      val: function (r) { var p = progressOf(r); return p == null ? -1 : p; },
+      cell: function (r) {
+        var p = progressOf(r);
+        if (p == null) return '<span class="nil">—</span>';
+        var pct = Math.round(p * 100);
+        return '<span class="lpg"><span class="peek-pg"><b style="width: ' + pct + '%"></b></span><span class="lpct">' + pct + '%</span></span>';
+      } },
+    { key: 'status', label: 'Status',
+      val: function (r) { return STATUS_RANK[statusOf(r)]; },
+      cell: function (r) {
+        var s = statusOf(r);
+        return '<span class="st ' + s + '">' + (s === 'ms' ? 'Milestone' : STATUS[s]) + '</span>';
+      } },
+    { key: 'deps', label: 'Depends on',
+      val: function (r) { return depsOf(r).length; },
+      cell: function (r) {
+        var ds = depsOf(r);
+        return ds.length ? '<span class="ldeps" title="' + esc(ds.map(function (d) { return d.name; }).join(', ')) + '">' +
+          esc(ds.map(function (d) { return d.name; }).join(', ')) + '</span>' : '<span class="nil">—</span>';
+      } }
+  ];
+
+  function shownCols() {
+    return LIST_COLS.filter(function (c) { return c.fixed || listState.hidden.indexOf(c.key) < 0; });
+  }
+
+  function colByKey(key) {
+    return LIST_COLS.filter(function (c) { return c.key === key; })[0];
+  }
+
+  function matches(row) {
+    var f = listState.filters;
+    if (f.q && row.name.toLowerCase().indexOf(f.q.toLowerCase()) < 0) return false;
+    if (f.type && row.type !== f.type) return false;
+    if (f.status && statusOf(row) !== f.status) return false;
+    if (f.phase) {
+      var ph = row.type === 'phase' ? row.id : phaseOf(row.parent && rowIndex[row.parent] != null ? data.rows[rowIndex[row.parent]] : row);
+      if ((f.phase === '-' ? '' : f.phase) !== ph) return false;
+    }
+    return true;
+  }
+
+  function filtering() {
+    var f = listState.filters;
+    return !!(f.q || f.type || f.status || f.phase);
+  }
+
+  // The rows to show, in order. In plan order a phase stays as a heading while anything
+  // in its section is shown, even if the phase itself is filtered out.
+  function listRows() {
+    var rows = data.rows.filter(matches);
+    var col = listState.sort && colByKey(listState.sort);
+    if (col) {
+      return rows.map(function (r, i) { return { r: r, v: col.val(r), i: i }; }).sort(function (a, b) {
+        return a.v < b.v ? -listState.dir : a.v > b.v ? listState.dir : a.i - b.i;
+      }).map(function (x) { return x.r; });
+    }
+    if (!filtering()) return rows;
+    return data.rows.filter(function (r, i) {
+      if (matches(r)) return true;
+      if (r.type !== 'phase') return false;
+      return data.rows.slice(i + 1, sectionEnd(r.id)).some(matches);
+    });
+  }
+
+  function renderList() {
+    var cols = shownCols();
+    var flat = !!(listState.sort && colByKey(listState.sort));
+
+    listHead.innerHTML = '<tr>' + cols.map(function (c) {
+      var on = listState.sort === c.key;
+      var dir = on ? (listState.dir > 0 ? 'ascending' : 'descending') : 'none';
+      return '<th class="' + (c.key === 'name' ? 'cname' : '') + (c.right ? ' r' : '') + '" aria-sort="' + dir + '">' +
+        '<button type="button" class="sortb' + (on ? ' on' : '') + '" data-sort="' + c.key + '" title="Sort by ' + c.label.toLowerCase() + '">' +
+        c.label + '<i class="arr' + (on && listState.dir < 0 ? ' down' : '') + '" aria-hidden="true"></i></button>' +
+        (c.fixed ? '' : '<button type="button" class="hidec" data-hide-col="' + c.key + '" aria-label="Hide ' + c.label + ' column" title="Hide column">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>') +
+        '</th>';
+    }).join('') + '</tr>';
+
+    var rows = listRows();
+    var span = ' colspan="' + cols.length + '"';
+    var body = rows.map(function (r) {
+      var cls = 'lrow ' + (r.type === 'phase' ? 'l-ph' : r.type === 'milestone' ? 'l-ms' : r.parent ? 'l-sub' : 'l-top') + (r.id === freshId ? ' fresh' : '');
+      return '<tr class="' + cls + '" data-id="' + esc(r.id) + '" tabindex="0" title="Click to edit">' + cols.map(function (c) {
+        return '<td class="' + (c.key === 'name' ? 'cname' : '') + (c.mono ? ' mono' : '') + (c.right ? ' r' : '') + '">' + c.cell(r) + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    if (!data.rows.length) {
+      body = '<tr class="lnone"><td' + span + '>Nothing here yet.&nbsp;<button type="button" data-list-add>Add a task</button></td></tr>';
+    } else if (!rows.length) {
+      body = '<tr class="lnone"><td' + span + '>Nothing matches these filters.&nbsp;<button type="button" data-list-clear>Clear filters</button></td></tr>';
+    } else {
+      body += '<tr class="ladd" data-list-add tabindex="0"><td' + span + '><i class="lic add"></i>New task</td></tr>';
+    }
+    listBody.innerHTML = body;
+    listEl.classList.toggle('flat', flat);
+
+    var shown = rows.length;
+    var total = data.rows.length;
+    listCount.textContent = filtering() ? shown + ' of ' + total + ' shown' : total + (total === 1 ? ' item' : ' items');
+    clearBtn.hidden = !filtering();
+
+    // Phase filter options follow the plan's phases; a deleted phase drops out of the filter.
+    var phaseSel = listEl.querySelector('[data-lf="phase"]');
+    var phases = data.rows.filter(function (r) { return r.type === 'phase'; });
+    if (listState.filters.phase && listState.filters.phase !== '-' && rowIndex[listState.filters.phase] == null) {
+      delete listState.filters.phase;
+      saveList();
+    }
+    phaseSel.innerHTML = '<option value="">All phases</option><option value="-">No phase</option>' + phases.map(function (p) {
+      return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>';
+    }).join('');
+    filterEls.forEach(function (el) { el.value = listState.filters[el.getAttribute('data-lf')] || ''; });
+
+    var hiddenN = LIST_COLS.length - cols.length;
+    var badge = colsBtn.querySelector('[data-hidden-count]');
+    badge.hidden = !hiddenN;
+    badge.textContent = hiddenN + ' hidden';
+    renderColsMenu();
+  }
+
+  function renderColsMenu() {
+    colsMenu.innerHTML = LIST_COLS.filter(function (c) { return !c.fixed; }).map(function (c) {
+      return '<button type="button" role="menuitemcheckbox" aria-checked="' + (listState.hidden.indexOf(c.key) < 0) + '" data-col="' + c.key + '">' + c.label + '</button>';
+    }).join('') + '<div class="zsep" role="separator"></div><button type="button" data-show-all' + (listState.hidden.length ? '' : ' disabled') + '>Show all columns</button>';
+  }
+
+  function setHidden(key, hide) {
+    var i = listState.hidden.indexOf(key);
+    if (hide && i < 0) listState.hidden.push(key);
+    if (!hide && i >= 0) listState.hidden.splice(i, 1);
+    if (hide && listState.sort === key) listState.sort = null;
+    saveList();
+    renderList();
+  }
+
+  listHead.addEventListener('click', function (e) {
+    var hide = e.target.closest('[data-hide-col]');
+    if (hide) return setHidden(hide.getAttribute('data-hide-col'), true);
+    var btn = e.target.closest('[data-sort]');
+    if (!btn) return;
+    var key = btn.getAttribute('data-sort');
+    if (listState.sort !== key) {
+      listState.sort = key;
+      listState.dir = 1;
+    } else if (listState.dir > 0) {
+      listState.dir = -1;
+    } else {
+      listState.sort = null;
+    }
+    saveList();
+    renderList();
+    var again = listHead.querySelector('[data-sort="' + key + '"]');
+    if (again) again.focus();
+  });
+
+  function showColsMenu(open) {
+    colsMenu.hidden = !open;
+    colsBtn.setAttribute('aria-expanded', String(open));
+    if (open) colsMenu.querySelector('button').focus();
+  }
+
+  colsBtn.addEventListener('click', function () { showColsMenu(colsMenu.hidden); });
+  colsMenu.addEventListener('click', function (e) {
+    var item = e.target.closest('[data-col]');
+    if (item) {
+      var key = item.getAttribute('data-col');
+      setHidden(key, listState.hidden.indexOf(key) < 0);
+      var same = colsMenu.querySelector('[data-col="' + key + '"]');
+      if (same) same.focus();
+    } else if (e.target.closest('[data-show-all]')) {
+      listState.hidden = [];
+      saveList();
+      renderList();
+      colsMenu.querySelector('button').focus();
+    }
+  });
+  colsMenu.addEventListener('keydown', function (e) {
+    var items = Array.prototype.slice.call(colsMenu.querySelectorAll('button:not(:disabled)'));
+    var i = items.indexOf(document.activeElement);
+    if (e.key === 'Escape') {
+      showColsMenu(false);
+      colsBtn.focus();
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
+    }
+  });
+  document.addEventListener('click', function (e) {
+    if (!colsMenu.hidden && !e.target.closest('.cwrap')) showColsMenu(false);
+  });
+
+  filterEls.forEach(function (el) {
+    el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', function () {
+      var key = el.getAttribute('data-lf');
+      if (el.value) listState.filters[key] = el.value;
+      else delete listState.filters[key];
+      saveList();
+      renderList();
+    });
+  });
+
+  function clearFilters() {
+    listState.filters = {};
+    saveList();
+    renderList();
+  }
+
+  clearBtn.addEventListener('click', clearFilters);
+
+  listBody.addEventListener('click', function (e) {
+    if (e.target.closest('[data-list-clear]')) return clearFilters();
+    if (e.target.closest('[data-list-add]')) return openForm();
+    var tr = e.target.closest('.lrow[data-id]');
+    if (tr) openEdit(tr.getAttribute('data-id'));
+  });
+  listBody.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var tr = e.target.closest('.lrow[data-id], .ladd');
+    if (!tr || e.target !== tr) return;
+    e.preventDefault();
+    if (tr.hasAttribute('data-list-add')) openForm();
+    else openEdit(tr.getAttribute('data-id'));
+  });
+
+  // Pages: the rail switches between the timeline and the list. The list sits over the
+  // timeline rather than replacing it, so the chart keeps its scroll position underneath.
+  function setPage(page) {
+    app.setAttribute('data-page', page);
+    pageBtns.forEach(function (btn) {
+      var on = btn.getAttribute('data-page-btn') === page;
+      btn.classList.toggle('on', on);
+      if (on) btn.setAttribute('aria-current', 'page');
+      else btn.removeAttribute('aria-current');
+    });
+    closePeek();
+    try { localStorage.setItem('roadmapPage', page); } catch (e) {}
+  }
+
+  pageBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () { setPage(btn.getAttribute('data-page-btn')); });
+  });
+
+  renderList();
+  var savedPage;
+  try { savedPage = localStorage.getItem('roadmapPage'); } catch (e) {}
+  setPage(savedPage === 'list' ? 'list' : 'timeline');
 
   // After changing window.ROADMAP, call roadmap.refresh() to redraw the plan and stats.
   // roadmap.reset() removes everything created with the New task form.

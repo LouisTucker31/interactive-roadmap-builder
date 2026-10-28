@@ -48,8 +48,8 @@
 <main class="panel">
 <nav class="rail" aria-label="Views">
 <div class="logo" aria-hidden="true">P</div>
-<button class="ri on" type="button" aria-label="Timeline" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M7 12h13M4 18h9"></path></svg></button>
-<button class="ri" type="button" disabled="" aria-label="List"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
+<button class="ri on" type="button" aria-label="Timeline" title="Timeline" aria-current="page" data-page-btn="timeline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M7 12h13M4 18h9"></path></svg></button>
+<button class="ri" type="button" aria-label="List" title="List" data-page-btn="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
 <button class="ri" type="button" disabled="" aria-label="Calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path></svg></button>
 <button class="ri" type="button" disabled="" aria-label="Board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="4.5" height="16" rx="1"></rect><rect x="10" y="4" width="4.5" height="11" rx="1"></rect><rect x="16" y="4" width="4" height="14" rx="1"></rect></svg></button>
 <button class="ri" type="button" disabled="" aria-label="Workload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M3 19c0-3 2.5-5 5-5s5 2 5 5M15 11h6M15 15h6M17 19h4"></path></svg></button>
@@ -92,6 +92,28 @@
 </div>
 </div>
 </div>
+
+<!-- List view: the same plan as a table, laid over the timeline. Rows and menus are filled in by js/app.js -->
+<section class="list" aria-label="List" data-list>
+<div class="ltools">
+<label class="lsearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><input type="search" placeholder="Filter by name" aria-label="Filter by name" autocomplete="off" data-lf="q"></label>
+<select aria-label="Type" data-lf="type"><option value="">All types</option><option value="task">Tasks</option><option value="milestone">Milestones</option><option value="phase">Phases</option></select>
+<select aria-label="Status" data-lf="status"><option value="">Any status</option><option value="open">Not started</option><option value="active">In progress</option><option value="done">Done</option></select>
+<select aria-label="Phase" data-lf="phase"></select>
+<button class="lclear" type="button" hidden data-lf-clear>Clear filters</button>
+<span class="lcount" data-list-count></span>
+<div class="cwrap">
+<button class="btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="cols-menu" data-cols-btn><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M10 4v16M15 4v16"></path></svg>Columns<b class="hcount" hidden data-hidden-count></b></button>
+<div class="zmenu cmenu" id="cols-menu" hidden data-cols-menu></div>
+</div>
+</div>
+<div class="lscroll">
+<table class="ltable">
+<thead data-list-head></thead>
+<tbody data-list-body></tbody>
+</table>
+</div>
+</section>
 </main>
 
 <footer class="foot">
