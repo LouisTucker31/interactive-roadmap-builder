@@ -773,7 +773,7 @@
     var base = data.rows.slice();
     var sig = JSON.stringify([base, data.deps]);
     data.base = base;
-    data.baseDeps = data.deps;
+    data.baseDeps = data.deps.slice(); // a copy: edits add to data.deps in place
     data.sig = sig;
     var saved;
     try { saved = JSON.parse(localStorage.getItem('roadmapPlan')); } catch (e) {}
@@ -788,7 +788,7 @@
     data.deps = saved.deps;
   }
 
-  function savePlan() {
+  function writePlan() {
     var plan = {
       sig: data.sig,
       planStart: PLAN_START,
@@ -800,6 +800,76 @@
     };
     try { localStorage.setItem('roadmapPlan', JSON.stringify(plan)); } catch (e) {}
   }
+
+  // Undo and redo (the top bar buttons, Ctrl+Z and Ctrl+Y / Ctrl+Shift+Z). Each saved
+  // change keeps a snapshot of the plan from before it. Snapshots are JSON, with
+  // js/data.js rows kept as references like the saved plan, so they're unaffected by
+  // later edits. History lasts until the page is reloaded.
+  var undoStack = [];
+  var redoStack = [];
+  var current = null; // the snapshot of the plan as it is now
+  var undoBtn = document.querySelector('[data-undo]');
+  var redoBtn = document.querySelector('[data-redo]');
+
+  function snapshot() {
+    return JSON.stringify({
+      rows: data.rows.map(function (r) {
+        var i = data.base.indexOf(r);
+        return i >= 0 ? { base: i } : r;
+      }),
+      deps: data.deps
+    });
+  }
+
+  // Record the plan as it is now as a new step, after a change.
+  function record() {
+    var now = snapshot();
+    if (now === current) return;
+    if (current != null) {
+      undoStack.push(current);
+      if (undoStack.length > 100) undoStack.shift();
+      redoStack = [];
+    }
+    current = now;
+    syncUndo();
+  }
+
+  function savePlan() {
+    record();
+    writePlan();
+  }
+
+  // Step back (undo) or forward (redo) through the history.
+  function stepHistory(back) {
+    var from = back ? undoStack : redoStack;
+    if (!from.length || move || sort || dialog.open) return;
+    (back ? redoStack : undoStack).push(current);
+    current = from.pop();
+    var s = JSON.parse(current);
+    data.rows = s.rows.map(function (r) { return r.base != null ? data.base[r.base] : r; }).filter(Boolean);
+    data.deps = s.deps;
+    closePeek();
+    refresh();
+    writePlan();
+    syncUndo();
+  }
+
+  function syncUndo() {
+    undoBtn.disabled = !undoStack.length;
+    redoBtn.disabled = !redoStack.length;
+  }
+
+  undoBtn.addEventListener('click', function () { stepHistory(true); });
+  redoBtn.addEventListener('click', function () { stepHistory(false); });
+  document.addEventListener('keydown', function (e) {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || dialog.open) return;
+    if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return; // their own undo
+    var key = e.key.toLowerCase();
+    if (key === 'z' || key === 'y') {
+      e.preventDefault();
+      stepHistory(key === 'z' && !e.shiftKey);
+    }
+  });
 
   function reindex() {
     rowIndex = {};
@@ -829,9 +899,10 @@
     }
     staleTabs = false;
     data.rows = data.base.slice();
-    data.deps = data.baseDeps;
+    data.deps = data.baseDeps.slice();
     loadPlan();
     refresh();
+    record(); // the other tab's change can be undone here too
   }
 
   window.addEventListener('storage', function (e) {
@@ -2039,4 +2110,6 @@
   syncTodayArrow();
   syncZoom();
   syncScaleBtns();
+  current = snapshot(); // the starting point for undo
+  syncUndo();
 })();
