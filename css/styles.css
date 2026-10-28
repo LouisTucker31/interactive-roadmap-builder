@@ -567,7 +567,7 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .pp-sel .pp-del.armed{color:#ffffff}
 [data-theme="dark"] .newp{background:#15181b;border-color:#2b3036}
 /* Button tooltips (see the end of js/app.js) */
-.tip{position:fixed;z-index:60;max-width:240px;padding:4px 8px;border-radius:5px;background:#1b1f24;color:#ffffff;font:500 11px/1.35 Inter,system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;box-shadow:0 4px 12px rgba(20,30,40,.18)}
+.tip{position:fixed;z-index:60;max-width:280px;padding:4px 8px;border-radius:5px;background:#1b1f24;color:#ffffff;font:500 11px/1.35 Inter,system-ui,sans-serif;overflow-wrap:anywhere;pointer-events:none;box-shadow:0 4px 12px rgba(20,30,40,.18)}
 .tip[hidden]{display:none}
 [data-theme="dark"] .tip{background:#e9ecef;color:#121417;box-shadow:0 4px 12px rgba(0,0,0,.45)}
 @media (max-width:980px){.kbd{display:none}}

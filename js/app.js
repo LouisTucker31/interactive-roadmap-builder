@@ -2277,16 +2277,19 @@
   try { savedPage = localStorage.getItem('roadmapPage'); } catch (e) {}
   setPage(savedPage === 'list' ? 'list' : 'timeline');
 
-  // Button tooltips: hovering (or tabbing to) a button shows its name in a small popup —
-  // its title, or for an icon-only button its aria-label. The title is set aside while the
-  // tip shows so the browser's own tooltip doesn't appear as well. After the first tip,
-  // moving to the next button shows its tip straight away.
+  // Tooltips: hovering (or tabbing to) anything with a title shows it in the app's own
+  // small popup, and an icon-only button shows its aria-label. The title is set aside
+  // while hovered so the browser's own tooltip never appears. After the first tip, moving
+  // to the next thing shows its tip straight away. Nothing shows while a mouse button is
+  // held (panning, moving or reordering).
+  var TIP_SEL = '[title], [data-tip-title], button, .pp';
   var tipEl = document.createElement('div');
   tipEl.className = 'tip';
   tipEl.setAttribute('role', 'tooltip');
   tipEl.hidden = true;
   document.body.appendChild(tipEl);
-  var tipFor = null;   // the button the tip belongs to
+  var tipFor = null;   // the element the tip belongs to
+  var tipX = null;     // where the mouse came in, for tips on wide things like bars
   var tipTimer = 0;
   var tipWarm = 0;     // until when the next tip shows without a delay
 
@@ -2302,10 +2305,7 @@
     if (!tipFor || !document.contains(tipFor)) return hideTip();
     var text = tipText(tipFor);
     if (!text) return hideTip();
-    if (tipFor.hasAttribute('title')) { // set the title aside
-      tipFor.setAttribute('data-tip-title', tipFor.getAttribute('title'));
-      tipFor.removeAttribute('title');
-    }
+    stashTitle(tipFor);
     // Inside the open form the tip has to live in the dialog to show above it.
     var host = tipFor.closest('dialog') || document.body;
     if (tipEl.parentNode !== host) host.appendChild(tipEl);
@@ -2320,7 +2320,8 @@
       return;
     }
     var below = r.bottom + 6 + h < window.innerHeight - 4;
-    tipEl.style.left = Math.max(4, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 4)) + 'px';
+    var cx = r.width > 160 && tipX != null ? tipX : r.left + r.width / 2;
+    tipEl.style.left = Math.max(4, Math.min(cx - w / 2, window.innerWidth - w - 4)) + 'px';
     tipEl.style.top = (below ? r.bottom + 6 : r.top - 6 - h) + 'px';
   }
 
@@ -2336,24 +2337,41 @@
     tipFor = null;
   }
 
+  function stashTitle(el) {
+    if (!el.hasAttribute('title')) return;
+    el.setAttribute('data-tip-title', el.getAttribute('title'));
+    el.removeAttribute('title');
+  }
+
+  // The nearest element from `el` up that has something to show.
+  function tipTarget(el) {
+    el = el && el.closest ? el.closest(TIP_SEL) : null;
+    while (el && !tipText(el)) el = el.parentElement && el.parentElement.closest(TIP_SEL);
+    return el;
+  }
+
   function showTipFor(el) {
     if (el === tipFor) return;
     hideTip();
-    if (!tipText(el)) return;
     tipFor = el;
+    stashTitle(el); // straight away, before the browser's own tooltip can appear
     if (Date.now() < tipWarm) placeTip();
     else tipTimer = setTimeout(placeTip, 350);
   }
 
   document.addEventListener('pointerover', function (e) {
     if (e.pointerType !== 'mouse') return;
-    var el = e.target.closest && e.target.closest('button, .pp');
+    var el = e.buttons ? null : tipTarget(e.target);
+    if (el && el !== tipFor) tipX = e.clientX;
     if (el) showTipFor(el);
     else if (tipFor) hideTip();
   });
   document.addEventListener('focusin', function (e) {
-    var el = e.target.closest && e.target.closest('button, .pp');
-    if (el && e.target.matches(':focus-visible')) showTipFor(el);
+    var el = tipTarget(e.target);
+    if (el && e.target.matches(':focus-visible')) {
+      tipX = null;
+      showTipFor(el);
+    }
   });
   document.addEventListener('focusout', function (e) { if (tipFor && tipFor.contains(e.target)) hideTip(); });
   // A click can change a button's name (e.g. Dark mode → Light mode), so redraw the tip after it.
