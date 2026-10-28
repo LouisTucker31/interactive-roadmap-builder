@@ -401,6 +401,16 @@
       var n = counts[key];
       document.querySelector('[data-stat="' + key + '"]').innerHTML = '<b>' + n + '</b> ' + words[key][n === 1 ? 0 : 1];
     });
+
+    // The people in the top bar: the first four as avatars, then "+n" for the rest.
+    // Hidden until someone has been added.
+    var stack = document.querySelector('[data-people-stack]');
+    var people = data.people;
+    stack.hidden = !people.length;
+    stack.setAttribute('aria-label', people.length + (people.length === 1 ? ' person' : ' people'));
+    stack.innerHTML = people.slice(0, 4).map(function (p) {
+      return '<span class="av" style="background: ' + esc(p.color || AVATAR_COLORS[0]) + '" title="' + esc(p.name) + '">' + esc(initials(p.name)) + '</span>';
+    }).join('') + (people.length > 4 ? '<span class="more" title="' + esc(people.slice(4).map(function (p) { return p.name; }).join(', ')) + '">+' + (people.length - 4) + '</span>' : '');
   }
 
   // Grow the timeline by chunks until the view is at least one screen from either end.
@@ -1147,6 +1157,7 @@
       for (var n = 2; personById(id); n++) id = base + '-' + n;
       p = { id: id, name: name, color: AVATAR_COLORS[data.people.length % AVATAR_COLORS.length] };
       data.people.push(p);
+      renderStats();
     }
     fillPeople(p.id);
     showNewPerson(false);
