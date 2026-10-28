@@ -68,6 +68,15 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .trow[data-id]{cursor:pointer}
 .trow[data-id]:hover{background:#eef1f4}
 .trow[data-id]:focus-visible{outline:2px solid #4790ad;outline-offset:-2px}
+.trow.add{cursor:pointer;color:#7b828b}
+.trow.add>*{opacity:0;transition:opacity .12s}
+.trow.add .ic{width:12px;height:12px;margin-left:-2.5px;border:1.5px dashed #a9b1ba;background:none;box-sizing:border-box;position:relative}
+.trow.add .ic::before,.trow.add .ic::after{content:"";position:absolute;left:50%;top:50%;width:6px;height:1.5px;margin:-.75px 0 0 -3px;background:#7b828b;border-radius:1px}
+.trow.add .ic::after{transform:rotate(90deg)}
+.trow.add:hover,.trow.add:focus-visible{background:#eef1f4;color:#3f86a3;box-shadow:inset 0 0 0 1px #dfe4e9;outline:0}
+.trow.add:hover>*,.trow.add:focus-visible>*{opacity:1}
+.trow.add:hover .ic{border-color:#3f86a3}
+.trow.add:hover .ic::before,.trow.add:hover .ic::after{background:#3f86a3}
 .trow .more{display:none;flex:none;width:24px;height:22px;margin-right:-4px;padding:0;place-items:center;border:0;border-radius:5px;background:none;color:#5d646d;cursor:pointer}
 .trow .more svg{width:14px;height:14px;fill:currentColor}
 .trow .more:hover{background:#dde2e8;color:#1b1f24}
@@ -120,8 +129,6 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .phase i{width:12px;height:12px;border-radius:50%;border:1.5px solid #c7c1ec;background:#ffffff;display:block;margin-left:-6px}
 .pline{position:absolute;left:0;right:0;height:4px;background:#cdc6f2;border-radius:2px}
 .pcap{position:absolute;width:12px;height:12px;margin-left:-6px;border-radius:50%;border:1.5px solid #c7c1ec;background:#ffffff;box-sizing:border-box}
-.mspan{position:absolute;height:6px;background:#efc596;border-radius:3px}
-.dia.end{width:9px;height:9px}
 .foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 20px 12px;font-size:10.5px;color:#4a5159}
 .foot .l{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .foot b{font-weight:600;color:#1b1f24}
@@ -208,7 +215,7 @@ button:disabled{cursor:not-allowed}
 @keyframes fresh{0%,100%{box-shadow:0 0 0 0 rgba(71,144,173,0)}30%{box-shadow:0 0 0 4px rgba(71,144,173,.45)}}
 .bar.fresh,.dia.fresh{animation:fresh 1.4s ease-out 2}
 /* Everything on the plan opens its edit form when clicked */
-.plan .bar,.plan .dia,.plan .phase,.plan .mspan{cursor:pointer}
+.plan .bar,.plan .dia,.plan .phase{cursor:pointer}
 .scroll.dragging .plan *{cursor:grabbing}
 .bar:hover,.dia:hover{box-shadow:0 0 0 2px #ffffff,0 0 0 3.5px #4790ad}
 .phase:hover{color:#3f86a3}
@@ -280,7 +287,6 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .phase i{background:#131619;border-color:#6e63b8}
 [data-theme="dark"] .pline{background:#4b4380}
 [data-theme="dark"] .pcap{background:#131619;border-color:#6e63b8}
-[data-theme="dark"] .mspan{background:#7a5226}
 [data-theme="dark"] .fl .clr{color:#7fb6cc}
 [data-theme="dark"] .foot{color:#9aa1a9}
 [data-theme="dark"] .foot b{color:#e4e7ea}
@@ -316,6 +322,9 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .lengths button:hover{background:#20242a;border-color:#3a4047}
 [data-theme="dark"] .trow[data-id]:hover{background:#1c2024}
 [data-theme="dark"] .trow .more{color:#9aa1a9}
+[data-theme="dark"] .trow.add:hover,[data-theme="dark"] .trow.add:focus-visible{background:#1c2024;color:#7fb6cc;box-shadow:inset 0 0 0 1px #2b3036}
+[data-theme="dark"] .trow.add:hover .ic{border-color:#7fb6cc}
+[data-theme="dark"] .trow.add:hover .ic::before,[data-theme="dark"] .trow.add:hover .ic::after{background:#7fb6cc}
 [data-theme="dark"] .trow .more:hover{background:#2a3036;color:#e4e7ea}
 [data-theme="dark"] .bar:hover,[data-theme="dark"] .dia:hover{box-shadow:0 0 0 2px #181c20,0 0 0 3.5px #4790ad}
 [data-theme="dark"] .dlg-ft .del{color:#f0a39d}

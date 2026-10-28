@@ -234,10 +234,10 @@
     return when(row.start) + ' – ' + (row.end % 1 ? when(row.end) : dayLabel(row.end - 1));
   }
 
-  // When a row happens. Milestones and phases can have an optional `end` too: without
-  // one a milestone is a single moment and a phase runs until the next phase.
+  // When a row happens. A milestone is a single moment; a phase can have an optional
+  // `end`, and without one it runs until the next phase.
   function itemLabel(row) {
-    if (row.type === 'milestone') return row.end != null ? rangeLabel({ start: row.day, end: row.end }) : when(row.day);
+    if (row.type === 'milestone') return when(row.day);
     if (row.type === 'phase') return row.end != null ? rangeLabel(row) : 'from ' + when(row.start);
     return rangeLabel(row);
   }
@@ -253,7 +253,7 @@
     var cy = ROW_Y + i * ROW_PX;
     if (row.type === 'milestone') {
       var x = dayX(row.day);
-      return { x1: x - 6, x2: (row.end != null ? dayX(row.end) : x) + 6, cx: x, cy: cy, top: cy - 6 };
+      return { x1: x - 6, x2: x + 6, cx: x, cy: cy, top: cy - 6 };
     }
     var h = row.parent ? 18 : 20;
     return { x1: dayX(row.start), x2: dayX(row.end), cy: cy, top: cy - h / 2 };
@@ -271,12 +271,6 @@
           (row.end != null ? '<div class="pcap" style="left: ' + b.x2 + 'px; top: ' + (b.cy + 2) + 'px"></div>' : '') +
           '<div class="phase"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + (b.cy - 11) + 'px"><i></i>' + esc(row.name) + '</div>';
       } else if (row.type === 'milestone') {
-        // A milestone with an end is a window: a band between a diamond at each end.
-        if (row.end != null) {
-          var xe = b.x2 - 6;
-          html += '<div class="mspan"' + tip + ' style="left: ' + b.cx + 'px; top: ' + (b.cy - 3) + 'px; width: ' + (xe - b.cx) + 'px"></div>' +
-            '<div class="dia end"' + tip + ' style="left: ' + (xe - 4.5) + 'px; top: ' + (b.cy - 4.5) + 'px"></div>';
-        }
         html += '<div class="dia' + (row.id === freshId ? ' fresh' : '') + '"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + b.top + 'px"></div>';
       } else {
         var owner = data.people[row.owner];
@@ -495,7 +489,9 @@
         (row.progress ? '<span class="meta">' + Math.round(row.progress * 100) + '%</span>' : '') +
         (owner ? '<span class="av" style="background: ' + owner.color + '">' + esc(row.owner) + '</span>' : '') +
         more + '</div>';
-    }).join('');
+    }).join('') +
+      // The empty row after the last one adds a new task; it only shows itself on hover.
+      '<div class="trow add" role="button" tabindex="0" title="Add a task" data-add-row><i class="ic"></i><span class="tn">New task</span></div>';
   }
 
   function syncPanelScroll() {
@@ -704,6 +700,7 @@
     var shift = (saved.planStart - PLAN_START) / DAY;
     data.rows = saved.rows.map(function (r) {
       if (r.base != null) return base[r.base];
+      if (r.type === 'milestone') delete r.end; // briefly allowed; milestones are single moments
       ['start', 'end', 'day'].forEach(function (k) { if (r[k] != null) r[k] += shift; });
       return r;
     }).filter(Boolean);
@@ -811,9 +808,9 @@
       var types = el.getAttribute('data-for');
       el.hidden = (types && types.split(' ').indexOf(type) < 0) || (el.hasAttribute('data-time') && allDay);
     });
-    // A task always has a finish; for milestones and phases it's optional. A new row
-    // starts with no end when switched to either of those, and gets its default back
-    // when switched to a task.
+    // A task always has a finish, a phase's is optional and a milestone has none. A new
+    // row starts with no end when switched to a phase, and gets its default back when
+    // switched to a task.
     if (!editing && type !== formTypeShown) {
       if (type !== 'task') form.elements.endDate.value = '';
       else if (!form.elements.endDate.value) {
@@ -822,7 +819,7 @@
       }
     }
     formTypeShown = type;
-    form.querySelector('[data-start-label]').textContent = type === 'task' ? 'Start' : 'Starts';
+    form.querySelector('[data-start-label]').textContent = type === 'task' ? 'Start' : type === 'milestone' ? 'Date' : 'Starts';
     form.querySelector('[data-end-label]').innerHTML = type === 'task' ? 'Finish' : 'Ends <em>optional</em>';
     form.querySelector('[data-end-clear]').hidden = type === 'task' || !form.elements.endDate.value;
     form.querySelector('[data-nt-title]').textContent = (editing ? 'Edit ' : 'New ') + word;
@@ -969,12 +966,10 @@
 
     var start = dayOf(f.startDate.value, timed && f.startTime.value);
     if (type === 'task' && !f.endDate.value) return fail('Pick a finish date.', f.endDate);
-    if (f.endDate.value) {
+    if (type !== 'milestone' && f.endDate.value) {
       // All-day rows finish at the end of the finish date.
-      var end = timed ? dayOf(f.endDate.value, f.endTime.value) : dayOf(f.endDate.value) + 1;
-      if (end <= start) return fail('The finish needs to be after the start.', f.endDate);
-      // An all-day milestone ending on its own date is still a single moment.
-      if (!(type === 'milestone' && !timed && f.endDate.value === f.startDate.value)) row.end = end;
+      row.end = timed ? dayOf(f.endDate.value, f.endTime.value) : dayOf(f.endDate.value) + 1;
+      if (row.end <= start) return fail('The finish needs to be after the start.', f.endDate);
     }
     if (type === 'milestone') row.day = start;
     else row.start = start;
@@ -1078,20 +1073,25 @@
 
   // Click a row in the task list to scroll the chart to it (Enter or Space when it has
   // focus); its ⋯ button, shown on hover, opens it for editing (E from the keyboard).
-  // The empty task list has its own "Add a task" link.
+  // The empty task list has its own "Add a task" link, and the blank row under the last
+  // one adds a task too.
   function goToRow(id) {
     var i = rowIndex[id];
     if (i != null) reveal(data.rows[i], i, true);
   }
 
   taskRowsEl.addEventListener('click', function (e) {
-    if (e.target.closest('[data-empty-add]')) return openForm();
+    if (e.target.closest('[data-empty-add],[data-add-row]')) return openForm();
     var tr = e.target.closest('.trow[data-id]');
     if (!tr) return;
     if (e.target.closest('[data-row-edit]')) openEdit(tr.getAttribute('data-id'));
     else goToRow(tr.getAttribute('data-id'));
   });
   taskRowsEl.addEventListener('keydown', function (e) {
+    if (e.target.closest('[data-add-row]') && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      return openForm();
+    }
     var tr = e.target.closest('.trow[data-id]');
     if (!tr || e.target.closest('[data-row-edit]')) return;
     if (e.key === 'Enter' || e.key === ' ') {
