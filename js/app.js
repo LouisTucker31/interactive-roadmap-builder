@@ -265,6 +265,18 @@
     return row.end != null ? rangeLabel(row) : when(row.start);
   }
 
+  // Task colours: picked in the task form and stored as `color`. Blue is the default and
+  // isn't stored. Subtask bars use a light tint of the colour (see .bar.lt in the CSS).
+  var COLORS = [
+    ['Blue', '#418dab'], ['Teal', '#2f9585'], ['Green', '#4f9a3a'], ['Gold', '#b8860b'], ['Orange', '#dd6f2c'],
+    ['Red', '#cf4646'], ['Pink', '#cf4d8a'], ['Purple', '#8458e0'], ['Slate', '#66727f']
+  ];
+
+  // The inline style that gives a row its colour, or '' for the default.
+  function colorVar(row) {
+    return /^#[0-9a-f]{6}$/i.test(row.color || '') ? '; --c: ' + row.color : '';
+  }
+
   // Milestones and tasks without a finish are drawn as a mark at one moment, not a bar.
   function isPoint(row) {
     return row.type === 'milestone' || (row.type === 'task' && row.end == null);
@@ -303,23 +315,18 @@
         html += '<div class="dia' + state + '"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + b.top + 'px"></div>';
       } else if (row.end == null) {
         // A task at a moment: a ring (filled with a tick once done) with its name beside it.
-        var who = data.people[row.owner];
         html += '<div class="pt' + (row.parent ? ' lt' : '') + (row.progress >= 1 ? ' done' : '') + state + '"' + tip +
-          ' style="left: ' + b.x1 + 'px; top: ' + (b.cy - 10) + 'px"><i></i>' +
-          '<span class="t">' + esc(row.name) + '</span>' +
-          (who ? '<span class="av" style="background: ' + who.color + '">' + esc(row.owner) + '</span>' : '') +
-          '</div>';
+          ' style="left: ' + b.x1 + 'px; top: ' + (b.cy - 10) + 'px' + colorVar(row) + '"><i></i>' +
+          '<span class="t">' + esc(row.name) + '</span></div>';
       } else {
-        var owner = data.people[row.owner];
+        // Progress darkens the done part of the bar, whatever its colour.
         var fill = row.progress && !row.parent
-          ? '; background: linear-gradient(90deg,#367f9c 0 ' + row.progress * 100 + '%,#4a95b2 ' + row.progress * 100 + '%)'
+          ? '; background-image: linear-gradient(90deg,rgba(0,0,0,.16) 0 ' + row.progress * 100 + '%,transparent ' + row.progress * 100 + '%)'
           : '';
         html += '<div class="bar ' + (row.parent ? 'lt' : 'dk') + (b.x2 - b.x1 < 30 ? ' tiny' : '') + state + '" data-id="' + esc(row.id) +
-          '" style="left: ' + b.x1 + 'px; top: ' + b.top + 'px; width: ' + (b.x2 - b.x1) + 'px' + fill + '" title="' +
+          '" style="left: ' + b.x1 + 'px; top: ' + b.top + 'px; width: ' + (b.x2 - b.x1) + 'px' + fill + colorVar(row) + '" title="' +
           esc(row.name + ' · ' + rangeLabel(row)) + '">' +
-          '<span class="t">' + esc(row.name) + '</span>' +
-          (owner ? '<span class="av" style="background: ' + owner.color + '">' + esc(row.owner) + '</span>' : '') +
-          '</div>';
+          '<span class="t">' + esc(row.name) + '</span></div>';
       }
     });
     plan.innerHTML = html;
@@ -534,12 +541,11 @@
         return '<div class="trow ms"' + attrs + tip(row.name + ' · ' + itemLabel(row)) + '><i class="ic"></i>' +
           '<span class="tn">' + esc(row.name) + '</span><span class="meta">' + itemLabel(row) + '</span>' + more + '</div>';
       }
-      var owner = data.people[row.owner];
-      return '<div class="trow ' + (row.parent ? 'sub' : 'top') + '"' + attrs + tip(row.name + ' · ' + itemLabel(row)) + '><i class="ic"></i>' +
+      return '<div class="trow ' + (row.parent ? 'sub' : 'top') + '"' + attrs + tip(row.name + ' · ' + itemLabel(row)) +
+        '><i class="ic"' + (row.color ? ' style="' + colorVar(row).slice(2) + '"' : '') + '></i>' +
         '<span class="tn">' + esc(row.name) + '</span>' +
         (row.progress ? '<span class="meta">' + Math.round(row.progress * 100) + '%</span>'
           : row.end == null ? '<span class="meta">' + itemLabel(row) + '</span>' : '') +
-        (owner ? '<span class="av" style="background: ' + owner.color + '">' + esc(row.owner) + '</span>' : '') +
         more + '</div>';
     }).join('') +
       // The empty row after the last one adds a new task; it only shows itself on hover.
@@ -760,6 +766,7 @@
     data.rows = saved.rows.map(function (r) {
       if (r.base != null) return base[r.base];
       if (r.type === 'milestone') delete r.end; // briefly allowed; milestones are single moments
+      delete r.owner; // tasks used to have owners; they have colours now
       ['start', 'end', 'day'].forEach(function (k) { if (r[k] != null) r[k] += shift; });
       return r;
     }).filter(Boolean);
@@ -795,7 +802,7 @@
   }
 
   // Task form: creates a task, milestone or phase row, or edits one. Everything js/data.js
-  // can describe can be entered here: name, dates (optionally with times), owner, phase,
+  // can describe can be entered here: name, dates (optionally with times), colour, phase,
   // parent task, progress and dependencies. A new row goes at the end of its phase, or
   // straight after its parent's other subtasks; an edited row moves only if its phase or
   // parent changed.
@@ -912,18 +919,16 @@
     form.elements.parent.disabled = hasKids;
     form.elements.parent.title = hasKids ? 'This task has subtasks of its own' : '';
 
-    form.querySelector('[data-owners]').innerHTML =
-      '<label class="own none"><input type="radio" name="owner" value="" checked><span title="No owner">—</span></label>' +
-      Object.keys(data.people).map(function (key) {
-        return '<label class="own"><input type="radio" name="owner" value="' + esc(key) + '"><span class="av" style="background: ' +
-          data.people[key].color + '" title="' + esc(key) + '">' + esc(key) + '</span></label>';
-      }).join('');
+    form.querySelector('[data-colors]').innerHTML = COLORS.map(function (c, i) {
+      return '<label class="sw"><input type="radio" name="color" value="' + (i ? c[1] : '') + '"' + (i ? '' : ' checked') +
+        ' aria-label="' + c[0] + '"><span style="background: ' + c[1] + '" title="' + c[0] + '"></span></label>';
+    }).join('');
 
     form.querySelector('[data-dep-options]').innerHTML = data.rows.filter(function (r) {
       return (r.type === 'task' || r.type === 'milestone') && r !== row;
     }).map(function (r) {
       return '<label class="dep' + (r.parent ? ' sub' : '') + '"><input type="checkbox" name="deps" value="' + esc(r.id) + '">' +
-        '<i class="' + (r.type === 'milestone' ? 'ms' : 'tk') + '"></i><span>' + esc(r.name) + '</span>' +
+        '<i class="' + (r.type === 'milestone' ? 'ms' : 'tk') + '" style="' + colorVar(r).slice(2) + '"></i><span>' + esc(r.name) + '</span>' +
         '<em>' + itemLabel(r) + '</em></label>';
     }).join('') || '<p class="deps-empty">Nothing to depend on yet. Tasks and milestones you add appear here.</p>';
   }
@@ -953,8 +958,8 @@
       if (row.type === 'task') {
         f.parent.value = row.parent || '';
         f.progress.value = Math.round((row.progress || 0) * 100);
-        var owner = form.querySelector('[name="owner"][value="' + (row.owner || '') + '"]');
-        if (owner) owner.checked = true;
+        var swatch = form.querySelector('[name="color"][value="' + (row.color || '') + '"]');
+        if (swatch) swatch.checked = true;
       }
       if (row.type !== 'phase') f.phase.value = phaseOf(row.parent ? data.rows[rowIndex[row.parent]] : row);
       data.deps.forEach(function (dep) {
@@ -1040,7 +1045,7 @@
 
     if (type === 'task') {
       if (f.parent.value) row.parent = f.parent.value;
-      if (f.owner.value) row.owner = f.owner.value;
+      if (f.color.value) row.color = f.color.value;
       if (+f.progress.value) row.progress = f.progress.value / 100;
     }
     row.id = editing ? editing.id : uniqueId(name);
@@ -1335,7 +1340,7 @@
   function rowLinks(ids) {
     return ids.filter(function (id) { return rowIndex[id] != null; }).map(function (id) {
       var r = data.rows[rowIndex[id]];
-      return '<span class="peek-ln"><i class="' + (r.type === 'milestone' ? 'ms' : 'tk') + '"></i>' + esc(r.name) + '</span>';
+      return '<span class="peek-ln"><i class="' + (r.type === 'milestone' ? 'ms' : 'tk') + '" style="' + colorVar(r).slice(2) + '"></i>' + esc(r.name) + '</span>';
     }).join('');
   }
 
@@ -1344,15 +1349,15 @@
     if (!row) return;
     peekId = id;
     var kind = row.type === 'task' ? (row.parent ? 'Subtask' : 'Task') : row.type === 'milestone' ? 'Milestone' : 'Phase';
-    peek.querySelector('[data-peek-icon]').className = 'peek-ic ' + row.type;
+    var icon = peek.querySelector('[data-peek-icon]');
+    icon.className = 'peek-ic ' + row.type;
+    icon.setAttribute('style', colorVar(row).slice(2));
     peek.querySelector('[data-peek-kind]').textContent = kind;
     peek.querySelector('[data-peek-title]').textContent = row.name;
 
     var items = [['When', esc(itemLabel(row))]];
     if (row.type !== 'milestone' && row.end != null) items.push(['Length', duration(row)]);
     if (row.type === 'task') {
-      var owner = data.people[row.owner];
-      if (owner) items.push(['Owner', '<span class="av" style="background: ' + owner.color + '">' + esc(row.owner) + '</span>']);
       var pct = Math.round((row.progress || 0) * 100);
       items.push(['Progress', '<span class="peek-pg"><b style="width: ' + pct + '%"></b></span>' + pct + '%']);
       if (row.parent && rowIndex[row.parent] != null) items.push(['Subtask of', esc(data.rows[rowIndex[row.parent]].name)]);
@@ -1516,15 +1521,6 @@
   });
 
   // Length buttons (timed tasks): set the finish that long after the start.
-  form.querySelector('[data-lengths]').addEventListener('click', function (e) {
-    var btn = e.target.closest('[data-mins]');
-    var f = form.elements;
-    if (!btn || !f.startDate.value || !f.startTime.value) return;
-    var end = PLAN_START + dayOf(f.startDate.value, f.startTime.value) * DAY + btn.getAttribute('data-mins') * 60000;
-    f.endDate.value = isoDate(end);
-    f.endTime.value = clockOf(end);
-    syncForm();
-  });
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     saveRow();
