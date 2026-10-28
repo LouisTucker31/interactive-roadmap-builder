@@ -142,6 +142,19 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .ghost[hidden],.scroll.dragging .ghost{display:none}
 /* Hold-to-move: an item darkens while held, then lifts once it can be dragged */
 .plan .holding{filter:brightness(.85);transition:filter .4s linear}
+/* A task at a moment (no finish): a ring at its time with the name beside it; filled with a tick when done */
+.pt{position:absolute;height:20px;display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:11.5px;font-weight:500;color:#1b1f24}
+.pt i{flex:none;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:2px solid #418dab;background:#ffffff;position:relative}
+.pt.lt i{border-color:#8cc3da}
+.pt.lt .t{color:#3a4048;font-weight:400}
+.pt.done i{background:#418dab}
+.pt.done i::after{content:"";position:absolute;left:2.5px;top:.5px;width:3px;height:5.5px;border:solid #ffffff;border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+.pt.done .t{color:#7b828b;text-decoration:line-through}
+.pt .av{width:16px;height:16px;margin:0;border:0;font-size:6.5px}
+.pt:hover i{box-shadow:0 0 0 2px #ffffff,0 0 0 3.5px #4790ad}
+.pt.fresh i{animation:fresh 1.4s ease-out 2}
+.pt.moving i{box-shadow:0 4px 14px rgba(20,40,60,.3)}
+.plan .pt{cursor:pointer}
 .plan .bar.moving,.plan .dia.moving{box-shadow:0 4px 14px rgba(20,40,60,.3);z-index:2}
 .plan .phase.moving{color:#3f86a3}
 .scroll.moving,.scroll.moving *{cursor:grabbing!important;user-select:none}
@@ -371,6 +384,13 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .trow.add:hover .ic::before,[data-theme="dark"] .trow.add:hover .ic::after{background:#7fb6cc}
 [data-theme="dark"] .trow .more:hover{background:#2a3036;color:#e4e7ea}
 [data-theme="dark"] .bar:hover,[data-theme="dark"] .dia:hover{box-shadow:0 0 0 2px #181c20,0 0 0 3.5px #4790ad}
+[data-theme="dark"] .pt{color:#e4e7ea}
+[data-theme="dark"] .pt i{background:#131619}
+[data-theme="dark"] .pt.done i{background:#418dab}
+[data-theme="dark"] .pt.lt i{border-color:#3f7f99}
+[data-theme="dark"] .pt.lt .t{color:#c9ced4}
+[data-theme="dark"] .pt.done .t{color:#7b828b}
+[data-theme="dark"] .pt:hover i{box-shadow:0 0 0 2px #181c20,0 0 0 3.5px #4790ad}
 [data-theme="dark"] .dlg-ft .del{color:#f0a39d}
 [data-theme="dark"] .dlg-ft .del.armed{background:#c4403a;border-color:#c4403a;color:#ffffff}
 [data-theme="dark"] .dlg-ft .del.armed:hover{background:#ad352f}

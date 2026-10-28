@@ -257,12 +257,17 @@
     return when(row.start) + ' – ' + (row.end % 1 ? when(row.end) : dayLabel(row.end - 1));
   }
 
-  // When a row happens. A milestone is a single moment; a phase can have an optional
-  // `end`, and without one it runs until the next phase.
+  // When a row happens. A milestone is a single moment, and so is a task with no `end`
+  // ("at 10:00"); a phase can have an optional `end`, and without one it runs until the next phase.
   function itemLabel(row) {
     if (row.type === 'milestone') return when(row.day);
     if (row.type === 'phase') return row.end != null ? rangeLabel(row) : 'from ' + when(row.start);
-    return rangeLabel(row);
+    return row.end != null ? rangeLabel(row) : when(row.start);
+  }
+
+  // Milestones and tasks without a finish are drawn as a mark at one moment, not a bar.
+  function isPoint(row) {
+    return row.type === 'milestone' || (row.type === 'task' && row.end == null);
   }
 
   function esc(s) {
@@ -274,8 +279,8 @@
   // Where a row's shape sits: horizontal extent, vertical centre and top edge.
   function box(row, i) {
     var cy = ROW_Y + i * ROW_PX;
-    if (row.type === 'milestone') {
-      var x = dayX(row.day);
+    if (isPoint(row)) {
+      var x = dayX(row.type === 'milestone' ? row.day : row.start);
       return { x1: x - 6, x2: x + 6, cx: x, cy: cy, top: cy - 6 };
     }
     var h = row.parent ? 18 : 20;
@@ -296,6 +301,14 @@
           '<div class="phase' + state + '"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + (b.cy - 11) + 'px"><i></i>' + esc(row.name) + '</div>';
       } else if (row.type === 'milestone') {
         html += '<div class="dia' + state + '"' + tip + ' style="left: ' + b.x1 + 'px; top: ' + b.top + 'px"></div>';
+      } else if (row.end == null) {
+        // A task at a moment: a ring (filled with a tick once done) with its name beside it.
+        var who = data.people[row.owner];
+        html += '<div class="pt' + (row.parent ? ' lt' : '') + (row.progress >= 1 ? ' done' : '') + state + '"' + tip +
+          ' style="left: ' + b.x1 + 'px; top: ' + (b.cy - 10) + 'px"><i></i>' +
+          '<span class="t">' + esc(row.name) + '</span>' +
+          (who ? '<span class="av" style="background: ' + who.color + '">' + esc(row.owner) + '</span>' : '') +
+          '</div>';
       } else {
         var owner = data.people[row.owner];
         var fill = row.progress && !row.parent
@@ -323,9 +336,9 @@
       var ti = rowIndex[dep[1]];
       var from = box(data.rows[fi], fi);
       var to = box(data.rows[ti], ti);
-      var fx = data.rows[fi].type === 'milestone' ? from.x2 + 1 : from.x2;
-      var tx = data.rows[ti].type === 'milestone' ? to.cx : to.x1 + 5;
-      var ty = data.rows[ti].type === 'milestone' ? to.cy - 10 : to.top - 2;
+      var fx = isPoint(data.rows[fi]) ? from.x2 + 1 : from.x2;
+      var tx = isPoint(data.rows[ti]) ? to.cx : to.x1 + 5;
+      var ty = isPoint(data.rows[ti]) ? to.cy - 10 : to.top - 2;
       var d = tx >= fx
         ? 'M' + fx + ' ' + from.cy + 'H' + tx + 'V' + ty
         : 'M' + fx + ' ' + from.cy + 'H' + (fx + 4) + 'V' + (ty - 8) + 'H' + tx + 'V' + ty;
@@ -524,7 +537,8 @@
       var owner = data.people[row.owner];
       return '<div class="trow ' + (row.parent ? 'sub' : 'top') + '"' + attrs + tip(row.name + ' · ' + itemLabel(row)) + '><i class="ic"></i>' +
         '<span class="tn">' + esc(row.name) + '</span>' +
-        (row.progress ? '<span class="meta">' + Math.round(row.progress * 100) + '%</span>' : '') +
+        (row.progress ? '<span class="meta">' + Math.round(row.progress * 100) + '%</span>'
+          : row.end == null ? '<span class="meta">' + itemLabel(row) + '</span>' : '') +
         (owner ? '<span class="av" style="background: ' + owner.color + '">' + esc(row.owner) + '</span>' : '') +
         more + '</div>';
     }).join('') +
@@ -853,9 +867,9 @@
       var types = el.getAttribute('data-for');
       el.hidden = (types && types.split(' ').indexOf(type) < 0) || (el.hasAttribute('data-time') && allDay);
     });
-    // A task always has a finish, a phase's is optional and a milestone has none. A new
-    // row starts with no end when switched to a phase, and gets its default back when
-    // switched to a task.
+    // A task's or phase's finish is optional (a task without one happens at a moment) and
+    // a milestone has none. A new row starts with no end when switched to a phase, and
+    // gets its default back when switched to a task.
     if (!editing && type !== formTypeShown) {
       if (type !== 'task') form.elements.endDate.value = '';
       else if (!form.elements.endDate.value) {
@@ -865,8 +879,8 @@
     }
     formTypeShown = type;
     form.querySelector('[data-start-label]').textContent = type === 'task' ? 'Start' : type === 'milestone' ? 'Date' : 'Starts';
-    form.querySelector('[data-end-label]').innerHTML = type === 'task' ? 'Finish' : 'Ends <em>optional</em>';
-    form.querySelector('[data-end-clear]').hidden = type === 'task' || !form.elements.endDate.value;
+    form.querySelector('[data-end-label]').innerHTML = (type === 'task' ? 'Finish' : 'Ends') + ' <em>optional</em>';
+    form.querySelector('[data-end-clear]').hidden = !form.elements.endDate.value;
     form.querySelector('[data-nt-title]').textContent = (editing ? 'Edit ' : 'New ') + word;
     form.querySelector('[data-nt-submit]').textContent = editing ? 'Save changes' : 'Create ' + word;
     // A subtask sits under its parent, so its phase comes from there.
@@ -1016,7 +1030,6 @@
     var row = { type: type, name: name };
 
     var start = dayOf(f.startDate.value, timed && f.startTime.value);
-    if (type === 'task' && !f.endDate.value) return fail('Pick a finish date.', f.endDate);
     if (type !== 'milestone' && f.endDate.value) {
       // All-day rows finish at the end of the finish date.
       row.end = timed ? dayOf(f.endDate.value, f.endTime.value) : dayOf(f.endDate.value) + 1;
@@ -1336,7 +1349,7 @@
     peek.querySelector('[data-peek-title]').textContent = row.name;
 
     var items = [['When', esc(itemLabel(row))]];
-    if (row.type === 'task' || (row.type === 'phase' && row.end != null)) items.push(['Length', duration(row)]);
+    if (row.type !== 'milestone' && row.end != null) items.push(['Length', duration(row)]);
     if (row.type === 'task') {
       var owner = data.people[row.owner];
       if (owner) items.push(['Owner', '<span class="av" style="background: ' + owner.color + '">' + esc(row.owner) + '</span>']);
@@ -1491,7 +1504,7 @@
     var f = form.elements;
     if (f.startDate.value && f.endDate.value && f.endDate.value < f.startDate.value) f.endDate.value = f.startDate.value;
   });
-  // A finish time picked with no finish date (milestones and phases) means the same day.
+  // A finish time picked with no finish date means the same day.
   form.elements.endTime.addEventListener('change', function () {
     var f = form.elements;
     if (!f.endDate.value && f.startDate.value) f.endDate.value = f.startDate.value;
