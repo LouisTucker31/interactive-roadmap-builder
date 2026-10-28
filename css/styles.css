@@ -119,6 +119,9 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .phase{position:absolute;left:0;display:flex;text-transform:uppercase;align-items:center;gap:6px;font:700 10px Inter,sans-serif;letter-spacing:.04em;color:#22262b}
 .phase i{width:12px;height:12px;border-radius:50%;border:1.5px solid #c7c1ec;background:#ffffff;display:block;margin-left:-6px}
 .pline{position:absolute;left:0;right:0;height:4px;background:#cdc6f2;border-radius:2px}
+.pcap{position:absolute;width:12px;height:12px;margin-left:-6px;border-radius:50%;border:1.5px solid #c7c1ec;background:#ffffff;box-sizing:border-box}
+.mspan{position:absolute;height:6px;background:#efc596;border-radius:3px}
+.dia.end{width:9px;height:9px}
 .foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 20px 12px;font-size:10.5px;color:#4a5159}
 .foot .l{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .foot b{font-weight:600;color:#1b1f24}
@@ -166,6 +169,8 @@ button:disabled{cursor:not-allowed}
 .fl{display:flex;align-items:baseline;gap:6px;font-weight:600;font-size:10.5px;color:#4a5159}
 .fl em{font-style:normal;font-weight:400;color:#8a929b}
 .fl output{margin-left:auto;font:500 10px "JetBrains Mono",monospace;color:#1b1f24}
+.fl .clr{margin-left:auto;padding:0;border:0;background:none;font:500 10.5px Inter,sans-serif;color:#3f86a3;cursor:pointer}
+.fl .clr:hover{text-decoration:underline}
 .dlg input[type=text],.dlg input[type=date],.dlg input[type=time],.dlg select{box-sizing:border-box;height:30px;padding:0 9px;border:1px solid #dde1e6;border-radius:7px;background:#ffffff;color:#1b1f24;font:400 12px Inter,system-ui,sans-serif;min-width:0}
 .dlg input[type=text]:focus,.dlg input[type=date]:focus,.dlg input[type=time]:focus,.dlg select:focus{outline:0;border-color:#4790ad;box-shadow:0 0 0 3px rgba(71,144,173,.18)}
 .dlg select:disabled{opacity:.5}
@@ -203,7 +208,7 @@ button:disabled{cursor:not-allowed}
 @keyframes fresh{0%,100%{box-shadow:0 0 0 0 rgba(71,144,173,0)}30%{box-shadow:0 0 0 4px rgba(71,144,173,.45)}}
 .bar.fresh,.dia.fresh{animation:fresh 1.4s ease-out 2}
 /* Everything on the plan opens its edit form when clicked */
-.plan .bar,.plan .dia,.plan .phase{cursor:pointer}
+.plan .bar,.plan .dia,.plan .phase,.plan .mspan{cursor:pointer}
 .scroll.dragging .plan *{cursor:grabbing}
 .bar:hover,.dia:hover{box-shadow:0 0 0 2px #ffffff,0 0 0 3.5px #4790ad}
 .phase:hover{color:#3f86a3}
@@ -274,6 +279,9 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .phase{color:#e4e7ea}
 [data-theme="dark"] .phase i{background:#131619;border-color:#6e63b8}
 [data-theme="dark"] .pline{background:#4b4380}
+[data-theme="dark"] .pcap{background:#131619;border-color:#6e63b8}
+[data-theme="dark"] .mspan{background:#7a5226}
+[data-theme="dark"] .fl .clr{color:#7fb6cc}
 [data-theme="dark"] .foot{color:#9aa1a9}
 [data-theme="dark"] .foot b{color:#e4e7ea}
 [data-theme="dark"] .foot .dot{color:#5a6169}
