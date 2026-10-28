@@ -1056,7 +1056,7 @@
     }).join('');
 
     fillPeople('');
-    showNewPerson(false);
+    hidePersonBox();
 
     form.querySelector('[data-dep-options]').innerHTML = data.rows.filter(function (r) {
       return (r.type === 'task' || r.type === 'milestone') && r !== row;
@@ -1127,65 +1127,155 @@
     if (editing) f.name.select();
   }
 
-  // Person picker: Unassigned, everyone so far, and "New person…", which opens a name
-  // box under it. Adding someone who already exists (same name) just picks them.
-  var personSel = form.elements.person;
+  // Person picker: a circle for Unassigned, one per person (their initials) and + to add
+  // someone. The chosen person's name shows underneath with Edit and Delete. Adding and
+  // editing use the box that opens below (name and avatar colour); a new name matching
+  // someone already there just picks them. Edits and deletes apply straight away and can
+  // be undone; a deleted person comes off every item they were on.
+  var peopleEl = form.querySelector('[data-people]');
+  var personSelEl = form.querySelector('[data-person-sel]');
   var newPersonEl = form.querySelector('[data-new-person]');
-  var NEW_PERSON = '+new';
+  var personEditing = null; // the person open in the box, or null when adding someone
+
+  function chosenPerson() {
+    var r = peopleEl.querySelector('[name="person"]:checked');
+    return r ? personById(r.value) : null;
+  }
+
+  function pickPerson(id) {
+    var r = peopleEl.querySelector('[name="person"][value="' + (personById(id) ? id : '') + '"]');
+    if (r) r.checked = true;
+    syncPersonSel();
+  }
 
   function fillPeople(value) {
-    personSel.innerHTML = '<option value="">Unassigned</option>' + data.people.map(function (p) {
-      return '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>';
-    }).join('') + '<option value="' + NEW_PERSON + '">+ New person…</option>';
-    personSel.value = value;
-    personSel.setAttribute('data-was', value);
+    peopleEl.innerHTML =
+      '<label class="pp" title="Unassigned"><input type="radio" name="person" value="" aria-label="Unassigned"><span class="pav none"></span></label>' +
+      data.people.map(function (p) {
+        return '<label class="pp" title="' + esc(p.name) + '"><input type="radio" name="person" value="' + esc(p.id) + '" aria-label="' + esc(p.name) + '">' + avatar(p) + '</label>';
+      }).join('') +
+      '<button type="button" class="pp-add" aria-label="New person" title="New person" data-new-person-btn>' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"></path></svg></button>';
+    pickPerson(value);
   }
 
-  function showNewPerson(open) {
-    newPersonEl.hidden = !open;
+  function syncPersonSel() {
+    var p = chosenPerson();
+    personSelEl.innerHTML = p
+      ? '<span class="pp-name">' + esc(p.name) + '</span><button type="button" data-edit-person>Edit</button>' +
+        '<button type="button" class="pp-del" data-remove-person>Delete</button>'
+      : '<span class="nil">Unassigned</span>';
+  }
+
+  function showPersonBox(person) {
+    personEditing = person;
+    newPersonEl.hidden = false;
+    form.elements.newPerson.value = person ? person.name : '';
+    form.querySelector('[data-add-person]').textContent = person ? 'Save' : 'Add';
+    var pick = person ? person.color : AVATAR_COLORS[data.people.length % AVATAR_COLORS.length];
+    form.querySelector('[data-person-colors]').innerHTML = AVATAR_COLORS.map(function (c) {
+      return '<label class="sw sm"><input type="radio" name="personColor" value="' + c + '"' + (c === pick ? ' checked' : '') +
+        ' aria-label="Colour ' + c + '"><span style="background: ' + c + '"></span></label>';
+    }).join('');
+    form.elements.newPerson.focus();
+    if (person) form.elements.newPerson.select();
+  }
+
+  function hidePersonBox() {
+    newPersonEl.hidden = true;
     form.elements.newPerson.value = '';
-    if (open) form.elements.newPerson.focus();
+    personEditing = null;
   }
 
-  function addPerson() {
-    var name = form.elements.newPerson.value.trim().replace(/\s+/g, ' ');
-    if (!name) return form.elements.newPerson.focus();
-    var p = data.people.filter(function (q) { return q.name.toLowerCase() === name.toLowerCase(); })[0];
-    if (!p) {
+  // Add the person in the box (or save the one being edited) and pick them. False if
+  // the name can't be used.
+  function commitPerson() {
+    var input = form.elements.newPerson;
+    var name = input.value.trim().replace(/\s+/g, ' ');
+    if (!name) {
+      input.focus();
+      return false;
+    }
+    var colorIn = form.querySelector('[name="personColor"]:checked');
+    var color = colorIn ? colorIn.value : AVATAR_COLORS[0];
+    var same = data.people.filter(function (q) { return q !== personEditing && q.name.toLowerCase() === name.toLowerCase(); })[0];
+    var p;
+    if (personEditing) {
+      if (same) {
+        fail('Someone is already called ' + same.name + '.', input);
+        return false;
+      }
+      p = { id: personEditing.id, name: name, color: color };
+      data.people = data.people.map(function (q) { return q === personEditing ? p : q; });
+      refresh();
+      savePlan();
+    } else if (same) {
+      p = same;
+    } else {
       var base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'person';
       var id = base;
       for (var n = 2; personById(id); n++) id = base + '-' + n;
-      p = { id: id, name: name, color: AVATAR_COLORS[data.people.length % AVATAR_COLORS.length] };
+      p = { id: id, name: name, color: color };
       data.people.push(p);
       renderStats();
     }
+    errEl.hidden = true;
+    hidePersonBox();
     fillPeople(p.id);
-    showNewPerson(false);
-    personSel.focus();
+    var r = peopleEl.querySelector('[name="person"]:checked');
+    if (r) r.focus();
+    return true;
   }
 
-  personSel.addEventListener('change', function () {
-    if (personSel.value === NEW_PERSON) {
-      personSel.value = personSel.getAttribute('data-was') || '';
-      showNewPerson(true);
-    } else {
-      personSel.setAttribute('data-was', personSel.value);
+  // Delete asks once: the first click turns the link into a confirm.
+  function deletePerson(btn) {
+    var p = chosenPerson();
+    if (!p) return;
+    if (!btn.classList.contains('armed')) {
+      var uses = data.rows.filter(function (r) { return r.person === p.id; }).length;
+      btn.classList.add('armed');
+      btn.textContent = uses ? 'Delete and unassign ' + uses + ' item' + (uses === 1 ? '' : 's') + '?' : 'Click again to delete';
+      return;
     }
+    data.people = data.people.filter(function (q) { return q !== p; });
+    data.rows = data.rows.map(function (r) {
+      if (r.person !== p.id) return r;
+      var copy = {}; // a copy, so js/data.js rows stay untouched
+      Object.keys(r).forEach(function (k) { if (k !== 'person') copy[k] = r[k]; });
+      copy.added = true;
+      return copy;
+    });
+    hidePersonBox();
+    refresh();
+    savePlan();
+    fillPeople('');
+  }
+
+  peopleEl.addEventListener('change', function () {
+    hidePersonBox();
+    syncPersonSel();
   });
-  form.querySelector('[data-add-person]').addEventListener('click', addPerson);
+  peopleEl.addEventListener('click', function (e) {
+    if (e.target.closest('[data-new-person-btn]')) showPersonBox(null);
+  });
+  personSelEl.addEventListener('click', function (e) {
+    if (e.target.closest('[data-edit-person]')) showPersonBox(chosenPerson());
+    var del = e.target.closest('[data-remove-person]');
+    if (del) deletePerson(del);
+  });
+  form.querySelector('[data-add-person]').addEventListener('click', commitPerson);
   form.querySelector('[data-cancel-person]').addEventListener('click', function () {
-    showNewPerson(false);
-    personSel.focus();
+    hidePersonBox();
+    errEl.hidden = true;
   });
-  // Enter adds the person (rather than submitting the form); Esc closes just the name box.
+  // Enter adds or saves (rather than submitting the form); Esc closes just this box.
   form.elements.newPerson.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
       e.preventDefault();
-      addPerson();
+      commitPerson();
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      showNewPerson(false);
-      personSel.focus();
+      hidePersonBox();
     }
   });
 
@@ -1239,8 +1329,9 @@
       if (+f.progress.value) row.progress = f.progress.value / 100;
     }
     // A name typed into New person but not yet added is added now.
-    if (!newPersonEl.hidden && f.newPerson.value.trim()) addPerson();
-    if (personById(f.person.value)) row.person = f.person.value;
+    if (!newPersonEl.hidden && f.newPerson.value.trim() && !commitPerson()) return;
+    var who = chosenPerson();
+    if (who) row.person = who.id;
     row.id = editing ? editing.id : uniqueId(name);
     row.added = true;
 
@@ -2181,15 +2272,15 @@
 
   document.addEventListener('pointerover', function (e) {
     if (e.pointerType !== 'mouse') return;
-    var el = e.target.closest && e.target.closest('button');
+    var el = e.target.closest && e.target.closest('button, .pp');
     if (el) showTipFor(el);
     else if (tipFor) hideTip();
   });
   document.addEventListener('focusin', function (e) {
-    var el = e.target.closest && e.target.closest('button');
-    if (el && el.matches(':focus-visible')) showTipFor(el);
+    var el = e.target.closest && e.target.closest('button, .pp');
+    if (el && e.target.matches(':focus-visible')) showTipFor(el);
   });
-  document.addEventListener('focusout', function (e) { if (e.target === tipFor) hideTip(); });
+  document.addEventListener('focusout', function (e) { if (tipFor && tipFor.contains(e.target)) hideTip(); });
   // A click can change a button's name (e.g. Dark mode → Light mode), so redraw the tip after it.
   document.addEventListener('click', function () {
     if (!tipFor) return;

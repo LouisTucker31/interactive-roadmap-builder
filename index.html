@@ -150,8 +150,12 @@
 <label class="chk"><input type="checkbox" name="allDay" checked> All day</label>
 <div class="fld" data-for="task"><span class="fl">Colour</span><div class="swatches" role="radiogroup" aria-label="Colour" data-colors></div></div>
 <div class="fld"><span class="fl">Person</span>
-<select name="person" aria-label="Person" data-people></select>
-<div class="newp" hidden data-new-person><input type="text" name="newPerson" maxlength="60" placeholder="New person's name" autocomplete="off" aria-label="New person's name"><button class="btn" type="button" data-add-person>Add</button><button class="btn" type="button" data-cancel-person>Cancel</button></div>
+<div class="people-pick" data-people></div>
+<div class="pp-sel" data-person-sel></div>
+<div class="newp" hidden data-new-person>
+<div class="newp-row"><input type="text" name="newPerson" maxlength="60" placeholder="Their name" autocomplete="off" aria-label="Person's name"><button class="primary" type="button" data-add-person>Add</button><button class="btn" type="button" data-cancel-person>Cancel</button></div>
+<div class="newp-row"><div class="pcolors" role="radiogroup" aria-label="Avatar colour" data-person-colors></div></div>
+</div>
 </div>
 
 <div class="two">

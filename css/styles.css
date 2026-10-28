@@ -528,10 +528,42 @@ button:disabled{cursor:not-allowed}
 .pt .pav{width:16px;height:16px;font-size:7px}
 .peek-body .pav{margin-right:-2px}
 .lperson{display:inline-flex;align-items:center;gap:7px}
-.newp{display:flex;gap:6px;margin-top:4px}
+/* Person picker in the form: avatar circles like the colour swatches */
+.people-pick{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:3px}
+.pp{position:relative;cursor:pointer;display:block}
+.pp input{position:absolute;opacity:0;pointer-events:none}
+.pp .pav{width:26px;height:26px;font-size:9.5px;transition:transform .12s,box-shadow .12s}
+.pp .pav.none{box-sizing:border-box;border:1.5px dashed #a9b1ba;background:#ffffff}
+.pp .pav.none::after{content:"";width:12px;height:1.5px;background:#a9b1ba;transform:rotate(-45deg)}
+.pp:hover .pav{transform:scale(1.08)}
+.pp input:checked+.pav{box-shadow:0 0 0 2px #ffffff,0 0 0 4px #1b1f24}
+.pp input:focus-visible+.pav{box-shadow:0 0 0 2px #ffffff,0 0 0 4px #4790ad;transform:scale(1.08)}
+.pp-add{display:grid;place-items:center;width:26px;height:26px;padding:0;border:1.5px dashed #a9b1ba;border-radius:50%;background:none;color:#6b727b;cursor:pointer}
+.pp-add svg{width:12px;height:12px}
+.pp-add:hover,.pp-add:focus-visible{border-color:#3f86a3;color:#3f86a3;outline:0}
+.pp-sel{display:flex;align-items:center;gap:10px;min-height:16px;font-size:11.5px}
+.pp-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pp-sel button{padding:0;border:0;background:none;color:#3f86a3;font:600 11px Inter,system-ui,sans-serif;cursor:pointer}
+.pp-sel button:hover{text-decoration:underline}
+.pp-sel .pp-del{color:#b4382f}
+.pp-sel .pp-del.armed{padding:2px 7px;border-radius:5px;background:#c4403a;color:#ffffff;text-decoration:none}
+.newp{display:flex;flex-direction:column;gap:8px;margin-top:2px;padding:10px;border:1px solid #e3e6ea;border-radius:8px;background:#f8f9fb}
 .newp[hidden]{display:none}
-.newp input{flex:1}
-.newp .btn{height:30px}
+.newp-row{display:flex;align-items:center;gap:6px}
+.newp input[type=text]{flex:1}
+.newp .btn,.newp .primary{height:30px}
+.pcolors{display:flex;flex-wrap:wrap;gap:7px;padding:2px}
+.sw.sm span{width:16px;height:16px}
+.sw.sm input:checked+span::after{left:5.5px;top:3px;width:3px;height:6px}
+[data-theme="dark"] .pp .pav.none{background:#181b1f;border-color:#5a6169}
+[data-theme="dark"] .pp .pav.none::after{background:#5a6169}
+[data-theme="dark"] .pp input:checked+.pav{box-shadow:0 0 0 2px #181b1f,0 0 0 4px #e4e7ea}
+[data-theme="dark"] .pp input:focus-visible+.pav{box-shadow:0 0 0 2px #181b1f,0 0 0 4px #4790ad}
+[data-theme="dark"] .pp-add{border-color:#5a6169;color:#9aa1a9}
+[data-theme="dark"] .pp-sel button{color:#6fb6d2}
+[data-theme="dark"] .pp-sel .pp-del{color:#f0a39d}
+[data-theme="dark"] .pp-sel .pp-del.armed{color:#ffffff}
+[data-theme="dark"] .newp{background:#15181b;border-color:#2b3036}
 /* Button tooltips (see the end of js/app.js) */
 .tip{position:fixed;z-index:60;max-width:240px;padding:4px 8px;border-radius:5px;background:#1b1f24;color:#ffffff;font:500 11px/1.35 Inter,system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;box-shadow:0 4px 12px rgba(20,30,40,.18)}
 .tip[hidden]{display:none}
