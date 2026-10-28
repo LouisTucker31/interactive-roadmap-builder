@@ -104,6 +104,28 @@
   var zoomMode = 'fit';
   var scale = SCALES.W;
 
+  // The view and zoom are remembered in this browser; where you'd scrolled to is kept for
+  // the tab (sessionStorage), so a refresh lands in the same place but a new visit starts at today.
+  var savedView;
+  try { savedView = JSON.parse(localStorage.getItem('roadmapView')); } catch (e) {}
+  if (savedView && SCALES[savedView.scale]) {
+    scale = SCALES[savedView.scale];
+    if (ZOOM_STEPS.indexOf(savedView.zoom) >= 0) zoomMode = savedView.zoom;
+  }
+
+  function scaleKey() {
+    return Object.keys(SCALES).filter(function (k) { return SCALES[k] === scale; })[0];
+  }
+
+  function saveView() {
+    try { localStorage.setItem('roadmapView', JSON.stringify({ scale: scaleKey(), zoom: zoomMode })); } catch (e) {}
+  }
+
+  function saveSpot() {
+    var spot = { scale: scaleKey(), time: timeAt(scroller.scrollLeft), top: scroller.scrollTop };
+    try { sessionStorage.setItem('roadmapSpot', JSON.stringify(spot)); } catch (e) {}
+  }
+
   var rangeStart = add(home(), scale.unit, -scale.chunk);
   var rangeEnd = add(home(), scale.unit, 2 * scale.chunk);
   var dayPx = dayPxFor(zoomMode);
@@ -449,6 +471,7 @@
     extend();
     syncTodayArrow();
     syncPanelScroll();
+    saveSpot();
     if (move && move.lastX != null) moveTo(move.lastX); // keep a moving item under the mouse
   }, { passive: true });
 
@@ -577,6 +600,7 @@
     extend();
     syncTodayArrow();
     syncZoom();
+    saveView();
   }
 
   // View switcher (H/D/W/M/Q/Y). Switching fits the new view to the screen. From a view's
@@ -623,6 +647,12 @@
     extend();
     syncTodayArrow();
     syncZoom();
+    syncScaleBtns();
+    saveView();
+  }
+
+  function syncScaleBtns() {
+    var key = scaleKey();
     scaleBtns.forEach(function (btn) {
       var on = btn.getAttribute('data-scale') === key;
       btn.classList.toggle('on', on);
@@ -1152,8 +1182,95 @@
   });
   scroller.addEventListener('pointerleave', function () { ghost.hidden = true; });
 
-  // Click a bar, milestone or phase label in the chart to edit it, or empty space to add
-  // something at that time. A drag that moved the chart doesn't count as a click.
+  // Item details popup: what a clicked bar, milestone or phase is, when it happens, who
+  // owns it, what it depends on and what's waiting on it, with an Edit button to change
+  // it. It sits just below the item (above it near the bottom of the screen) and closes
+  // with Esc, the ×, a click elsewhere or scrolling the chart.
+  var peek = document.querySelector('[data-peek]');
+  var peekId = null;
+
+  // "5 days" for all-day rows; "1d 2h 30m" style for timed ones.
+  function duration(row) {
+    var mins = Math.round((row.end - row.start) * 1440);
+    if (!(row.start % 1) && !(row.end % 1)) return mins / 1440 + (mins === 1440 ? ' day' : ' days');
+    return [[Math.floor(mins / 1440), 'd'], [Math.floor(mins / 60) % 24, 'h'], [mins % 60, 'm']].filter(function (p) {
+      return p[0];
+    }).map(function (p) { return p[0] + p[1]; }).join(' ');
+  }
+
+  function rowLinks(ids) {
+    return ids.filter(function (id) { return rowIndex[id] != null; }).map(function (id) {
+      var r = data.rows[rowIndex[id]];
+      return '<span class="peek-ln"><i class="' + (r.type === 'milestone' ? 'ms' : 'tk') + '"></i>' + esc(r.name) + '</span>';
+    }).join('');
+  }
+
+  function openPeek(id, el, clientX) {
+    var row = data.rows[rowIndex[id]];
+    if (!row) return;
+    peekId = id;
+    var kind = row.type === 'task' ? (row.parent ? 'Subtask' : 'Task') : row.type === 'milestone' ? 'Milestone' : 'Phase';
+    peek.querySelector('[data-peek-icon]').className = 'peek-ic ' + row.type;
+    peek.querySelector('[data-peek-kind]').textContent = kind;
+    peek.querySelector('[data-peek-title]').textContent = row.name;
+
+    var items = [['When', esc(itemLabel(row))]];
+    if (row.type === 'task' || (row.type === 'phase' && row.end != null)) items.push(['Length', duration(row)]);
+    if (row.type === 'task') {
+      var owner = data.people[row.owner];
+      if (owner) items.push(['Owner', '<span class="av" style="background: ' + owner.color + '">' + esc(row.owner) + '</span>']);
+      var pct = Math.round((row.progress || 0) * 100);
+      items.push(['Progress', '<span class="peek-pg"><b style="width: ' + pct + '%"></b></span>' + pct + '%']);
+      if (row.parent && rowIndex[row.parent] != null) items.push(['Subtask of', esc(data.rows[rowIndex[row.parent]].name)]);
+      var kids = row.parent ? 0 : childCount(row);
+      if (kids) items.push(['Subtasks', kids]);
+    }
+    if (row.type !== 'phase') {
+      var ph = phaseOf(row.parent ? data.rows[rowIndex[row.parent]] : row);
+      if (ph) items.push(['Phase', esc(data.rows[rowIndex[ph]].name)]);
+      var after = rowLinks(data.deps.filter(function (d) { return d[1] === id; }).map(function (d) { return d[0]; }));
+      var before = rowLinks(data.deps.filter(function (d) { return d[0] === id; }).map(function (d) { return d[1]; }));
+      if (after) items.push(['Depends on', after]);
+      if (before) items.push(['Blocks', before]);
+    }
+    peek.querySelector('[data-peek-body]').innerHTML = items.map(function (it) {
+      return '<dt>' + it[0] + '</dt><dd>' + it[1] + '</dd>';
+    }).join('');
+
+    // Place it under the item, starting near where it was clicked, kept on screen.
+    peek.hidden = false;
+    var r = el.getBoundingClientRect();
+    var w = peek.offsetWidth;
+    var h = peek.offsetHeight;
+    var left = Math.max(8, Math.min(clientX - 24, window.innerWidth - w - 8));
+    var top = r.bottom + 8 + h > window.innerHeight - 8 ? r.top - 8 - h : r.bottom + 8;
+    peek.style.left = left + 'px';
+    peek.style.top = Math.max(8, top) + 'px';
+    peek.querySelector('[data-peek-edit]').focus();
+  }
+
+  function closePeek() {
+    peek.hidden = true;
+    peekId = null;
+  }
+
+  peek.querySelector('[data-peek-close]').addEventListener('click', closePeek);
+  peek.querySelector('[data-peek-edit]').addEventListener('click', function () {
+    var id = peekId;
+    closePeek();
+    openEdit(id);
+  });
+  document.addEventListener('pointerdown', function (e) {
+    if (!peek.hidden && !peek.contains(e.target)) closePeek();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !peek.hidden && !move) closePeek();
+  });
+  scroller.addEventListener('wheel', function () { if (!peek.hidden) closePeek(); }, { passive: true });
+  window.addEventListener('resize', function () { if (!peek.hidden) closePeek(); });
+
+  // Click a bar, milestone or phase label in the chart to see its details, or empty space
+  // to add something at that time. A drag that moved the chart doesn't count as a click.
   scroller.addEventListener('click', function (e) {
     if (dragMoved) {
       dragMoved = false;
@@ -1161,7 +1278,7 @@
     }
     var hit = document.elementFromPoint(e.clientX, e.clientY);
     var el = hit && hit.closest('.plan [data-id]');
-    if (el) return openEdit(el.getAttribute('data-id'));
+    if (el) return openPeek(el.getAttribute('data-id'), el, e.clientX);
     var spot = spotAt(e.clientX, e.clientY);
     if (spot) {
       ghost.hidden = true;
@@ -1296,8 +1413,19 @@
     }
   };
 
-  render();
-  scroller.scrollLeft = xOf(home());
+  // Start at today, or where this tab was before a refresh if it's still on the same view.
+  var spot;
+  try { spot = JSON.parse(sessionStorage.getItem('roadmapSpot')); } catch (e) {}
+  if (spot && spot.scale === scaleKey() && isFinite(spot.time)) {
+    recentre(spot.time);
+    scroller.scrollLeft = xOf(spot.time);
+    scroller.scrollTop = spot.top || 0;
+    extend();
+  } else {
+    render();
+    scroller.scrollLeft = xOf(home());
+  }
   syncTodayArrow();
   syncZoom();
+  syncScaleBtns();
 })();

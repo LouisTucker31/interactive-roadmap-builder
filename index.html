@@ -153,6 +153,17 @@
 </form>
 </dialog>
 
+<!-- Item details, shown when a bar, milestone or phase is clicked in the chart. Filled in by js/app.js -->
+<div class="peek" role="dialog" aria-labelledby="peek-title" hidden data-peek>
+<div class="peek-hd">
+<i data-peek-icon></i>
+<div class="peek-tt"><span class="peek-kind" data-peek-kind></span><h3 id="peek-title" data-peek-title></h3></div>
+<button class="x" type="button" aria-label="Close" data-peek-close><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+<dl class="peek-body" data-peek-body></dl>
+<div class="peek-ft"><button class="btn" type="button" data-peek-edit><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13 7l4 4"></path></svg>Edit</button></div>
+</div>
+
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
 </body>
