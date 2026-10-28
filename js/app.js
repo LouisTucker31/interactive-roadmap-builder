@@ -1920,6 +1920,100 @@
   try { savedPage = localStorage.getItem('roadmapPage'); } catch (e) {}
   setPage(savedPage === 'list' ? 'list' : 'timeline');
 
+  // Button tooltips: hovering (or tabbing to) a button shows its name in a small popup —
+  // its title, or for an icon-only button its aria-label. The title is set aside while the
+  // tip shows so the browser's own tooltip doesn't appear as well. After the first tip,
+  // moving to the next button shows its tip straight away.
+  var tipEl = document.createElement('div');
+  tipEl.className = 'tip';
+  tipEl.setAttribute('role', 'tooltip');
+  tipEl.hidden = true;
+  document.body.appendChild(tipEl);
+  var tipFor = null;   // the button the tip belongs to
+  var tipTimer = 0;
+  var tipWarm = 0;     // until when the next tip shows without a delay
+
+  function tipText(el) {
+    var title = el.getAttribute('title') || el.getAttribute('data-tip-title');
+    if (title) return title;
+    var label = el.getAttribute('aria-label');
+    // Only when the button shows no words of its own: an icon, or a symbol like − or 80%.
+    return label && !/[a-z]{3}/i.test(el.textContent) ? label : '';
+  }
+
+  function placeTip() {
+    if (!tipFor || !document.contains(tipFor)) return hideTip();
+    var text = tipText(tipFor);
+    if (!text) return hideTip();
+    if (tipFor.hasAttribute('title')) { // set the title aside
+      tipFor.setAttribute('data-tip-title', tipFor.getAttribute('title'));
+      tipFor.removeAttribute('title');
+    }
+    // Inside the open form the tip has to live in the dialog to show above it.
+    var host = tipFor.closest('dialog') || document.body;
+    if (tipEl.parentNode !== host) host.appendChild(tipEl);
+    tipEl.textContent = text;
+    tipEl.hidden = false;
+    var r = tipFor.getBoundingClientRect();
+    var w = tipEl.offsetWidth;
+    var h = tipEl.offsetHeight;
+    if (tipFor.closest('.rail')) { // beside the rail's icons rather than over the next one
+      tipEl.style.left = r.right + 6 + 'px';
+      tipEl.style.top = r.top + r.height / 2 - h / 2 + 'px';
+      return;
+    }
+    var below = r.bottom + 6 + h < window.innerHeight - 4;
+    tipEl.style.left = Math.max(4, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 4)) + 'px';
+    tipEl.style.top = (below ? r.bottom + 6 : r.top - 6 - h) + 'px';
+  }
+
+  function hideTip() {
+    clearTimeout(tipTimer);
+    if (!tipEl.hidden) tipWarm = Date.now() + 500;
+    tipEl.hidden = true;
+    if (tipFor && tipFor.hasAttribute('data-tip-title')) {
+      // Put the title back, unless the app gave the button a new one meanwhile.
+      if (!tipFor.hasAttribute('title')) tipFor.setAttribute('title', tipFor.getAttribute('data-tip-title'));
+      tipFor.removeAttribute('data-tip-title');
+    }
+    tipFor = null;
+  }
+
+  function showTipFor(el) {
+    if (el === tipFor) return;
+    hideTip();
+    if (!tipText(el)) return;
+    tipFor = el;
+    if (Date.now() < tipWarm) placeTip();
+    else tipTimer = setTimeout(placeTip, 350);
+  }
+
+  document.addEventListener('pointerover', function (e) {
+    if (e.pointerType !== 'mouse') return;
+    var el = e.target.closest && e.target.closest('button');
+    if (el) showTipFor(el);
+    else if (tipFor) hideTip();
+  });
+  document.addEventListener('focusin', function (e) {
+    var el = e.target.closest && e.target.closest('button');
+    if (el && el.matches(':focus-visible')) showTipFor(el);
+  });
+  document.addEventListener('focusout', function (e) { if (e.target === tipFor) hideTip(); });
+  // A click can change a button's name (e.g. Dark mode → Light mode), so redraw the tip after it.
+  document.addEventListener('click', function () {
+    if (!tipFor) return;
+    var el = tipFor;
+    setTimeout(function () {
+      if (el !== tipFor) return;
+      if (el.hasAttribute('title')) el.removeAttribute('data-tip-title');
+      if (!tipEl.hidden) placeTip();
+    }, 0);
+  });
+  document.addEventListener('pointerdown', function (e) { if (tipFor && !tipFor.contains(e.target)) hideTip(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideTip(); });
+  window.addEventListener('scroll', hideTip, true);
+  window.addEventListener('blur', hideTip);
+
   // After changing window.ROADMAP, call roadmap.refresh() to redraw the plan and stats.
   // roadmap.reset() removes everything created with the New task form.
   window.roadmap = {
