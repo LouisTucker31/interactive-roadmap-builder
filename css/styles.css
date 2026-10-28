@@ -216,7 +216,7 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 button:disabled{cursor:not-allowed}
 .btn:disabled,.primary:disabled,.ri:disabled,.ib:disabled,.today:disabled,.seg button:disabled{opacity:.35;filter:grayscale(1)}
 /* New task form */
-.dlg{width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 48px);padding:0;border:1px solid #e2e6eb;border-radius:12px;background:#ffffff;color:#1b1f24;font:400 12px Inter,system-ui,sans-serif;box-shadow:0 24px 60px rgba(20,30,40,.18),0 2px 6px rgba(20,30,40,.08);-webkit-font-smoothing:antialiased}
+.dlg{width:min(500px,calc(100vw - 32px));max-height:calc(100vh - 48px);padding:0;border:1px solid #e2e6eb;border-radius:12px;background:#ffffff;color:#1b1f24;font:400 12px Inter,system-ui,sans-serif;box-shadow:0 24px 60px rgba(20,30,40,.18),0 2px 6px rgba(20,30,40,.08);-webkit-font-smoothing:antialiased}
 .dlg::backdrop{background:rgba(18,20,23,.32)}
 .dlg form{display:flex;flex-direction:column;max-height:inherit}
 .dlg-hd{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 4px}
