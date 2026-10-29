@@ -640,11 +640,9 @@ button:disabled{cursor:not-allowed}
 .citem.done .cmk{background:var(--c,#418dab)}
 .citem.dragging{opacity:.35}
 .citem.fresh,.chead.fresh{animation:kfresh 2.2s ease-out}
-.csum{position:relative}
-.csum .cname{font-weight:700;color:#2d2560}
+.csum .cname{font-weight:600;color:#2d2560}
 .ccount{flex:none;margin-left:auto;min-width:16px;height:15px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:#ece8fb;color:#2d2560;font:600 10px/15px "JetBrains Mono",monospace;text-align:center}
-.cprog{position:absolute;left:19px;right:5px;bottom:1px;height:2px;border-radius:1px;background:#e3e0f4;overflow:hidden}
-.cprog b{display:block;height:100%;background:#8f7fe0}
+.ccount.all{background:#e2f4ea;color:#23824f}
 .csum.other{color:#4a5159;font-weight:600}
 .cmore{align-self:flex-start;height:18px;padding:0 6px;border:0;border-radius:5px;background:none;color:#4a5159;font:600 10.5px Inter,system-ui,sans-serif;cursor:pointer}
 [data-theme="dark"] .citem,[data-theme="dark"] .csum{color:#e4e7ea}
@@ -653,8 +651,8 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .citem.k-phase,[data-theme="dark"] .chead,[data-theme="dark"] .csum .cname{color:#c9c1f5}
 [data-theme="dark"] .chead{background:#221f36}
 [data-theme="dark"] .chead.other{background:#1c2024;color:#c9ced4}
-[data-theme="dark"] .cprog{background:#2b2742}
 [data-theme="dark"] .ccount{background:#2a2545;color:#ddd6fb}
+[data-theme="dark"] .ccount.all{background:#17301f;color:#7fd0a1}
 .cmore:hover,.cmore:focus-visible{background:#e3e7eb;color:#121417;outline:0}
 [data-theme="dark"] .cnav .ib{background:#181b1f;border-color:#2b3036;color:#9aa1a9}
 [data-theme="dark"] .cnav .ib:hover{background:#20242a;color:#f1f3f5}

@@ -3072,7 +3072,7 @@
       out += '<div class="csum" role="button" tabindex="0" data-cal-open="' + t + '" title="' +
         esc(name + (span ? ' ' + span : '') + ' · ' + n + (n === 1 ? ' task' : ' tasks') + ' on ' + dayName + ', ' + doneN + ' done · click to see the week') + '">' +
         '<i class="cmk ph"></i><span class="cname">' + esc(name) + '</span>' +
-        (n ? '<span class="ccount">' + n + '</span><span class="cprog"><b style="width: ' + doneN / n * 100 + '%"></b></span>' : '<span class="ctime">' + span + '</span>') +
+        (n ? '<span class="ccount' + (doneN === n ? ' all' : '') + '">' + (doneN === n ? '✓ ' : '') + n + '</span>' : '<span class="ctime">' + span + '</span>') +
         '</div>';
     });
     return out;
