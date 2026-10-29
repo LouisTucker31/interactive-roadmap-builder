@@ -1230,6 +1230,7 @@
     syncPanelScroll();
     renderList();
     renderBoard();
+    renderCal();
   }
 
   // Another tab saved the plan: load its version so every open tab shows the same plan.
@@ -1745,6 +1746,7 @@
     renderPlan();
     renderList();
     renderBoard();
+    renderCal();
     setTimeout(function () { if (freshId === row.id) freshId = null; }, 1600);
   }
 
@@ -2926,6 +2928,246 @@
 
   renderBoard();
 
+  // Calendar: the plan by month or week, weeks starting on Monday. Items over more than one
+  // day are bars across their days (a phase without an end runs until the next phase);
+  // items within a day are chips with their time; milestones show as diamonds. A month
+  // shows up to CAL_LANES per week and "+n more" on a fuller day, which opens that week.
+  // Click an item to edit it, empty space in a day to add a task on that day, or drag an
+  // item to another day (it keeps its time and length). Tick boxes pick what shows.
+  var calEl = document.querySelector('[data-cal]');
+  var calGrid = calEl.querySelector('[data-cal-grid]');
+  var CAL_LANES = 3;
+  var cal = { view: 'month', show: { task: true, milestone: true, phase: true } };
+  try {
+    var savedCal = JSON.parse(localStorage.getItem('roadmapCal'));
+    if (savedCal && savedCal.view) cal.view = savedCal.view;
+    if (savedCal && savedCal.show) cal.show = savedCal.show;
+  } catch (e) {}
+  var calAt = TODAY; // a day in the month or week shown; kept for the tab
+  try { calAt = +sessionStorage.getItem('roadmapCalAt') || TODAY; } catch (e) {}
+  var calDrag = null;
+
+  function saveCal() {
+    try {
+      localStorage.setItem('roadmapCal', JSON.stringify(cal));
+      sessionStorage.setItem('roadmapCalAt', String(calAt));
+    } catch (e) {}
+  }
+
+  // The first and last day a row covers, as day timestamps.
+  function calSpan(r) {
+    var s = startDay(r);
+    var e = s;
+    if (r.end != null) e = r.end % 1 || s % 1 ? r.end - 1e-6 : r.end - 1; // a whole-day end is exclusive
+    else if (r.type === 'phase') {
+      var next = data.rows[sectionEnd(r.id)];
+      if (next && next.start > s) e = next.start - 1e-6;
+    }
+    return [PLAN_START + Math.floor(s) * DAY, PLAN_START + Math.floor(Math.max(e, s)) * DAY];
+  }
+
+  function calWeeks() {
+    if (cal.view === 'week') return [startOf(calAt, 'week')];
+    var month = startOf(calAt, 'month');
+    var next = add(month, 'month', 1);
+    var weeks = [];
+    for (var w = startOf(month, 'week'); w < next; w += 7 * DAY) weeks.push(w);
+    return weeks;
+  }
+
+  // A week's pieces of items, each in the first lane where its days are free. Longer items
+  // go first so bars stack neatly; then by start time.
+  function weekSegs(ws, rows) {
+    var we = ws + 6 * DAY;
+    var segs = rows.map(function (r, i) {
+      var sp = calSpan(r);
+      if (sp[1] < ws || sp[0] > we) return null;
+      return {
+        r: r, i: i, c0: (Math.max(sp[0], ws) - ws) / DAY, c1: (Math.min(sp[1], we) - ws) / DAY,
+        head: sp[0] >= ws, tail: sp[1] <= we, multi: sp[1] > sp[0], len: sp[1] - sp[0]
+      };
+    }).filter(Boolean).sort(function (a, b) {
+      return b.len - a.len || a.c0 - b.c0 || startDay(a.r) - startDay(b.r) || a.i - b.i;
+    });
+    var lanes = [];
+    segs.forEach(function (sg) {
+      var k = 0;
+      while (lanes[k] && lanes[k].some(function (used, c) { return used && c >= sg.c0 && c <= sg.c1; })) k++;
+      lanes[k] = lanes[k] || [];
+      for (var c = sg.c0; c <= sg.c1; c++) lanes[k][c] = true;
+      sg.lane = k;
+    });
+    return { segs: segs, lanes: lanes.length };
+  }
+
+  function segHtml(sg) {
+    var r = sg.r;
+    var s = startDay(r);
+    var timed = s % 1 && sg.head;
+    var mark = r.type === 'milestone' ? '<i class="cmk ms"></i>' : r.type === 'phase' ? '<i class="cmk ph"></i>' : '<i class="cmk' + (r.parent ? ' sub' : '') + '"></i>';
+    var done = r.type === 'task' && r.progress >= 1;
+    var cls = 'cseg ' + (sg.multi ? 'cbar' : 'cchip') + ' k-' + (r.type === 'task' && r.parent ? 'sub' : r.type) +
+      (sg.head ? ' head' : '') + (sg.tail ? ' tail' : '') + (done ? ' done' : '') + (r.id === freshId ? ' fresh' : '');
+    return '<div class="' + cls + '" data-id="' + esc(r.id) + '" draggable="true" tabindex="0" role="button" title="' +
+      esc(r.name + ' · ' + itemLabel(r) + ' · click to edit, drag to another day') + '" style="left: calc(' + sg.c0 + ' * 100% / 7 + 2px); width: calc(' +
+      (sg.c1 - sg.c0 + 1) + ' * 100% / 7 - 4px); top: ' + (28 + sg.lane * 22) + 'px' + colorVar(r) + '">' +
+      (sg.multi && r.type === 'task' ? '' : mark) + (timed ? '<span class="ctime">' + timeOf(s) + '</span>' : '') +
+      '<span class="cname">' + esc(r.name) + '</span></div>';
+  }
+
+  function renderCal() {
+    var rows = data.rows.filter(function (r) { return cal.show[r.type] !== false; });
+    var weeks = calWeeks();
+    var month = startOf(calAt, 'month');
+    var week = cal.view === 'week';
+    calEl.classList.toggle('week', week);
+    calEl.querySelector('[data-cal-days]').innerHTML = [1, 2, 3, 4, 5, 6, 0].map(function (d) {
+      return '<span' + (d === 0 || d === 6 ? ' class="wkend"' : '') + '>' + WEEKDAYS[d] + '</span>';
+    }).join('');
+    calGrid.innerHTML = weeks.map(function (ws) {
+      var w = weekSegs(ws, rows);
+      var shownLanes = week ? w.lanes : Math.min(w.lanes, CAL_LANES);
+      var hidden = [0, 0, 0, 0, 0, 0, 0];
+      var segs = w.segs.filter(function (sg) {
+        if (week || sg.lane < CAL_LANES) return true;
+        for (var c = sg.c0; c <= sg.c1; c++) hidden[c]++;
+        return false;
+      });
+      var days = '';
+      for (var c = 0; c < 7; c++) {
+        var t = ws + c * DAY;
+        var d = new Date(t);
+        var cls = 'cday' + (!week && startOf(t, 'month') !== month ? ' out' : '') + (t === TODAY ? ' is-today' : '') +
+          (d.getUTCDay() % 6 === 0 ? ' wkend' : '');
+        days += '<div class="' + cls + '" data-day="' + t + '" title="Click to add a task on ' + d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + '">' +
+          '<span class="cdate">' + (d.getUTCDate() === 1 || week ? d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] : d.getUTCDate()) + '</span></div>';
+      }
+      var more = hidden.map(function (n, c) {
+        return n ? '<button type="button" class="cmore" data-cal-more="' + ws + '" style="left: calc(' + c + ' * 100% / 7 + 2px); top: ' +
+          (28 + CAL_LANES * 22) + 'px" title="Show all of this week">+' + n + ' more</button>' : '';
+      }).join('');
+      return '<div class="cweek" style="--lanes: ' + shownLanes + '">' + days + segs.map(segHtml).join('') + more + '</div>';
+    }).join('');
+    calEl.querySelector('[data-cal-title]').textContent = week ? weekTitle(weeks[0]) : MONTHS_LONG[new Date(month).getUTCMonth()] + ' ' + new Date(month).getUTCFullYear();
+    Array.prototype.forEach.call(calEl.querySelectorAll('[data-cal-view]'), function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-cal-view') === cal.view));
+    });
+    Array.prototype.forEach.call(calEl.querySelectorAll('[data-cal-show]'), function (b) {
+      b.checked = cal.show[b.getAttribute('data-cal-show')] !== false;
+    });
+  }
+
+  var MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  // "23 – 29 Nov 2026", or "30 Nov – 6 Dec 2026" across months.
+  function weekTitle(ws) {
+    var a = new Date(ws);
+    var b = new Date(ws + 6 * DAY);
+    var sameMonth = a.getUTCMonth() === b.getUTCMonth();
+    return a.getUTCDate() + (sameMonth ? '' : ' ' + MONTHS[a.getUTCMonth()]) + (a.getUTCFullYear() !== b.getUTCFullYear() ? ' ' + a.getUTCFullYear() : '') +
+      ' – ' + b.getUTCDate() + ' ' + MONTHS[b.getUTCMonth()] + ' ' + b.getUTCFullYear();
+  }
+
+  // Move a row (and a parent's subtasks) by whole days, as changed copies.
+  function shiftDays(id, days) {
+    var i = rowIndex[id];
+    var row = data.rows[i];
+    var n = row.type === 'task' && !row.parent ? childCount(row) : 0;
+    for (var k = i; k <= i + n; k++) data.rows[k] = shifted(data.rows[k], days);
+    freshId = id;
+    refresh();
+    savePlan();
+    setTimeout(function () { if (freshId === id) freshId = null; }, 1600);
+  }
+
+  calEl.addEventListener('click', function (e) {
+    var t = e.target;
+    var step = t.closest('[data-cal-step]');
+    var view = t.closest('[data-cal-view]');
+    var more = t.closest('[data-cal-more]');
+    var seg = t.closest('.cseg[data-id]');
+    var day = t.closest('.cday[data-day]');
+    if (step) calAt = add(startOf(calAt, cal.view === 'week' ? 'week' : 'month'), cal.view === 'week' ? 'week' : 'month', +step.getAttribute('data-cal-step'));
+    else if (t.closest('[data-cal-today]')) calAt = TODAY;
+    else if (view) cal.view = view.getAttribute('data-cal-view');
+    else if (more) {
+      cal.view = 'week';
+      calAt = +more.getAttribute('data-cal-more');
+    } else if (seg) return openEdit(seg.getAttribute('data-id'));
+    else if (day) {
+      openForm();
+      form.elements.startDate.value = isoDate(+day.getAttribute('data-day'));
+      form.elements.allDay.checked = true;
+      return syncForm();
+    } else return;
+    saveCal();
+    renderCal();
+  });
+  calEl.addEventListener('change', function (e) {
+    var box = e.target.closest('[data-cal-show]');
+    if (!box) return;
+    cal.show[box.getAttribute('data-cal-show')] = box.checked;
+    saveCal();
+    renderCal();
+  });
+  calEl.addEventListener('keydown', function (e) {
+    var seg = e.target.closest('.cseg[data-id]');
+    if (seg && e.target === seg && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      openEdit(seg.getAttribute('data-id'));
+    }
+  });
+  calGrid.addEventListener('dragstart', function (e) {
+    var seg = e.target.closest('.cseg[data-id]');
+    if (!seg) return;
+    // Where in the item it was picked up, so a long bar moves by the days the mouse moves.
+    var r = calSpan(data.rows[rowIndex[seg.getAttribute('data-id')]]);
+    var under = cellAt(e.clientX, e.clientY);
+    calDrag = { id: seg.getAttribute('data-id'), from: under != null ? under : r[0] };
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', calDrag.id); } catch (err) {}
+    hideTip();
+    setTimeout(function () { seg.classList.add('dragging'); }, 0);
+  });
+
+  // The day under a screen point, from the day cells' positions.
+  function cellAt(x, y) {
+    var cells = calGrid.querySelectorAll('.cday');
+    for (var k = 0; k < cells.length; k++) {
+      var b = cells[k].getBoundingClientRect();
+      if (x >= b.left && x < b.right && y >= b.top && y < b.bottom) return +cells[k].getAttribute('data-day');
+    }
+    return null;
+  }
+
+  calGrid.addEventListener('dragover', function (e) {
+    if (!calDrag) return;
+    var t = cellAt(e.clientX, e.clientY);
+    Array.prototype.forEach.call(calGrid.querySelectorAll('.cday.over'), function (c) { c.classList.remove('over'); });
+    if (t == null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var cell = calGrid.querySelector('.cday[data-day="' + t + '"]');
+    if (cell) cell.classList.add('over');
+  });
+  calGrid.addEventListener('drop', function (e) {
+    e.preventDefault();
+    var d = calDrag;
+    calDrag = null;
+    var t = cellAt(e.clientX, e.clientY);
+    if (d && t != null && t !== d.from) shiftDays(d.id, Math.round((t - d.from) / DAY));
+    else renderCal();
+  });
+  calGrid.addEventListener('dragend', function () {
+    calDrag = null;
+    Array.prototype.forEach.call(calGrid.querySelectorAll('.over, .dragging'), function (x) {
+      x.classList.remove('over');
+      x.classList.remove('dragging');
+    });
+  });
+
+  renderCal();
+
   // Pages: the rail switches between the timeline, the list and the board. The list and
   // board sit over the timeline rather than replacing it, so the chart keeps its scroll
   // position underneath.
@@ -2959,7 +3201,7 @@
   renderList();
   var savedPage;
   try { savedPage = localStorage.getItem('roadmapPage'); } catch (e) {}
-  setPage(['list', 'board', 'workload'].indexOf(savedPage) >= 0 ? savedPage : 'timeline');
+  setPage(['list', 'board', 'workload', 'calendar'].indexOf(savedPage) >= 0 ? savedPage : 'timeline');
 
   // Project tag: the tag beside the project name. Tags are a shared list (kept in this
   // browser apart from the plan), so other projects can use the same tag; this project
@@ -3245,6 +3487,22 @@
     if (rowIndex[id] == null) return;
     var page = app.getAttribute('data-page');
     var q = window.CSS && CSS.escape ? CSS.escape(id) : id;
+    if (page === 'calendar') {
+      var item = data.rows[rowIndex[id]];
+      cal.show[item.type] = true;
+      calAt = calSpan(item)[0];
+      freshId = id;
+      renderCal();
+      if (!calGrid.querySelector('.cseg[data-id="' + q + '"]')) { // under "+n more": show its week
+        cal.view = 'week';
+        renderCal();
+      }
+      saveCal();
+      var seg = calGrid.querySelector('.cseg[data-id="' + q + '"]');
+      if (seg) seg.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      setTimeout(function () { if (freshId === id) freshId = null; }, 2200);
+      return;
+    }
     if (page === 'board') {
       var row = data.rows[rowIndex[id]];
       if (row.type === 'phase') board.group = 'phase'; // phases are columns, not cards
