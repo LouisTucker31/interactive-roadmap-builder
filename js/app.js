@@ -42,19 +42,22 @@
 
   syncToggle();
 
-  // Projects: each has a name, a tag and its own saved plan. The first project's plan keeps
+  // Projects: each has a name, tags and its own saved plan. The first project's plan keeps
   // the original storage key, so plans saved before projects existed carry straight on.
-  // The open project is remembered in this browser; switching reloads the page.
+  // The open project is remembered in this browser; switching reloads the page. A new
+  // account has none: it starts on an empty Workspace, and NO_PROJECT stands in until
+  // there's one to open.
   var FIRST_PROJECT = 'ex-hailstorm';
+  var NO_PROJECT = { id: null, name: 'Workspace' };
   var projects;
   var currentId;
   try { projects = JSON.parse(localStorage.getItem('roadmapProjects')); } catch (e) {}
-  if (!Array.isArray(projects) || !projects.length) projects = [{ id: FIRST_PROJECT, name: 'Ex HAILSTORM' }];
+  if (!Array.isArray(projects)) projects = [];
   try { currentId = localStorage.getItem('roadmapCurrent'); } catch (e) {}
-  if (!projects.some(function (p) { return p.id === currentId; })) currentId = projects[0].id;
+  if (!projects.some(function (p) { return p.id === currentId; })) currentId = projects.length ? projects[0].id : null;
 
   function project() {
-    return projects.filter(function (p) { return p.id === currentId; })[0];
+    return projects.filter(function (p) { return p.id === currentId; })[0] || NO_PROJECT;
   }
 
   function planKey(id) {
@@ -3805,26 +3808,25 @@
   // colour, or delete it.
   var tagBtn = document.querySelector('[data-tag-btn]');
   var tagPop = document.querySelector('[data-tag-pop]');
-  var TAG_DEFAULT = { id: 'national-gas-transmission', name: 'National Gas Transmission', color: '#418dab' };
   var tags = null;
-  var projectTags = [TAG_DEFAULT.id];
+  var projectTags = [];
   var tagEditing = null; // the tag open in the editor, or null for the list
 
   // A project's tags as a list; projects used to have a single `tag` (and before that the
-  // first project's tag was stored on its own).
+  // first project's tag was stored on its own, in this browser).
   function tagsOf(p) {
     if (Array.isArray(p.tags)) return p.tags.slice();
     if ('tag' in p) return p.tag ? [p.tag] : [];
+    if (p.id !== FIRST_PROJECT) return [];
     var old;
     try { old = JSON.parse(localStorage.getItem('roadmapProject')); } catch (e) {}
-    if (old && 'tag' in old) return old.tag ? [old.tag] : [];
-    return p.id === FIRST_PROJECT ? [TAG_DEFAULT.id] : [];
+    return old && old.tag ? [old.tag] : [];
   }
 
   function loadTags() {
     var saved;
     try { saved = JSON.parse(localStorage.getItem('roadmapTags')); } catch (e) {}
-    tags = Array.isArray(saved) ? saved : [TAG_DEFAULT];
+    tags = Array.isArray(saved) ? saved : [];
     var fresh;
     try { fresh = JSON.parse(localStorage.getItem('roadmapProjects')); } catch (e) {}
     // Take another tab's changes, unless it deleted this project; this tab keeps what it had then.
@@ -4696,7 +4698,7 @@
   var profBtn = document.querySelector('[data-profile-btn]');
   var profPop = document.querySelector('[data-profile-pop]');
   var profView = 'main';
-  var me = { name: 'Louis Tucker', email: '', color: '#dfae2f' };
+  var me = { name: '', email: '', color: '#dfae2f' }; // a new account's name comes from signing up
   try {
     var savedMe = JSON.parse(localStorage.getItem('roadmapProfile'));
     if (savedMe) Object.keys(me).forEach(function (k) { if (savedMe[k] != null) me[k] = savedMe[k]; });
@@ -5123,7 +5125,7 @@
         (homeState.archived ? 'Hide archived' : 'Show archived') + ' <b class="hcount">' + archivedN + '</b></button>' : '') +
       '</div><h2 class="hlabel">Projects</h2>' +
       '<div class="hgrid' + (homeState.view === 'list' ? ' as-list' : '') + '">' +
-      (shown.length ? shown.map(cardHtml2).join('') : '<p class="hempty">No projects match' + (q ? ' “' + esc(homeState.q) + '”' : '') + (filterTag ? ' with # ' + esc(filterTag.name) : '') + '.</p>') +
+      (shown.length ? shown.map(cardHtml2).join('') : !projects.length ? '<p class="hempty">No projects yet. Create your first one to get started.</p>' : '<p class="hempty">No projects match' + (q ? ' “' + esc(homeState.q) + '”' : '') + (filterTag ? ' with # ' + esc(filterTag.name) : '') + '.</p>') +
       '<button type="button" class="hcard hadd" data-home-new><span>+</span>New project</button></div></div>' +
       '<aside class="hside"><h2 class="hlabel">Overview</h2>' +
       '<section class="hbox"><h2>Coming up</h2>' + comingUpHtml(all, 8) + '</section>' +
@@ -5424,7 +5426,7 @@
   // Where to start: a new visit opens Workspace; a refresh stays where you were.
   var here;
   try { here = sessionStorage.getItem('roadmapHere'); } catch (e) {}
-  if (here === 'project') {
+  if (here === 'project' && projects.length) { // with no projects yet there's only Workspace
     project().openedAt = Date.now();
     saveProjects();
     if (location.hash !== '#project' && !/access_token|error=/.test(location.hash)) history.replaceState(null, '', '#project');

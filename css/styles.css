@@ -1347,3 +1347,5 @@ button.pill{cursor:pointer;line-height:1;white-space:nowrap}
 .stack{display:none}
 }
 @media (max-width:420px){.grp{display:none}}
+/* Touch screens: text boxes at 16px, so phones (iPhones especially) don't zoom in when you tap one */
+@media (pointer:coarse){input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{font-size:16px!important}}
