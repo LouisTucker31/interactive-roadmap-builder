@@ -52,7 +52,7 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .gut.open .caret svg{transform:rotate(180deg)}
 .gut-body{flex:1;min-height:0;overflow:hidden;visibility:hidden}
 .gut.open .gut-body{visibility:visible}
-.gut-rows{width:260px;padding-top:68px;background-image:repeating-linear-gradient(180deg,transparent 0 33px,#eaedf0 33px 34px)}
+.gut-rows{width:260px;padding-top:34px;background-image:repeating-linear-gradient(180deg,transparent 0 33px,#eaedf0 33px 34px)}
 .trow{height:34px;display:flex;align-items:center;gap:8px;padding:0 10px 0 12px;font-size:11.5px;color:#1b1f24;white-space:nowrap}
 .trow .tn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .trow .ic{width:7px;height:7px;flex:none;border-radius:50%;background:var(--c,#418dab)}
@@ -65,7 +65,7 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .trow.ph[data-id]:hover{background:#e9e4f9}
 .trow.ph .ic{width:12px;height:12px;background:#ffffff;border:2px solid #a596ea}
 .trow .meta{flex:none;font:400 10px "JetBrains Mono",monospace;color:#7b828b}
-.trow.empty{margin-top:-68px;color:#7b828b;font-style:italic}
+.trow.empty{margin-top:-34px;color:#7b828b;font-style:italic}
 .trow[data-id]{cursor:pointer}
 .trow[data-id]:hover{background:#eef1f4}
 .trow[data-id]:focus-visible{outline:2px solid #4790ad;outline-offset:-2px}
@@ -133,7 +133,7 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .dia{position:absolute;width:12px;height:12px;background:#d4802c;transform:rotate(45deg);border-radius:1.5px}
 /* Sticky dock keeps the Today button on screen while the chart scrolls either way */
 .dock{position:sticky;left:0;top:41px;width:0;height:0;z-index:4}
-.today{position:absolute;left:var(--dock-x,24px);top:31px;white-space:nowrap;height:24px;padding:0 11px;border-radius:12px;border:0;background:#4790ad;color:#ffffff;font:500 10.5px Inter,sans-serif;display:flex;align-items:center;gap:4px;cursor:pointer;box-shadow:0 1px 2px rgba(20,40,60,.18)}
+.today{position:absolute;left:var(--dock-x,24px);top:5px;white-space:nowrap;height:24px;padding:0 11px;border-radius:12px;border:0;background:#4790ad;color:#ffffff;font:500 10.5px Inter,sans-serif;display:flex;align-items:center;gap:4px;cursor:pointer;box-shadow:0 1px 2px rgba(20,40,60,.18)}
 .today.here{background:#ffffff;color:#3f86a3;box-shadow:inset 0 0 0 1.5px #4790ad}
 /* Phases: a bolder label and line than tasks, and a tinted band behind their whole section */
 .phase{position:absolute;left:0;display:flex;text-transform:uppercase;align-items:center;gap:7px;font:700 11px Inter,sans-serif;letter-spacing:.05em;color:#2d2560}

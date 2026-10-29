@@ -220,7 +220,7 @@
   // all drawn from js/data.js. Rows sit on a 34px grid (whole pixels keep the lines crisp) starting at ROW_Y (row centre).
   var data = window.ROADMAP;
   loadPlan();
-  var ROW_Y = 85;
+  var ROW_Y = 51; // one empty row on top, where the Today button floats
   var ROW_PX = 34;
   var depsEl = chart.querySelector('[data-deps]');
   var bandsEl = chart.querySelector('[data-bands]');
@@ -567,7 +567,7 @@
 
     // Leave a screen of blank space below the last row so the chart can always scroll down.
     var lastRow = ROW_Y + (workload ? wl.lanes : data.rows.length) * ROW_PX;
-    chartBody.style.minHeight = Math.max(620, lastRow + scroller.clientHeight - 41 - 2 * ROW_PX) + 'px';
+    chartBody.style.minHeight = Math.max(620, lastRow + scroller.clientHeight - 41 - ROW_PX) + 'px';
 
     // Each arrow leaves the end of `from` and drops onto the start of `to`.
     depsEl.innerHTML = data.deps.filter(function (dep) {
