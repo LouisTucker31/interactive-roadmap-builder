@@ -925,6 +925,19 @@ button.pill{cursor:pointer;line-height:1;white-space:nowrap}
 .tp-pick span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tp-row.on .tp-pick span{font-weight:600}
 .tp-row.on .tp-pick::after{content:"\2713";color:#4790ad;font-weight:600}
+/* Tags tick on and off: a box per row, ticked for this project's tags */
+.tp-row.on .tp-check::after{content:none}
+.tp-box{flex:none;width:14px;height:14px;box-sizing:border-box;border:1.5px solid #a9b1ba;border-radius:4px}
+.tp-row.on .tp-box{border-color:#418dab;background:#418dab url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 6.2l2 2 4-4.4' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat}
+.tp-check em{flex:none;font-style:normal;font-size:10px;color:#8a929b}
+.tp-count{margin-right:auto;font-size:11px;color:#7b828b}
+.tp-ft .tp-remove{margin-right:0}
+.pmore{margin-left:6px;padding:1px 5px;border-radius:7px;background:color-mix(in srgb,var(--c,#418dab) 22%,#ffffff);font-size:9px;letter-spacing:0}
+.srowline.wrap{flex-wrap:wrap}
+[data-theme="dark"] .tp-box{border-color:#5a6169}
+[data-theme="dark"] .tp-row.on .tp-box{border-color:#418dab}
+[data-theme="dark"] .pmore{background:color-mix(in srgb,var(--c,#418dab) 35%,#0e1012)}
+[data-theme="dark"] .tp-count{color:#8a919a}
 .tp-edit{flex:none;display:grid;place-items:center;width:26px;height:26px;margin-right:3px;padding:0;border:0;border-radius:5px;background:none;color:#6b737c;cursor:pointer;opacity:0}
 .tp-edit svg{width:12px;height:12px}
 .tp-row:hover .tp-edit,.tp-edit:focus-visible{opacity:1}

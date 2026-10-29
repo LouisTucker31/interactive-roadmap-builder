@@ -3338,15 +3338,15 @@
     var ends = data.rows.map(function (r) { return r.end != null ? r.end : startDay(r); });
     var first = starts.length ? Math.min.apply(null, starts) : null;
     var last = ends.length ? Math.max.apply(null, ends) : null;
-    var t = tagById(projectTag);
+    var on = projectTags.map(tagById).filter(Boolean);
     var count = function (type) { return data.rows.filter(function (r) { return r.type === type; }).length; };
     var html = '<section class="ssec" id="set-general"><h2>General</h2>' +
       '<label class="sfld"><span class="fl">Project name</span><input type="text" maxlength="60" value="' + esc(p.name) + '" data-set-name></label>' +
       '<label class="sfld"><span class="fl">Description <em>optional</em></span><textarea rows="3" maxlength="600" placeholder="What this project is for, who it involves, anything worth knowing" data-set-desc>' +
       esc(p.description || '') + '</textarea></label>' +
-      '<div class="sfld"><span class="fl">Tag</span><div class="srowline">' +
-      (t ? '<span class="pill" style="--c: ' + esc(t.color) + '"># ' + esc(t.name) + '</span>' : '<span class="nil">No tag</span>') +
-      '<button type="button" class="btn" data-set-tag>' + (t ? 'Change' : 'Add a tag') + '</button></div></div>' +
+      '<div class="sfld"><span class="fl">Tags</span><div class="srowline wrap">' +
+      (on.length ? on.map(function (t) { return '<span class="pill" style="--c: ' + esc(t.color) + '"># ' + esc(t.name) + '</span>'; }).join('') : '<span class="nil">No tags</span>') +
+      '<button type="button" class="btn" data-set-tag>' + (on.length ? 'Change' : 'Add tags') + '</button></div></div>' +
       '<div class="sfld"><span class="fl">At a glance</span><div class="sglance">' +
       '<div><b>' + count('milestone') + '</b>' + (count('milestone') === 1 ? 'milestone' : 'milestones') + '</div>' +
       '<div><b>' + count('phase') + '</b>' + (count('phase') === 1 ? 'phase' : 'phases') + '</div>' +
@@ -3753,36 +3753,44 @@
   if (firstOpen && defaults().openPage) savedPage = defaults().openPage;
   setPage(['list', 'board', 'workload', 'calendar', 'settings'].indexOf(savedPage) >= 0 ? savedPage : 'timeline');
 
-  // Project tag: the tag beside the project name. Tags are a shared list (kept in this
-  // browser apart from the plan), so other projects can use the same tag; this project
-  // has one or none. Clicking the tag opens a popup to pick a different one, find or
-  // create one, edit a tag's name and colour, delete it, or take it off this project.
+  // Project tags: the tags beside the project name. Tags are a shared list (kept in this
+  // browser apart from the plan), so projects can share them; a project can have any
+  // number. The top bar shows the first with "+n" for the rest. Clicking it opens a popup
+  // listing every tag to tick on or off, find or create one, edit a tag's name and
+  // colour, or delete it.
   var tagBtn = document.querySelector('[data-tag-btn]');
   var tagPop = document.querySelector('[data-tag-pop]');
   var TAG_DEFAULT = { id: 'national-gas-transmission', name: 'National Gas Transmission', color: '#418dab' };
   var tags = null;
-  var projectTag = TAG_DEFAULT.id;
+  var projectTags = [TAG_DEFAULT.id];
   var tagEditing = null; // the tag open in the editor, or null for the list
 
-  // The tag is kept on the project; the first project's tag used to be stored on its own.
+  // A project's tags as a list; projects used to have a single `tag` (and before that the
+  // first project's tag was stored on its own).
+  function tagsOf(p) {
+    if (Array.isArray(p.tags)) return p.tags.slice();
+    if ('tag' in p) return p.tag ? [p.tag] : [];
+    var old;
+    try { old = JSON.parse(localStorage.getItem('roadmapProject')); } catch (e) {}
+    if (old && 'tag' in old) return old.tag ? [old.tag] : [];
+    return p.id === FIRST_PROJECT ? [TAG_DEFAULT.id] : [];
+  }
+
   function loadTags() {
-    var saved, old;
+    var saved;
     try { saved = JSON.parse(localStorage.getItem('roadmapTags')); } catch (e) {}
     tags = Array.isArray(saved) ? saved : [TAG_DEFAULT];
     var fresh;
     try { fresh = JSON.parse(localStorage.getItem('roadmapProjects')); } catch (e) {}
     // Take another tab's changes, unless it deleted this project; this tab keeps what it had then.
     if (Array.isArray(fresh) && fresh.some(function (x) { return x.id === currentId; })) projects = fresh;
-    var p = project();
-    if (!('tag' in p)) {
-      try { old = JSON.parse(localStorage.getItem('roadmapProject')); } catch (e) {}
-      p.tag = old && 'tag' in old ? old.tag : p.id === FIRST_PROJECT ? TAG_DEFAULT.id : null;
-    }
-    projectTag = p.tag;
+    projectTags = tagsOf(project()).filter(tagById);
   }
 
   function saveTags() {
-    project().tag = projectTag;
+    var p = project();
+    p.tags = projectTags.slice();
+    delete p.tag;
     saveProjects();
     try { localStorage.setItem('roadmapTags', JSON.stringify(tags)); } catch (e) {}
   }
@@ -3792,11 +3800,13 @@
   }
 
   function renderTagBtn() {
-    var t = tagById(projectTag);
-    tagBtn.textContent = t ? '# ' + t.name : '+ Add tag';
+    var on = projectTags.map(tagById).filter(Boolean);
+    var t = on[0];
+    tagBtn.innerHTML = t ? '# ' + esc(t.name) + (on.length > 1 ? '<span class="pmore">+' + (on.length - 1) + '</span>' : '') : '+ Add tag';
     tagBtn.classList.toggle('empty', !t);
     tagBtn.style.setProperty('--c', t ? t.color : '');
-    tagBtn.title = t ? 'Project tag · click to change' : 'Tag this project';
+    tagBtn.title = t ? on.map(function (x) { return '# ' + x.name; }).join(', ') + ' · click to change' : 'Tag this project';
+    if (app.getAttribute('data-page') === 'settings') setTimeout(renderSettings, 0); // its tag list too
   }
 
   var PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>';
@@ -3816,27 +3826,38 @@
       tagPop.querySelector('[data-tag-name]').select();
       return;
     }
-    tagPop.innerHTML = '<div class="tp-hd">Project tag</div>' +
+    tagPop.innerHTML = '<div class="tp-hd">Project tags</div>' +
       '<div class="tp-body"><input type="text" maxlength="40" placeholder="Find or create a tag" aria-label="Find or create a tag" data-tag-q>' +
-      '<div class="tp-list" role="listbox" aria-label="Tags" data-tag-list></div></div>' +
-      (tagById(projectTag) ? '<div class="tp-ft"><button class="tp-remove" type="button" data-tag-remove>Remove tag from this project</button></div>' : '');
+      '<div class="tp-list" role="listbox" aria-multiselectable="true" aria-label="Tags" data-tag-list></div></div>' +
+      '<div class="tp-ft" data-tag-foot></div>';
     renderTagList();
     tagPop.querySelector('[data-tag-q]').focus();
   }
 
+  // This project's tags first, in their order, then the rest.
   function renderTagList() {
     var input = tagPop.querySelector('[data-tag-q]');
     var q = input.value.trim().replace(/\s+/g, ' ');
-    var shown = tags.filter(function (t) { return t.name.toLowerCase().indexOf(q.toLowerCase()) >= 0; });
+    var shown = tags.filter(function (t) { return t.name.toLowerCase().indexOf(q.toLowerCase()) >= 0; }).sort(function (a, b) {
+      var ia = projectTags.indexOf(a.id);
+      var ib = projectTags.indexOf(b.id);
+      return (ia < 0 ? 1e3 : ia) - (ib < 0 ? 1e3 : ib);
+    });
     var exact = tags.some(function (t) { return t.name.toLowerCase() === q.toLowerCase(); });
     tagPop.querySelector('[data-tag-list]').innerHTML = shown.map(function (t) {
-      var on = t.id === projectTag;
-      return '<div class="tp-row' + (on ? ' on' : '') + '"><button type="button" class="tp-pick" role="option" aria-selected="' + on + '" data-tag-pick="' + esc(t.id) + '">' +
-        '<i style="background: ' + esc(t.color) + '"></i><span>' + esc(t.name) + '</span></button>' +
+      var on = projectTags.indexOf(t.id) >= 0;
+      return '<div class="tp-row' + (on ? ' on' : '') + '"><button type="button" class="tp-pick tp-check" role="option" aria-selected="' + on + '" data-tag-pick="' + esc(t.id) + '">' +
+        '<b class="tp-box" aria-hidden="true"></b><i style="background: ' + esc(t.color) + '"></i><span>' + esc(t.name) + '</span>' +
+        (on && projectTags[0] === t.id && projectTags.length > 1 ? '<em>Shown first</em>' : '') + '</button>' +
         '<button type="button" class="tp-edit" aria-label="Edit ' + esc(t.name) + '" title="Edit tag" data-tag-edit="' + esc(t.id) + '">' + PENCIL + '</button></div>';
     }).join('') +
       (q && !exact ? '<button type="button" class="tp-create" data-tag-create>+ Create tag “' + esc(q) + '”</button>' : '') +
       (!shown.length && !q ? '<p class="tp-empty">No tags yet. Type a name to create one.</p>' : '');
+    var n = projectTags.length;
+    var foot = tagPop.querySelector('[data-tag-foot]');
+    foot.hidden = !n;
+    foot.innerHTML = '<span class="tp-count">' + (n === 1 ? '1 tag on this project' : n + ' tags on this project') + '</span>' +
+      '<button class="tp-remove" type="button" data-tag-remove>Remove ' + (n === 1 ? 'it' : 'all') + '</button>';
   }
 
   function openTagPop(open) {
@@ -3846,12 +3867,15 @@
     if (open) renderTagPop();
   }
 
-  function pickTag(id) {
-    projectTag = id;
+  // Tick a tag on or off for this project; the popup stays open for the next.
+  function toggleTag(id, on) {
+    var has = projectTags.indexOf(id) >= 0;
+    if (on == null) on = !has;
+    if (on && !has) projectTags.push(id);
+    if (!on && has) projectTags.splice(projectTags.indexOf(id), 1);
     saveTags();
     renderTagBtn();
-    openTagPop(false);
-    tagBtn.focus();
+    renderTagList();
   }
 
   function createTag(name) {
@@ -3859,7 +3883,9 @@
     var id = base;
     for (var n = 2; tagById(id); n++) id = base + '-' + n;
     tags.push({ id: id, name: name, color: COLORS[tags.length % COLORS.length][1] });
-    pickTag(id);
+    tagPop.querySelector('[data-tag-q]').value = '';
+    toggleTag(id, true);
+    tagPop.querySelector('[data-tag-q]').focus();
   }
 
   function saveTagEdit() {
@@ -3886,13 +3912,18 @@
     var t = e.target;
     var pick = t.closest('[data-tag-pick]');
     var edit = t.closest('[data-tag-edit]');
-    if (pick) return pickTag(pick.getAttribute('data-tag-pick'));
+    if (pick) return toggleTag(pick.getAttribute('data-tag-pick'));
     if (edit) {
       tagEditing = tagById(edit.getAttribute('data-tag-edit'));
       return renderTagPop();
     }
     if (t.closest('[data-tag-create]')) return createTag(tagPop.querySelector('[data-tag-q]').value.trim().replace(/\s+/g, ' '));
-    if (t.closest('[data-tag-remove]')) return pickTag(null);
+    if (t.closest('[data-tag-remove]')) {
+      projectTags = [];
+      saveTags();
+      renderTagBtn();
+      return renderTagList();
+    }
     if (t.closest('[data-tag-back]')) {
       tagEditing = null;
       return renderTagPop();
@@ -3908,7 +3939,7 @@
       }
       var gone = tagEditing.id;
       tags = tags.filter(function (x) { return x.id !== gone; });
-      if (projectTag === gone) projectTag = null;
+      projectTags = projectTags.filter(function (x) { return x !== gone; });
       saveTags();
       renderTagBtn();
       tagEditing = null;
@@ -3937,9 +3968,12 @@
       if (!q) return;
       var matches = tags.filter(function (t) { return t.name.toLowerCase().indexOf(q.toLowerCase()) >= 0; });
       var exact = tags.filter(function (t) { return t.name.toLowerCase() === q.toLowerCase(); })[0];
-      if (exact) pickTag(exact.id);
-      else if (matches.length === 1) pickTag(matches[0].id);
-      else createTag(q);
+      if (exact || matches.length === 1) {
+        e.target.value = '';
+        toggleTag((exact || matches[0]).id, true);
+      } else {
+        createTag(q);
+      }
     }
   });
   document.addEventListener('pointerdown', function (e) {
@@ -4252,7 +4286,7 @@
       });
       try { localStorage.setItem(planKey(id), JSON.stringify(savedPlan(copy.rows, copy.deps, copy.people))); } catch (e) {}
     }
-    projects.push({ id: id, name: name, tag: t ? t.tag || null : null });
+    projects.push({ id: id, name: name, tags: t ? t.tags || (t.tag ? [t.tag] : []) : [] });
     saveProjects();
     openProject(id);
   }
@@ -4358,10 +4392,10 @@
 
   function exportJson() {
     var copy = planCopy();
-    var t = tagById(projectTag);
+    var names = projectTags.map(tagById).filter(Boolean).map(function (t) { return t.name; });
     download(fileBase() + '.json', 'application/json', JSON.stringify({
       project: project().name,
-      tag: t ? t.name : null,
+      tags: names,
       exported: new Date().toISOString(),
       planStart: isoDate(PLAN_START),
       note: 'Days are counted from planStart; a fraction of a day is a time of day.',
@@ -4376,7 +4410,7 @@
     var name = project().name + ' (copy)';
     var id = projectId(name);
     try { localStorage.setItem(planKey(id), JSON.stringify(savedPlan(copy.rows, copy.deps, copy.people))); } catch (e) {}
-    projects.push({ id: id, name: name, tag: projectTag });
+    projects.push({ id: id, name: name, tags: projectTags.slice() });
     saveProjects();
     openProject(id);
   }
@@ -4410,7 +4444,7 @@
       copy.rows.forEach(function (r) { delete r.progress; });
       var day0 = copy.rows.length ? Math.floor(Math.min.apply(null, copy.rows.map(startDay))) : 0;
       var same = templates.filter(function (t) { return t.name.toLowerCase() === name.toLowerCase(); })[0];
-      var tpl = { id: same ? same.id : 'tpl-' + Date.now().toString(36), name: name, tag: projectTag, day0: day0, rows: copy.rows, deps: copy.deps, people: copy.people };
+      var tpl = { id: same ? same.id : 'tpl-' + Date.now().toString(36), name: name, tags: projectTags.slice(), day0: day0, rows: copy.rows, deps: copy.deps, people: copy.people };
       templates = templates.filter(function (t) { return t !== same; }).concat([tpl]);
       saveTemplates();
       actDialog.close();
