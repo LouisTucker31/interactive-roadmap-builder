@@ -4801,20 +4801,19 @@
     if (first) first.focus();
   }
 
-  function placeProfile() {
-    var r = profBtn.getBoundingClientRect();
-    var h = profPop.offsetHeight;
-    profPop.style.left = r.right + 10 + 'px';
-    profPop.style.top = Math.max(8, Math.min(r.bottom - h + 6, window.innerHeight - h - 8)) + 'px';
-  }
+  // The popup sits in the middle of the screen (see .profpop), over a dimmed backdrop.
+  var profBack = document.createElement('div');
+  profBack.className = 'profback';
+  profBack.hidden = true;
+  profPop.parentNode.insertBefore(profBack, profPop);
 
   function openProfile(open) {
     profView = 'main';
     profPop.hidden = !open;
+    profBack.hidden = !open;
     profBtn.setAttribute('aria-expanded', String(open));
     if (open) {
       renderProfile();
-      placeProfile();
     }
   }
 
@@ -4833,7 +4832,6 @@
     renderProfBtn();
     profView = 'main';
     renderProfile();
-    placeProfile();
   }
 
   profBtn.addEventListener('click', function () { openProfile(profPop.hidden); });
@@ -4843,7 +4841,6 @@
     if (view) {
       profView = view.getAttribute('data-pf-view');
       renderProfile();
-      placeProfile();
     } else if (theme) {
       setThemeMode(theme.getAttribute('data-pf-theme'));
       renderProfile();
@@ -4857,7 +4854,7 @@
       if (profView !== 'main') {
         profView = 'main';
         renderProfile();
-        return placeProfile();
+        return;
       }
       openProfile(false);
       profBtn.focus();
@@ -4869,7 +4866,7 @@
   document.addEventListener('pointerdown', function (e) {
     if (!profPop.hidden && !profPop.contains(e.target) && !profBtn.contains(e.target)) openProfile(false);
   });
-  window.addEventListener('resize', function () { if (!profPop.hidden) placeProfile(); });
+
   // The rail's moon/sun changes the theme too; keep the popup's switch in step.
   toggle.addEventListener('click', function () { if (!profPop.hidden && profView === 'main') renderProfile(); });
   window.addEventListener('storage', function (e) {
