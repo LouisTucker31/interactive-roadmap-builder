@@ -74,10 +74,14 @@
   }
 
   // Opening a project goes into it (not Workspace), as a new step in the browser's history.
+  // It opens on the Timeline at today, or on the page and view chosen in the project's
+  // Settings → Defaults.
   function openProject(id) {
     try {
       localStorage.setItem('roadmapCurrent', id);
+      localStorage.setItem('roadmapPage', 'timeline');
       sessionStorage.removeItem('roadmapSpot');
+      sessionStorage.removeItem('roadmapOpened:' + id); // so its opening defaults apply
       sessionStorage.setItem('roadmapHere', 'project');
     } catch (e) {}
     if (location.hash !== '#project') history.pushState(null, '', '#project');
@@ -825,6 +829,7 @@
   scroller.addEventListener('wheel', stopGlide, { passive: true });
 
   scroller.addEventListener('scroll', function () {
+    if (app && app.classList.contains('on-home')) return; // hidden on Workspace: don't record its reset position
     extend();
     syncTodayArrow();
     syncPanelScroll();
@@ -5139,9 +5144,14 @@
   var WEEKDAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   // Show Workspace (push it as a history step unless coming Back to it).
+  var homeSpot = null; // where the timeline was when Workspace opened
+
   function goHome(fromHistory) {
     try { sessionStorage.setItem('roadmapHere', 'home'); } catch (e) {}
     if (!fromHistory && location.hash) history.pushState(null, '', location.pathname + location.search);
+    // The chart is hidden on Workspace (and its scroll drops to the start), so remember where
+    // it was for coming back.
+    if (!onHome()) homeSpot = { time: timeAt(scroller.scrollLeft), top: scroller.scrollTop };
     closePeek();
     hideTip();
     app.classList.add('on-home');
@@ -5161,11 +5171,30 @@
     project().openedAt = Date.now();
     saveProjects();
     onResize(); // the chart was hidden; lay it out again
+    if (homeSpot) { // back where you were before going to Workspace
+      scroller.scrollLeft = xOf(homeSpot.time);
+      scroller.scrollTop = homeSpot.top;
+      extend();
+      syncTodayArrow();
+      saveSpot();
+    }
   }
 
+  // Opening a project from here starts fresh, like opening it anew: the Timeline at today
+  // (as the Today/Now button), unless its Settings choose another page or view. Back
+  // from Workspace, by contrast, returns to wherever you were.
   function openFromHome(id) {
-    if (id === currentId) leaveHome();
-    else openProject(id);
+    if (id !== currentId) return openProject(id);
+    leaveHome();
+    var d = defaults();
+    setPage(d.openPage || 'timeline');
+    if (SCALES[d.openScale] && SCALES[d.openScale] !== scale) setScale(d.openScale);
+    recentre(home());
+    scroller.scrollLeft = xOf(home());
+    scroller.scrollTop = 0;
+    extend();
+    syncTodayArrow();
+    saveSpot();
   }
 
   // A small dialog over Workspace: name a new project (blank or from a template), rename
