@@ -1,4 +1,4 @@
-// Gantt planner entry point.
+// Workspace: the app. Loaded by js/cloud.js once you are signed in and synced.
 (function () {
   'use strict';
 
@@ -42,12 +42,10 @@
 
   syncToggle();
 
-  // Projects: each has a name, tags and its own saved plan. The first project's plan keeps
-  // the original storage key, so plans saved before projects existed carry straight on.
-  // The open project is remembered in this browser; switching reloads the page. A new
-  // account has none: it starts on an empty Workspace, and NO_PROJECT stands in until
-  // there's one to open.
-  var FIRST_PROJECT = 'ex-hailstorm';
+  // Projects: each has a name, tags and its own saved plan (under roadmapPlan:<id>). The
+  // open project is remembered in this browser; switching reloads the page. A new account
+  // has none: it starts on an empty Workspace, and NO_PROJECT stands in until there's one
+  // to open.
   var NO_PROJECT = { id: null, name: 'Workspace' };
   var projects;
   var currentId;
@@ -61,8 +59,7 @@
   }
 
   function planKey(id) {
-    id = id || currentId;
-    return id === FIRST_PROJECT ? 'roadmapPlan' : 'roadmapPlan:' + id;
+    return 'roadmapPlan:' + (id || currentId);
   }
 
   function saveProjects() {
@@ -317,7 +314,7 @@
 
   // Plan rows (tasks, milestones, phase headers), dependency arrows and footer stats,
   // all drawn from js/data.js. Rows sit on a 34px grid (whole pixels keep the lines crisp) starting at ROW_Y (row centre).
-  var data = window.ROADMAP;
+  var data = window.WORKSPACE;
   loadPlan();
   var ROW_Y = 51; // one empty row on top, where the Today button floats
   var ROW_PX = 34;
@@ -3812,15 +3809,10 @@
   var projectTags = [];
   var tagEditing = null; // the tag open in the editor, or null for the list
 
-  // A project's tags as a list; projects used to have a single `tag` (and before that the
-  // first project's tag was stored on its own, in this browser).
+  // A project's tags as a list (projects used to have a single `tag`).
   function tagsOf(p) {
     if (Array.isArray(p.tags)) return p.tags.slice();
-    if ('tag' in p) return p.tag ? [p.tag] : [];
-    if (p.id !== FIRST_PROJECT) return [];
-    var old;
-    try { old = JSON.parse(localStorage.getItem('roadmapProject')); } catch (e) {}
-    return old && old.tag ? [old.tag] : [];
+    return p.tag ? [p.tag] : [];
   }
 
   function loadTags() {
@@ -4501,12 +4493,15 @@
     if (e.target === actDialog || e.target.closest('[data-act-close]')) actDialog.close();
   });
 
-  // Notes: a personal checklist in a popup from the top bar, apart from the plan (not in
-  // its undo, exports or templates). Add with Enter, tick to complete, click the text to
-  // edit, drag to reorder; done notes collect in a folded "Done" list. The button shows
-  // how many are still to do. Kept in this browser.
+  // Notes: a personal checklist for the whole account, the same in every project and on
+  // Workspace, apart from any plan (not in its undo or templates). It opens in a popup from
+  // the Notes button in a project's top bar or on Workspace. Add with Enter, tick to
+  // complete, click the text to edit, drag to reorder; done notes collect in a folded
+  // "Done" list. The buttons show how many are still to do. Saved to your account.
   var notesBtn = document.querySelector('[data-notes-btn]');
   var notesPop = document.querySelector('[data-notes-pop]');
+  document.body.appendChild(notesPop); // fixed on the page, so either button can open it
+  var notesFrom = notesBtn; // the button it was opened from
   var notes;
   try { notes = JSON.parse(localStorage.getItem('roadmapNotes')); } catch (e) {}
   if (!Array.isArray(notes)) notes = [];
@@ -4517,14 +4512,18 @@
   function saveNotes() {
     try { localStorage.setItem('roadmapNotes', JSON.stringify(notes)); } catch (e) {}
     syncNotesBadge();
+    if (onHome()) renderHome(); // its Notes box too
   }
 
   function syncNotesBadge() {
     var open = notes.filter(function (n) { return !n.done; }).length;
-    var badge = notesBtn.querySelector('[data-notes-count]');
-    badge.hidden = !open;
-    badge.textContent = open;
-    notesBtn.title = open ? open + ' note' + (open === 1 ? '' : 's') + ' to do' : 'Notes';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-notes-count]'), function (badge) {
+      badge.hidden = !open;
+      badge.textContent = open;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-notes-btn], [data-home-notes]'), function (b) {
+      b.title = open ? open + ' note' + (open === 1 ? '' : 's') + ' to do' : 'Notes';
+    });
   }
 
   function noteHtml(n) {
@@ -4558,12 +4557,19 @@
     }
   }
 
-  function openNotes(open) {
+  // Open (or close) the popup under the button it was opened from.
+  function openNotes(open, from) {
     editNote = null;
+    if (from) notesFrom = from;
     notesPop.hidden = !open;
-    notesBtn.setAttribute('aria-expanded', String(open));
+    Array.prototype.forEach.call(document.querySelectorAll('[data-notes-btn], [data-home-notes]'), function (b) {
+      b.setAttribute('aria-expanded', String(open && b === notesFrom));
+    });
     if (open) {
       renderNotes();
+      var r = notesFrom.getBoundingClientRect();
+      notesPop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - notesPop.offsetWidth - 8)) + 'px';
+      notesPop.style.top = r.bottom + 6 + 'px';
       notesPop.querySelector('[data-note-new]').focus();
     }
   }
@@ -4585,7 +4591,7 @@
     renderNotes();
   }
 
-  notesBtn.addEventListener('click', function () { openNotes(notesPop.hidden); });
+  notesBtn.addEventListener('click', function () { openNotes(notesPop.hidden || notesFrom !== notesBtn, notesBtn); });
   notesPop.addEventListener('click', function (e) {
     var li = e.target.closest('[data-note]');
     var n = li && noteById(li.getAttribute('data-note'));
@@ -4681,7 +4687,7 @@
     });
   });
   document.addEventListener('pointerdown', function (e) {
-    if (!notesPop.hidden && !e.target.closest('.notewrap')) openNotes(false);
+    if (!notesPop.hidden && !notesPop.contains(e.target) && !e.target.closest('[data-notes-btn], [data-home-notes]')) openNotes(false);
   });
   window.addEventListener('storage', function (e) {
     if (e.key !== 'roadmapNotes') return;
@@ -5105,7 +5111,8 @@
       '<header class="hhead"><div class="hbrand">' +
       '<span class="logo" aria-hidden="true"><svg viewBox="0 0 32 32" width="22" height="22"><path d="M6.5 9.5l4.2 13 5.3-10.2 5.3 10.2 4.2-13" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>' +
       '<span class="hbrand-n">Workspace</span></div>' +
-      '<div class="htools"><label class="search hsearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>' +
+      '<div class="htools"><button class="btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="notes-pop" title="Notes" data-home-notes><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"></path><path d="M15 3v4a2 2 0 0 0 2 2h4"></path></svg><span class="lbl">Notes</span><b class="nbadge"' + (openNotes.length ? '' : ' hidden') + ' data-notes-count>' + (openNotes.length || '') + '</b></button>' +
+      '<label class="search hsearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>' +
       '<input type="text" placeholder="Find a project" aria-label="Find a project" value="' + esc(homeState.q) + '" data-home-q></label>' +
       '<button type="button" class="primary" data-home-new><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>New project</button>' +
       '<button type="button" class="av hme" style="background: ' + esc(me.color) + '" title="Your profile" data-home-profile>' + esc(initials(me.name || '?')) + '</button></div></header>' +
@@ -5141,6 +5148,11 @@
         return '<button type="button" class="pill' + (homeState.tag === x.t.id ? ' on' : '') + '" style="--c: ' + esc(x.t.color) + '" aria-pressed="' + (homeState.tag === x.t.id) + '" data-home-tag="' + (homeState.tag === x.t.id ? '' : esc(x.t.id)) + '"># ' + esc(x.t.name) + ' <span class="hcount">' + x.n + '</span></button>';
       }).join('') + '</div>' : '<p class="hnone">No tags on any project yet.</p>') + '</section>' +
       '</aside></div>';
+    // The Notes popup, if open from here, belongs to the new button now.
+    if (!notesPop.hidden && !document.body.contains(notesFrom)) {
+      notesFrom = homeEl.querySelector('[data-home-notes]');
+      notesFrom.setAttribute('aria-expanded', 'true');
+    }
     var qIn = homeEl.querySelector('[data-home-q]');
     if (homeEl.getAttribute('data-typing')) {
       qIn.focus();
@@ -5161,6 +5173,7 @@
     if (!onHome()) homeSpot = { time: timeAt(scroller.scrollLeft), top: scroller.scrollTop };
     closePeek();
     hideTip();
+    if (!notesPop.hidden) openNotes(false); // its button is going
     app.classList.add('on-home');
     homeEl.hidden = false;
     homeMenu = null;
@@ -5172,6 +5185,7 @@
   function leaveHome(fromHistory) {
     try { sessionStorage.setItem('roadmapHere', 'project'); } catch (e) {}
     if (!fromHistory && location.hash !== '#project') history.pushState(null, '', '#project');
+    if (!notesPop.hidden) openNotes(false); // its button is going
     app.classList.remove('on-home');
     homeEl.hidden = true;
     document.title = project().name;
@@ -5356,6 +5370,8 @@
     if (t.closest('[data-home-new]')) return newProjectDialog();
     if (tpl) return newProjectDialog(tpl.getAttribute('data-home-tpl'));
     if (t.closest('[data-home-profile]')) return openProfile(true);
+    var nb = t.closest('[data-home-notes]');
+    if (nb) return openNotes(notesPop.hidden || notesFrom !== nb, nb);
     if (tag) homeState.tag = tag.getAttribute('data-home-tag');
     else if (view) homeState.view = view.getAttribute('data-home-view');
     else if (t.closest('[data-home-archived]')) homeState.archived = !homeState.archived;
@@ -5587,9 +5603,9 @@
   window.addEventListener('scroll', hideTip, true);
   window.addEventListener('blur', hideTip);
 
-  // After changing window.ROADMAP, call roadmap.refresh() to redraw the plan and stats.
-  // roadmap.reset() removes everything created with the New task form.
-  window.roadmap = {
+  // After changing window.WORKSPACE, call workspace.refresh() to redraw the plan and stats.
+  // workspace.reset() removes everything in the open project.
+  window.workspace = {
     refresh: refresh,
     reset: function () {
       try { localStorage.removeItem(planKey()); } catch (e) {}

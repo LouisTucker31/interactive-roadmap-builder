@@ -1270,7 +1270,7 @@ button.pill{cursor:pointer;line-height:1;white-space:nowrap}
 .notewrap{position:relative}
 .nbadge{min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:#418dab;color:#ffffff;font:700 9.5px/16px Inter,sans-serif;text-align:center}
 .nbadge[hidden]{display:none}
-.notespop{position:absolute;top:calc(100% + 6px);left:0;z-index:25;width:340px;max-width:calc(100vw - 24px);background:#ffffff;border:1px solid #e2e6eb;border-radius:10px;box-shadow:0 12px 32px rgba(20,30,40,.16),0 1px 3px rgba(20,30,40,.08);font:400 12px Inter,system-ui,sans-serif;color:#1b1f24}
+.notespop{position:fixed;z-index:60;width:340px;max-width:calc(100vw - 24px);background:#ffffff;border:1px solid #e2e6eb;border-radius:10px;box-shadow:0 12px 32px rgba(20,30,40,.16),0 1px 3px rgba(20,30,40,.08);font:400 12px Inter,system-ui,sans-serif;color:#1b1f24}
 .notespop[hidden]{display:none}
 .notes-hd{display:flex;justify-content:space-between;align-items:baseline}
 .nsum{font-weight:500;letter-spacing:0;text-transform:none;font-size:10.5px}
