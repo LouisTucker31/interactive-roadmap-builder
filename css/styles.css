@@ -8,6 +8,11 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .crumb .ws{color:#6b727b}
 .crumb .sep{color:#a3a9b1}
 .crumb .name{font-weight:600;font-size:12.5px;color:#14171a;overflow:hidden;text-overflow:ellipsis}
+.projwrap{position:relative;display:inline-flex;min-width:0}
+button.name{display:inline-flex;align-items:center;gap:5px;max-width:320px;margin:0 -4px;padding:3px 6px;border:0;border-radius:6px;background:none;font-family:inherit;cursor:pointer;white-space:nowrap}
+button.name::after{content:"";flex:none;width:0;height:0;border:3.5px solid transparent;border-top:4.5px solid #8a929b;margin-top:4px}
+button.name:hover,button.name[aria-expanded="true"]{background:#f0f2f5}
+button.name:focus-visible{outline:2px solid #4790ad;outline-offset:1px}
 .pill{display:inline-flex;align-items:center;gap:3px;height:19px;padding:0 7px;border-radius:4px;background:#e8f3f7;border:1px solid #c9e1ea;color:#356f86;font-family:"JetBrains Mono",monospace;font-size:9.5px;font-weight:600;letter-spacing:.06em}
 .tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:7px;border:1px solid #dde1e6;background:#ffffff;color:#1b1f24;font:500 11.5px Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
@@ -783,6 +788,85 @@ button.pill{cursor:pointer;line-height:1;white-space:nowrap}
 [data-theme="dark"] .fold{color:#9aa1a9}
 [data-theme="dark"] .fold:hover .fl{color:#f1f3f5}
 [data-theme="dark"] .fold-n{color:#6fb6d2}
+/* Project switcher (under the project name) */
+.projpop{width:300px}
+.projpop .tp-pick em{flex:none;font-style:normal;font-size:10.5px;color:#8a929b}
+.tp-sub{margin:6px 4px 0;font:600 9.5px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8a929b}
+.tp-del:hover{color:#b4382f}
+.tp-del.armed{opacity:1;background:#c4403a;color:#ffffff}
+/* Actions menu */
+.actwrap{position:relative}
+.zmenu.amenu{left:auto;right:0;top:calc(100% + 6px);bottom:auto;transform:none;min-width:250px}
+.amenu-h{padding:6px 8px 2px;font:600 9.5px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8a929b}
+.zmenu.amenu button{height:auto;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 8px;font-size:11.5px}
+.zmenu.amenu button em{font-style:normal;font-weight:400;font-size:10.5px;color:#7b828b}
+.zmenu.amenu button.danger{color:#b4382f}
+/* The small dialog: Save as template, Reset project */
+.dlg.dlg-sm{width:min(420px,calc(100vw - 32px))}
+.dlg-sm .dlg-body{gap:12px}
+.act-note{margin:0;font-size:11.5px;color:#6b727b;line-height:1.45}
+.act-warn{margin:0;padding:10px 12px;border-radius:8px;background:#fdf0ef;border:1px solid #f3cdca;color:#8d2b25;font-size:12px;line-height:1.45}
+.dlg-sm .dlg-ft .del:disabled{opacity:.45;filter:none;cursor:not-allowed}
+/* Notes: a personal checklist popup */
+.notewrap{position:relative}
+.nbadge{min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:#418dab;color:#ffffff;font:700 9.5px/16px Inter,sans-serif;text-align:center}
+.nbadge[hidden]{display:none}
+.notespop{position:absolute;top:calc(100% + 6px);left:0;z-index:25;width:340px;max-width:calc(100vw - 24px);background:#ffffff;border:1px solid #e2e6eb;border-radius:10px;box-shadow:0 12px 32px rgba(20,30,40,.16),0 1px 3px rgba(20,30,40,.08);font:400 12px Inter,system-ui,sans-serif;color:#1b1f24}
+.notespop[hidden]{display:none}
+.notes-hd{display:flex;justify-content:space-between;align-items:baseline}
+.nsum{font-weight:500;letter-spacing:0;text-transform:none;font-size:10.5px}
+.nadd{padding:6px 10px 6px}
+.nadd input,.ninput{box-sizing:border-box;width:100%;height:30px;padding:0 9px;border:1px solid #dde1e6;border-radius:7px;background:#ffffff;color:#1b1f24;font:400 12px Inter,system-ui,sans-serif}
+.nadd input:focus,.ninput:focus{outline:0;border-color:#4790ad;box-shadow:0 0 0 3px rgba(71,144,173,.18)}
+.ninput{flex:1;height:26px}
+.nlist{list-style:none;margin:0;padding:2px 6px 6px;max-height:280px;overflow:auto}
+.note{position:relative;display:flex;align-items:center;gap:8px;min-height:32px;padding:3px 4px 3px 6px;border-radius:6px}
+.note:hover{background:#f4f6f8}
+.note[draggable="true"]{cursor:grab}
+.note.dragging{opacity:.35}
+.note.drop-before{box-shadow:inset 0 2px 0 #4790ad}
+.note.drop-after{box-shadow:inset 0 -2px 0 #4790ad}
+.nchk{position:relative;flex:none;display:grid;cursor:pointer}
+.nchk input{position:absolute;opacity:0;width:16px;height:16px;margin:0;cursor:pointer}
+.nchk span{width:16px;height:16px;box-sizing:border-box;border:1.5px solid #a9b1ba;border-radius:50%;transition:background .12s,border-color .12s}
+.nchk input:checked+span{border-color:#2fa36b;background:#2fa36b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 6.2l2 2 4-4.4' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/80% no-repeat}
+.nchk input:focus-visible+span{box-shadow:0 0 0 3px rgba(71,144,173,.3)}
+.nchk:hover span{border-color:#2fa36b}
+.ntext{flex:1;min-width:0;padding:4px 2px;line-height:1.4;overflow-wrap:anywhere;cursor:text;border-radius:4px}
+.ntext:focus-visible{outline:2px solid #4790ad;outline-offset:1px}
+.note.done .ntext{color:#8a929b;text-decoration:line-through}
+.ndel{flex:none;display:grid;place-items:center;width:22px;height:22px;padding:0;border:0;border-radius:5px;background:none;color:#8a929b;cursor:pointer;opacity:0}
+.ndel svg{width:11px;height:11px}
+.note:hover .ndel,.ndel:focus-visible{opacity:1}
+.ndel:hover{background:#fbe9e7;color:#b4382f}
+.nempty{padding:10px 8px 12px;color:#8a929b;font-style:italic;line-height:1.4}
+.ndone-hd{display:flex;align-items:center;justify-content:space-between;padding:6px 12px 4px;border-top:1px solid #eceff2}
+.nfold{display:flex;align-items:center;gap:6px;padding:0;border:0;background:none;color:#6b727b;font:600 11px Inter,system-ui,sans-serif;cursor:pointer}
+.nfold svg{transition:transform .15s}
+.nfold[aria-expanded="true"] svg{transform:rotate(90deg)}
+.nclear{padding:0;border:0;background:none;color:#b4382f;font:500 11px Inter,system-ui,sans-serif;cursor:pointer}
+.nclear:hover,.nfold:hover{text-decoration:underline}
+[data-theme="dark"] button.name::after{border-top-color:#8a919a}
+[data-theme="dark"] button.name:hover,[data-theme="dark"] button.name[aria-expanded="true"]{background:#1c2024}
+[data-theme="dark"] .zmenu.amenu button em{color:#8a919a}
+[data-theme="dark"] .zmenu.amenu button.danger{color:#f0a39d}
+[data-theme="dark"] .act-note{color:#9aa1a9}
+[data-theme="dark"] .act-warn{background:#3a1c1a;border-color:#5c2a26;color:#f4bdb7}
+[data-theme="dark"] .notespop{background:#181b1f;border-color:#2b3036;color:#e4e7ea;box-shadow:0 12px 32px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.3)}
+[data-theme="dark"] .nadd input,[data-theme="dark"] .ninput{background:#131619;border-color:#2b3036;color:#e4e7ea}
+[data-theme="dark"] .note:hover{background:#20242a}
+[data-theme="dark"] .nchk span{border-color:#5a6169}
+[data-theme="dark"] .ndel:hover{background:#3a1c1a;color:#f0a39d}
+[data-theme="dark"] .ndone-hd{border-top-color:#2b3036}
+[data-theme="dark"] .nfold{color:#9aa1a9}
+[data-theme="dark"] .nclear{color:#f0a39d}
+/* Printing (Actions → Print): just the page you're on, without the app's controls */
+@media print{
+.tools,.rail,.foot,.dock,.ltools,.gut .caret,.bcol-add{display:none!important}
+.app{height:auto;min-height:0}
+.panel{border:0;margin:0}
+.scroll,.lscroll,.bscroll{overflow:visible!important}
+}
 /* Button tooltips (see the end of js/app.js) */
 .tip{position:fixed;z-index:60;max-width:280px;padding:4px 8px;border-radius:5px;background:#1b1f24;color:#ffffff;font:500 11px/1.35 Inter,system-ui,sans-serif;overflow-wrap:anywhere;pointer-events:none;box-shadow:0 4px 12px rgba(20,30,40,.18)}
 .tip[hidden]{display:none}

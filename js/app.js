@@ -22,6 +22,47 @@
 
   syncToggle();
 
+  // Projects: each has a name, a tag and its own saved plan. The first project's plan keeps
+  // the original storage key, so plans saved before projects existed carry straight on.
+  // The open project is remembered in this browser; switching reloads the page.
+  var FIRST_PROJECT = 'ex-hailstorm';
+  var projects;
+  var currentId;
+  try { projects = JSON.parse(localStorage.getItem('roadmapProjects')); } catch (e) {}
+  if (!Array.isArray(projects) || !projects.length) projects = [{ id: FIRST_PROJECT, name: 'Ex HAILSTORM' }];
+  try { currentId = localStorage.getItem('roadmapCurrent'); } catch (e) {}
+  if (!projects.some(function (p) { return p.id === currentId; })) currentId = projects[0].id;
+
+  function project() {
+    return projects.filter(function (p) { return p.id === currentId; })[0];
+  }
+
+  function planKey(id) {
+    id = id || currentId;
+    return id === FIRST_PROJECT ? 'roadmapPlan' : 'roadmapPlan:' + id;
+  }
+
+  function saveProjects() {
+    try { localStorage.setItem('roadmapProjects', JSON.stringify(projects)); } catch (e) {}
+  }
+
+  function projectId(name) {
+    var base = String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'project';
+    var id = base;
+    for (var n = 2; projects.some(function (p) { return p.id === id; }); n++) id = base + '-' + n;
+    return id;
+  }
+
+  function openProject(id) {
+    try {
+      localStorage.setItem('roadmapCurrent', id);
+      sessionStorage.removeItem('roadmapSpot');
+    } catch (e) {}
+    location.reload();
+  }
+
+  document.title = project().name;
+
   // Infinite horizontal timeline. The axis (group row, column row, divider lines) is
   // generated for a date range that grows whenever you scroll near either end. Time maps
   // linearly to x at dayPx pixels per day. Dates are UTC so daylight saving never shifts a day.
@@ -1047,7 +1088,7 @@
     data.people = data.basePeople.slice();
     data.sig = sig;
     var saved;
-    try { saved = JSON.parse(localStorage.getItem('roadmapPlan')); } catch (e) {}
+    try { saved = JSON.parse(localStorage.getItem(planKey())); } catch (e) {}
     if (!saved || saved.sig !== sig) return;
     if (saved.people) data.people = saved.people;
     var shift = (saved.planStart - PLAN_START) / DAY;
@@ -1071,7 +1112,7 @@
       deps: data.deps,
       people: data.people
     };
-    try { localStorage.setItem('roadmapPlan', JSON.stringify(plan)); } catch (e) {}
+    try { localStorage.setItem(planKey(), JSON.stringify(plan)); } catch (e) {}
   }
 
   // Undo and redo (the top bar buttons, Ctrl+Z and Ctrl+Y / Ctrl+Shift+Z). Each saved
@@ -1209,7 +1250,7 @@
   }
 
   window.addEventListener('storage', function (e) {
-    if (e.key === 'roadmapPlan') reloadPlan();
+    if (e.key === planKey()) reloadPlan();
   });
 
   // Task form: creates a task, milestone or phase row, or edits one. Everything js/data.js
@@ -2931,19 +2972,27 @@
   var projectTag = TAG_DEFAULT.id;
   var tagEditing = null; // the tag open in the editor, or null for the list
 
+  // The tag is kept on the project; the first project's tag used to be stored on its own.
   function loadTags() {
-    var saved, proj;
+    var saved, old;
     try { saved = JSON.parse(localStorage.getItem('roadmapTags')); } catch (e) {}
-    try { proj = JSON.parse(localStorage.getItem('roadmapProject')); } catch (e) {}
     tags = Array.isArray(saved) ? saved : [TAG_DEFAULT];
-    projectTag = proj && 'tag' in proj ? proj.tag : TAG_DEFAULT.id;
+    var fresh;
+    try { fresh = JSON.parse(localStorage.getItem('roadmapProjects')); } catch (e) {}
+    // Take another tab's changes, unless it deleted this project; this tab keeps what it had then.
+    if (Array.isArray(fresh) && fresh.some(function (x) { return x.id === currentId; })) projects = fresh;
+    var p = project();
+    if (!('tag' in p)) {
+      try { old = JSON.parse(localStorage.getItem('roadmapProject')); } catch (e) {}
+      p.tag = old && 'tag' in old ? old.tag : p.id === FIRST_PROJECT ? TAG_DEFAULT.id : null;
+    }
+    projectTag = p.tag;
   }
 
   function saveTags() {
-    try {
-      localStorage.setItem('roadmapTags', JSON.stringify(tags));
-      localStorage.setItem('roadmapProject', JSON.stringify({ tag: projectTag }));
-    } catch (e) {}
+    project().tag = projectTag;
+    saveProjects();
+    try { localStorage.setItem('roadmapTags', JSON.stringify(tags)); } catch (e) {}
   }
 
   function tagById(id) {
@@ -3105,9 +3154,11 @@
     if (!tagPop.hidden && !e.target.closest('.tagwrap')) openTagPop(false);
   });
   window.addEventListener('storage', function (e) {
-    if (e.key !== 'roadmapTags' && e.key !== 'roadmapProject') return;
+    if (e.key !== 'roadmapTags' && e.key !== 'roadmapProjects') return;
     loadTags();
     renderTagBtn();
+    renderProjBtn(); // a rename in another tab
+    document.title = project().name;
     if (!tagPop.hidden && !tagEditing) renderTagList();
   });
 
@@ -3262,6 +3313,552 @@
     }
   });
 
+  // Copies of the plan as it is now, for a duplicate or a template: js/data.js rows become
+  // ordinary saved rows so the copy stands on its own.
+  function planCopy() {
+    return JSON.parse(JSON.stringify({ rows: data.rows, deps: data.deps, people: data.people }));
+  }
+
+  function savedPlan(rows, deps, people) {
+    return {
+      sig: data.sig,
+      planStart: PLAN_START,
+      rows: rows.map(function (r) { r.added = true; return r; }),
+      deps: deps,
+      people: people
+    };
+  }
+
+  function download(filename, type, text) {
+    var url = URL.createObjectURL(new Blob([text], { type: type }));
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function fileBase() {
+    return (project().name.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') || 'project') + '-' + isoDate(TODAY);
+  }
+
+  // "2026-11-23 09:00", or just the date for an all-day value.
+  function stamp(day) {
+    return dateOf(day) + (day % 1 ? ' ' + timeOf(day) : '');
+  }
+
+  // Templates: a project's items saved to start new projects from. Progress is cleared, and
+  // dates are kept relative to the first day so a new project starts from today.
+  var templates;
+  try { templates = JSON.parse(localStorage.getItem('roadmapTemplates')); } catch (e) {}
+  if (!Array.isArray(templates)) templates = [];
+
+  function saveTemplates() {
+    try { localStorage.setItem('roadmapTemplates', JSON.stringify(templates)); } catch (e) {}
+  }
+
+  // Project switcher: click the project name to open another project, rename or delete
+  // one, or start a new project, blank or from a template.
+  var projBtn = document.querySelector('[data-project-btn]');
+  var projPop = document.querySelector('[data-project-pop]');
+  var projMode = null; // null for the list, or { kind: 'rename' | 'new', id, template }
+
+  function renderProjBtn() {
+    projBtn.textContent = project().name;
+  }
+
+  function renderProjPop() {
+    var TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>';
+    if (projMode) {
+      var m = projMode;
+      var p = m.kind === 'rename' ? projects.filter(function (x) { return x.id === m.id; })[0] : null;
+      var t = m.template ? templates.filter(function (x) { return x.id === m.template; })[0] : null;
+      var title = m.kind === 'rename' ? 'Rename project' : t ? 'New project from ' + t.name : 'New project';
+      var value = p ? p.name : t ? t.name : '';
+      projPop.innerHTML = '<div class="tp-hd">' + esc(title) + '</div><div class="tp-body">' +
+        '<input type="text" maxlength="60" placeholder="Project name" aria-label="Project name" value="' + esc(value) + '" data-proj-name>' +
+        (t ? '<p class="tp-note">Its items start from today, with progress cleared.</p>' : '') +
+        '<p class="tp-err" hidden data-proj-err></p></div>' +
+        '<div class="tp-ft"><button class="btn" type="button" data-proj-back>Cancel</button><button class="primary" type="button" data-proj-save>' +
+        (m.kind === 'rename' ? 'Save' : 'Create and open') + '</button></div>';
+      projPop.querySelector('[data-proj-name]').select();
+      return;
+    }
+    projPop.innerHTML = '<div class="tp-hd">Projects</div><div class="tp-body"><div class="tp-list" role="listbox" aria-label="Projects">' +
+      projects.map(function (p) {
+        var on = p.id === currentId;
+        return '<div class="tp-row' + (on ? ' on' : '') + '"><button type="button" class="tp-pick" role="option" aria-selected="' + on + '" data-proj-open="' + esc(p.id) + '">' +
+          '<span>' + esc(p.name) + '</span></button>' +
+          '<button type="button" class="tp-edit" aria-label="Rename ' + esc(p.name) + '" title="Rename" data-proj-rename="' + esc(p.id) + '">' + PENCIL + '</button>' +
+          (on ? '' : '<button type="button" class="tp-edit tp-del" aria-label="Delete ' + esc(p.name) + '" title="Delete project" data-proj-del="' + esc(p.id) + '">' + TRASH + '</button>') +
+          '</div>';
+      }).join('') + '</div>' +
+      '<button type="button" class="tp-create" data-proj-new>+ New blank project</button>' +
+      (templates.length ? '<div class="tp-sub">From a template</div><div class="tp-list">' + templates.map(function (t) {
+        return '<div class="tp-row"><button type="button" class="tp-pick" data-proj-template="' + esc(t.id) + '"><span>' + esc(t.name) + '</span>' +
+          '<em>' + itemsWord(t.rows.length) + '</em></button>' +
+          '<button type="button" class="tp-edit tp-del" aria-label="Delete template ' + esc(t.name) + '" title="Delete template" data-template-del="' + esc(t.id) + '">' + TRASH + '</button></div>';
+      }).join('') + '</div>' : '') +
+      '</div>';
+    var cur = projPop.querySelector('[aria-selected="true"]');
+    if (cur) cur.focus();
+  }
+
+  function openProjPop(open) {
+    projMode = null;
+    projPop.hidden = !open;
+    projBtn.setAttribute('aria-expanded', String(open));
+    if (open) renderProjPop();
+  }
+
+  function saveProjName() {
+    var input = projPop.querySelector('[data-proj-name]');
+    var name = input.value.trim().replace(/\s+/g, ' ');
+    var err = projPop.querySelector('[data-proj-err]');
+    if (!name) {
+      err.textContent = 'Give the project a name.';
+      err.hidden = false;
+      return input.focus();
+    }
+    if (projMode.kind === 'rename') {
+      projects.filter(function (p) { return p.id === projMode.id; })[0].name = name;
+      saveProjects();
+      renderProjBtn();
+      document.title = project().name;
+      projMode = null;
+      return renderProjPop();
+    }
+    var id = projectId(name);
+    var t = projMode.template ? templates.filter(function (x) { return x.id === projMode.template; })[0] : null;
+    if (t) {
+      var copy = JSON.parse(JSON.stringify(t));
+      var shift = (TODAY - PLAN_START) / DAY - t.day0; // the template's first day lands on today
+      copy.rows.forEach(function (r) {
+        ['start', 'end', 'day'].forEach(function (k) { if (r[k] != null) r[k] += shift; });
+      });
+      try { localStorage.setItem(planKey(id), JSON.stringify(savedPlan(copy.rows, copy.deps, copy.people))); } catch (e) {}
+    }
+    projects.push({ id: id, name: name, tag: t ? t.tag || null : null });
+    saveProjects();
+    openProject(id);
+  }
+
+  projBtn.addEventListener('click', function () { openProjPop(projPop.hidden); });
+  projPop.addEventListener('click', function (e) {
+    var t = e.target;
+    var open = t.closest('[data-proj-open]');
+    var rename = t.closest('[data-proj-rename]');
+    var del = t.closest('[data-proj-del]');
+    var tpl = t.closest('[data-proj-template]');
+    var tplDel = t.closest('[data-template-del]');
+    if (open) {
+      var id = open.getAttribute('data-proj-open');
+      if (id === currentId) return openProjPop(false);
+      return openProject(id);
+    }
+    if (rename) projMode = { kind: 'rename', id: rename.getAttribute('data-proj-rename') };
+    else if (t.closest('[data-proj-new]')) projMode = { kind: 'new' };
+    else if (tpl) projMode = { kind: 'new', template: tpl.getAttribute('data-proj-template') };
+    else if (t.closest('[data-proj-back]')) projMode = null;
+    else if (t.closest('[data-proj-save]')) return saveProjName();
+    else if (del || tplDel) {
+      // Deleting asks once: the first click turns the button into a confirm.
+      var btn = del || tplDel;
+      if (!btn.classList.contains('armed')) {
+        btn.classList.add('armed');
+        btn.title = del ? 'Click again to delete this project and everything in it' : 'Click again to delete this template';
+        return;
+      }
+      if (del) {
+        var gone = del.getAttribute('data-proj-del');
+        projects = projects.filter(function (p) { return p.id !== gone; });
+        try { localStorage.removeItem(planKey(gone)); } catch (e) {}
+        saveProjects();
+      } else {
+        var goneT = tplDel.getAttribute('data-template-del');
+        templates = templates.filter(function (x) { return x.id !== goneT; });
+        saveTemplates();
+      }
+    } else {
+      return;
+    }
+    renderProjPop();
+  });
+  projPop.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (projMode) {
+        projMode = null;
+        return renderProjPop();
+      }
+      openProjPop(false);
+      return projBtn.focus();
+    }
+    if (e.key === 'Enter' && e.target.matches('[data-proj-name]')) {
+      e.preventDefault();
+      saveProjName();
+    }
+  });
+  document.addEventListener('pointerdown', function (e) {
+    if (!projPop.hidden && !e.target.closest('.projwrap')) openProjPop(false);
+  });
+  renderProjBtn();
+
+  // Actions: export the project (a spreadsheet, a full JSON copy, or print the page),
+  // duplicate it, save it as a template, or reset it. Reset takes several deliberate steps.
+  var actBtn = document.querySelector('[data-actions-btn]');
+  var actMenu = document.querySelector('[data-actions-menu]');
+  var actDialog = document.querySelector('[data-act-dialog]');
+  var actForm = actDialog.querySelector('[data-act-form]');
+  var actItems = Array.prototype.slice.call(actMenu.querySelectorAll('[data-act]'));
+
+  function showActMenu(open) {
+    actMenu.hidden = !open;
+    actBtn.setAttribute('aria-expanded', String(open));
+    if (open) actItems[0].focus();
+  }
+
+  function exportCsv() {
+    var head = ['Name', 'Type', 'Phase', 'Subtask of', 'Start', 'Finish', 'Length', 'Progress', 'Status', 'Person', 'Depends on', 'Colour'];
+    var lines = [head].concat(data.rows.map(function (r) {
+      var parent = r.parent && rowIndex[r.parent] != null ? data.rows[rowIndex[r.parent]].name : '';
+      var who = personById(r.person);
+      var st = statusOf(r);
+      var p = progressOf(r);
+      var color = COLORS.filter(function (c) { return c[1] === r.color; })[0];
+      return [
+        r.name, r.type === 'task' ? (r.parent ? 'Subtask' : 'Task') : r.type === 'milestone' ? 'Milestone' : 'Phase',
+        r.type === 'phase' ? '' : phaseName(r), parent, stamp(startDay(r)), r.end != null ? stamp(finishDay(r)) : '',
+        r.end != null ? duration(r) : '', p == null ? '' : Math.round(p * 100) + '%', st === 'ms' ? 'Milestone' : STATUS[st],
+        who ? who.name : '', depsOf(r).map(function (d) { return d.name; }).join('; '),
+        r.type === 'task' ? (color ? color[0] : 'Blue') : ''
+      ];
+    })).map(function (cells) {
+      return cells.map(function (c) {
+        c = String(c);
+        return /[",\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c;
+      }).join(',');
+    });
+    download(fileBase() + '.csv', 'text/csv;charset=utf-8', '﻿' + lines.join('\r\n')); // the BOM tells Excel it's UTF-8
+  }
+
+  function exportJson() {
+    var copy = planCopy();
+    var t = tagById(projectTag);
+    download(fileBase() + '.json', 'application/json', JSON.stringify({
+      project: project().name,
+      tag: t ? t.name : null,
+      exported: new Date().toISOString(),
+      planStart: isoDate(PLAN_START),
+      note: 'Days are counted from planStart; a fraction of a day is a time of day.',
+      rows: copy.rows,
+      deps: copy.deps,
+      people: copy.people
+    }, null, 2));
+  }
+
+  function duplicateProject() {
+    var copy = planCopy();
+    var name = project().name + ' (copy)';
+    var id = projectId(name);
+    try { localStorage.setItem(planKey(id), JSON.stringify(savedPlan(copy.rows, copy.deps, copy.people))); } catch (e) {}
+    projects.push({ id: id, name: name, tag: projectTag });
+    saveProjects();
+    openProject(id);
+  }
+
+  // The small dialog: Save as template asks for a name; Reset asks you to tick that you
+  // understand and to type the project's name before the button will work.
+  function openTemplateDialog() {
+    actForm.innerHTML = '<div class="dlg-hd"><h2 id="act-title">Save as template</h2></div><div class="dlg-body">' +
+      '<label class="fld"><span class="fl">Template name</span><input type="text" maxlength="60" value="' + esc(project().name) + '" data-tpl-name></label>' +
+      '<p class="act-note">Saves all ' + itemsWord(data.rows.length) + ', their dependencies and people. Progress is cleared, and dates move so a new project starts from the day it’s made.</p>' +
+      '<p class="act-note" hidden data-tpl-replace></p></div>' +
+      '<div class="dlg-ft"><button class="btn" type="button" data-act-close>Cancel</button><button class="primary" type="submit" data-tpl-save>Save template</button></div>';
+    actDialog.showModal();
+    var input = actForm.querySelector('[data-tpl-name]');
+    var sync = function () {
+      var same = templates.filter(function (t) { return t.name.toLowerCase() === input.value.trim().toLowerCase(); })[0];
+      var note = actForm.querySelector('[data-tpl-replace]');
+      note.hidden = !same;
+      note.textContent = same ? 'There’s already a template called ' + same.name + '; this replaces it.' : '';
+      actForm.querySelector('[data-tpl-save]').textContent = same ? 'Replace template' : 'Save template';
+      actForm.querySelector('[data-tpl-save]').disabled = !input.value.trim();
+    };
+    input.addEventListener('input', sync);
+    sync();
+    input.select();
+    actForm.onsubmit = function (e) {
+      e.preventDefault();
+      var name = input.value.trim().replace(/\s+/g, ' ');
+      if (!name) return;
+      var copy = planCopy();
+      copy.rows.forEach(function (r) { delete r.progress; });
+      var day0 = copy.rows.length ? Math.floor(Math.min.apply(null, copy.rows.map(startDay))) : 0;
+      var same = templates.filter(function (t) { return t.name.toLowerCase() === name.toLowerCase(); })[0];
+      var tpl = { id: same ? same.id : 'tpl-' + Date.now().toString(36), name: name, tag: projectTag, day0: day0, rows: copy.rows, deps: copy.deps, people: copy.people };
+      templates = templates.filter(function (t) { return t !== same; }).concat([tpl]);
+      saveTemplates();
+      actDialog.close();
+    };
+  }
+
+  function openResetDialog() {
+    var name = project().name;
+    var nRows = data.rows.length;
+    actForm.innerHTML = '<div class="dlg-hd"><h2 id="act-title">Reset ' + esc(name) + '?</h2></div><div class="dlg-body">' +
+      '<p class="act-warn">This removes all ' + itemsWord(nRows) + ' and ' + data.deps.length + (data.deps.length === 1 ? ' dependency' : ' dependencies') +
+      ' from this project, leaving it empty. Its people, tag and your notes stay.</p>' +
+      '<label class="chk"><input type="checkbox" data-reset-ok> I understand everything in this project will be removed</label>' +
+      '<label class="fld"><span class="fl">Type <b>' + esc(name) + '</b> to confirm</span><input type="text" autocomplete="off" spellcheck="false" data-reset-name></label>' +
+      '<p class="act-note">Changed your mind straight after? Undo (Ctrl+Z) brings it all back.</p></div>' +
+      '<div class="dlg-ft"><button class="btn" type="button" data-act-close>Cancel</button><button class="btn del" type="submit" disabled data-reset-go>Reset project</button></div>';
+    actDialog.showModal();
+    var ok = actForm.querySelector('[data-reset-ok]');
+    var typed = actForm.querySelector('[data-reset-name]');
+    var go = actForm.querySelector('[data-reset-go]');
+    var sync = function () {
+      var ready = ok.checked && typed.value.trim() === name;
+      go.disabled = !ready;
+      go.classList.toggle('armed', ready);
+    };
+    ok.addEventListener('change', sync);
+    typed.addEventListener('input', sync);
+    actForm.querySelector('[data-act-close]').focus();
+    actForm.onsubmit = function (e) {
+      e.preventDefault();
+      if (go.disabled) return;
+      data.rows = [];
+      data.deps = [];
+      closePeek();
+      refresh();
+      savePlan();
+      actDialog.close();
+    };
+  }
+
+  actBtn.addEventListener('click', function () { showActMenu(actMenu.hidden); });
+  actMenu.addEventListener('click', function (e) {
+    var item = e.target.closest('[data-act]');
+    if (!item) return;
+    showActMenu(false);
+    var act = item.getAttribute('data-act');
+    if (act === 'csv') exportCsv();
+    else if (act === 'json') exportJson();
+    else if (act === 'print') setTimeout(function () { window.print(); }, 50);
+    else if (act === 'duplicate') duplicateProject();
+    else if (act === 'template') openTemplateDialog();
+    else if (act === 'reset') openResetDialog();
+  });
+  actMenu.addEventListener('keydown', function (e) {
+    var i = actItems.indexOf(document.activeElement);
+    if (e.key === 'Escape') {
+      showActMenu(false);
+      actBtn.focus();
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      actItems[(i + (e.key === 'ArrowDown' ? 1 : actItems.length - 1)) % actItems.length].focus();
+    }
+  });
+  document.addEventListener('click', function (e) {
+    if (!actMenu.hidden && !e.target.closest('.actwrap')) showActMenu(false);
+  });
+  actDialog.addEventListener('click', function (e) {
+    if (e.target === actDialog || e.target.closest('[data-act-close]')) actDialog.close();
+  });
+
+  // Notes: a personal checklist in a popup from the top bar, apart from the plan (not in
+  // its undo, exports or templates). Add with Enter, tick to complete, click the text to
+  // edit, drag to reorder; done notes collect in a folded "Done" list. The button shows
+  // how many are still to do. Kept in this browser.
+  var notesBtn = document.querySelector('[data-notes-btn]');
+  var notesPop = document.querySelector('[data-notes-pop]');
+  var notes;
+  try { notes = JSON.parse(localStorage.getItem('roadmapNotes')); } catch (e) {}
+  if (!Array.isArray(notes)) notes = [];
+  var showDone = false;
+  var editNote = null; // the note being edited
+  var dragNote = null;
+
+  function saveNotes() {
+    try { localStorage.setItem('roadmapNotes', JSON.stringify(notes)); } catch (e) {}
+    syncNotesBadge();
+  }
+
+  function syncNotesBadge() {
+    var open = notes.filter(function (n) { return !n.done; }).length;
+    var badge = notesBtn.querySelector('[data-notes-count]');
+    badge.hidden = !open;
+    badge.textContent = open;
+    notesBtn.title = open ? open + ' note' + (open === 1 ? '' : 's') + ' to do' : 'Notes';
+  }
+
+  function noteHtml(n) {
+    var text = editNote === n.id
+      ? '<input type="text" class="ninput" maxlength="300" value="' + esc(n.text) + '" aria-label="Edit note" data-note-input>'
+      : '<span class="ntext" tabindex="0" role="button" title="Click to edit" data-note-edit>' + esc(n.text) + '</span>';
+    return '<li class="note' + (n.done ? ' done' : '') + '" data-note="' + esc(n.id) + '"' + (n.done || editNote === n.id ? '' : ' draggable="true"') + '>' +
+      '<label class="nchk"><input type="checkbox"' + (n.done ? ' checked' : '') + ' aria-label="' + (n.done ? 'Mark as not done' : 'Mark as done') + '" data-note-done><span></span></label>' +
+      text + '<button type="button" class="ndel" aria-label="Delete note" title="Delete" data-note-del>' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></li>';
+  }
+
+  function renderNotes() {
+    var open = notes.filter(function (n) { return !n.done; });
+    var done = notes.filter(function (n) { return n.done; });
+    var keep = notesPop.querySelector('[data-note-new]');
+    var draft = keep ? keep.value : '';
+    notesPop.innerHTML = '<div class="tp-hd notes-hd"><span>Notes</span><span class="nsum">' + (open.length ? open.length + ' to do' : notes.length ? 'All done' : '') + '</span></div>' +
+      '<div class="nadd"><input type="text" maxlength="300" placeholder="Add a note and press Enter" aria-label="Add a note" data-note-new></div>' +
+      '<ul class="nlist" data-note-list="open">' + (open.map(noteHtml).join('') || '<li class="nempty">' + (done.length ? 'Nothing left to do.' : 'Nothing here yet. Jot down things to do, chase or remember.') + '</li>') + '</ul>' +
+      (done.length ? '<div class="ndone-hd"><button type="button" class="nfold" aria-expanded="' + showDone + '" data-note-fold>' +
+        '<svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden="true"><path d="M8 5l10 7-10 7z"></path></svg>Done (' + done.length + ')</button>' +
+        '<button type="button" class="nclear" data-note-clear>Clear done</button></div>' +
+        (showDone ? '<ul class="nlist">' + done.map(noteHtml).join('') + '</ul>' : '') : '');
+    var add = notesPop.querySelector('[data-note-new]');
+    add.value = draft;
+    var editing = notesPop.querySelector('[data-note-input]');
+    if (editing) {
+      editing.focus();
+      editing.setSelectionRange(editing.value.length, editing.value.length);
+    }
+  }
+
+  function openNotes(open) {
+    editNote = null;
+    notesPop.hidden = !open;
+    notesBtn.setAttribute('aria-expanded', String(open));
+    if (open) {
+      renderNotes();
+      notesPop.querySelector('[data-note-new]').focus();
+    }
+  }
+
+  function noteById(id) {
+    return notes.filter(function (n) { return n.id === id; })[0];
+  }
+
+  function finishEdit(save) {
+    var input = notesPop.querySelector('[data-note-input]');
+    var n = editNote && noteById(editNote);
+    editNote = null;
+    if (n && input && save) {
+      var text = input.value.trim();
+      if (text) n.text = text;
+      else notes = notes.filter(function (x) { return x !== n; }); // emptied: removed
+      saveNotes();
+    }
+    renderNotes();
+  }
+
+  notesBtn.addEventListener('click', function () { openNotes(notesPop.hidden); });
+  notesPop.addEventListener('click', function (e) {
+    var li = e.target.closest('[data-note]');
+    var n = li && noteById(li.getAttribute('data-note'));
+    if (e.target.closest('[data-note-fold]')) {
+      showDone = !showDone;
+      return renderNotes();
+    }
+    if (e.target.closest('[data-note-clear]')) {
+      notes = notes.filter(function (x) { return !x.done; });
+      saveNotes();
+      return renderNotes();
+    }
+    if (!n) return;
+    if (e.target.closest('[data-note-del]')) {
+      notes = notes.filter(function (x) { return x !== n; });
+      saveNotes();
+      renderNotes();
+    } else if (e.target.closest('[data-note-edit]')) {
+      editNote = n.id;
+      renderNotes();
+    }
+  });
+  notesPop.addEventListener('change', function (e) {
+    if (!e.target.matches('[data-note-done]')) return;
+    var n = noteById(e.target.closest('[data-note]').getAttribute('data-note'));
+    n.done = e.target.checked;
+    saveNotes();
+    renderNotes();
+  });
+  notesPop.addEventListener('keydown', function (e) {
+    var t = e.target;
+    if (t.matches('[data-note-new]') && e.key === 'Enter') {
+      e.preventDefault();
+      var text = t.value.trim();
+      if (!text) return;
+      notes.push({ id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), text: text, done: false });
+      t.value = '';
+      saveNotes();
+      renderNotes();
+      notesPop.querySelector('[data-note-new]').focus();
+    } else if (t.matches('[data-note-input]') && (e.key === 'Enter' || e.key === 'Escape')) {
+      e.preventDefault();
+      finishEdit(e.key === 'Enter');
+    } else if (t.matches('[data-note-edit]') && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      editNote = t.closest('[data-note]').getAttribute('data-note');
+      renderNotes();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      openNotes(false);
+      notesBtn.focus();
+    }
+  });
+  notesPop.addEventListener('focusout', function (e) {
+    if (e.target.matches('[data-note-input]')) setTimeout(function () { if (editNote) finishEdit(true); }, 0);
+  });
+  // Drag notes up and down the to-do list to reorder them.
+  notesPop.addEventListener('dragstart', function (e) {
+    var li = e.target.closest('[data-note]');
+    if (!li) return;
+    dragNote = li.getAttribute('data-note');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', dragNote); } catch (err) {}
+    setTimeout(function () { li.classList.add('dragging'); }, 0);
+  });
+  notesPop.addEventListener('dragover', function (e) {
+    var li = e.target.closest('[data-note-list="open"] [data-note]');
+    if (!dragNote || !li) return;
+    e.preventDefault();
+    var r = li.getBoundingClientRect();
+    var after = e.clientY > r.top + r.height / 2;
+    Array.prototype.forEach.call(notesPop.querySelectorAll('.drop-before, .drop-after'), function (x) { x.classList.remove('drop-before', 'drop-after'); });
+    li.classList.add(after ? 'drop-after' : 'drop-before');
+  });
+  notesPop.addEventListener('drop', function (e) {
+    var li = e.target.closest('[data-note-list="open"] [data-note]');
+    e.preventDefault();
+    if (dragNote && li && li.getAttribute('data-note') !== dragNote) {
+      var moving = noteById(dragNote);
+      var target = noteById(li.getAttribute('data-note'));
+      var after = li.classList.contains('drop-after');
+      notes = notes.filter(function (x) { return x !== moving; });
+      notes.splice(notes.indexOf(target) + (after ? 1 : 0), 0, moving);
+      saveNotes();
+    }
+    dragNote = null;
+    renderNotes();
+  });
+  notesPop.addEventListener('dragend', function () {
+    dragNote = null;
+    Array.prototype.forEach.call(notesPop.querySelectorAll('.dragging, .drop-before, .drop-after'), function (x) {
+      x.classList.remove('dragging', 'drop-before', 'drop-after');
+    });
+  });
+  document.addEventListener('pointerdown', function (e) {
+    if (!notesPop.hidden && !e.target.closest('.notewrap')) openNotes(false);
+  });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'roadmapNotes') return;
+    try { notes = JSON.parse(e.newValue) || []; } catch (err) { notes = []; }
+    syncNotesBadge();
+    if (!notesPop.hidden && !editNote) renderNotes();
+  });
+  syncNotesBadge();
+
   // Tooltips: hovering (or tabbing to) anything with a title shows it in the app's own
   // small popup, and an icon-only button shows its aria-label. The title is set aside
   // while hovered so the browser's own tooltip never appears. After the first tip, moving
@@ -3379,7 +3976,7 @@
   window.roadmap = {
     refresh: refresh,
     reset: function () {
-      try { localStorage.removeItem('roadmapPlan'); } catch (e) {}
+      try { localStorage.removeItem(planKey()); } catch (e) {}
       location.reload();
     }
   };
