@@ -127,10 +127,15 @@
   var booted = false;
 
   function boot() {
-    if (booted) return;
+    if (booted) return hideGate();
     booted = true;
     var s = document.createElement('script');
     s.src = 'js/app.js';
+    // Reveal the app (and drop the loading screen) only once it has drawn itself.
+    s.onload = s.onerror = function () {
+      document.documentElement.classList.remove('booting');
+      hideGate();
+    };
     document.body.appendChild(s);
   }
 
@@ -149,13 +154,11 @@
         prof.name = name;
         store.setItem('roadmapProfile', JSON.stringify(prof));
       }
-      hideGate();
       setStatus('saved');
       boot();
     }, function () {
       // Can't reach the cloud: carry on with this browser's copy and try again later.
       ready = true;
-      hideGate();
       setStatus('offline');
       boot();
     });

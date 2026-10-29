@@ -769,6 +769,7 @@ button.logo:focus-visible{outline:2px solid #4790ad;outline-offset:2px}
 .gate-links button{padding:0;border:0;background:none;color:#3f86a3;font:600 12px Inter,system-ui,sans-serif;cursor:pointer}
 .gate-links button:hover{text-decoration:underline}
 html.gated body{overflow:hidden}
+html.booting .app{visibility:hidden}
 .pf-link.danger{color:#b4382f}
 .pf-ok{margin:0 0 8px;color:#23824f;font-size:12px}
 .pf-ok[hidden]{display:none}
