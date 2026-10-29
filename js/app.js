@@ -4886,6 +4886,34 @@
   });
   renderProfBtn();
 
+  // Esc closes whatever popups and menus are open, wherever the focus is. A popup that
+  // uses Esc itself first (stepping back a level, cancelling an edit) has already handled
+  // it; the task form is a dialog the browser closes; Esc while moving an item puts it back.
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || e.defaultPrevented || move || document.querySelector('dialog[open]')) return;
+    var closed = false;
+    function shut(el, close) {
+      if (el && !el.hidden) {
+        close();
+        closed = true;
+      }
+    }
+    shut(profPop, function () { openProfile(false); });
+    shut(notesPop, function () { openNotes(false); });
+    shut(tagPop, function () { openTagPop(false); });
+    shut(projPop, function () { openProjPop(false); });
+    shut(actMenu, function () { showActMenu(false); });
+    shut(colsMenu, function () { showColsMenu(false); });
+    shut(showMenu, function () { showShowMenu(false); });
+    shut(zoomMenu, function () { showZoomMenu(false); });
+    shut(searchRes, function () { showResults(false); });
+    shut(peek, closePeek);
+    if (closed) {
+      e.preventDefault();
+      hideTip();
+    }
+  });
+
   // Tooltips: hovering (or tabbing to) anything with a title shows it in the app's own
   // small popup, and an icon-only button shows its aria-label. The title is set aside
   // while hovered so the browser's own tooltip never appears. After the first tip, moving
