@@ -750,6 +750,36 @@ button.logo:focus-visible{outline:2px solid #4790ad;outline-offset:2px}
 [data-theme="dark"] .hfilter{background:#1d3440;border-color:#2b4c5a;color:#8fcbe2}
 [data-theme="dark"] .htools .av.hme:hover{box-shadow:0 0 0 2px #131619,0 0 0 3.5px #4790ad}
 @media (max-width:980px){.hwrap{grid-template-columns:1fr}.hside{grid-column:1;margin-top:24px}.hgrid.as-list .hcard{grid-template-columns:1fr;grid-template-areas:"top" "name" "dates" "prog" "ft"}}
+/* Sign-in screen (js/cloud.js): covers the app until you're signed in and synced */
+.gate{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;overflow:auto;background:#f6f7f9;font:400 12px Inter,system-ui,sans-serif;color:#1b1f24}
+.gate[hidden]{display:none}
+.gate-card{display:flex;flex-direction:column;gap:14px;width:min(360px,100%);box-sizing:border-box;padding:28px;border:1px solid #e3e6ea;border-radius:14px;background:#ffffff;box-shadow:0 12px 32px rgba(20,30,40,.08)}
+.gate-card.loading{align-items:center;text-align:center}
+.gate-brand{display:flex;align-items:center;gap:10px;font:600 14px Inter,system-ui,sans-serif}
+.gate-brand .logo{margin:0}
+.gate-card h1{margin:4px 0 0;font:600 18px Inter,system-ui,sans-serif;letter-spacing:-.01em}
+.gate-sub,.gate-note{margin:0;font-size:12.5px;line-height:1.5;color:#5a6169}
+.gate-card input{box-sizing:border-box;height:36px;padding:0 11px;border:1px solid #dde1e6;border-radius:8px;background:#ffffff;color:#1b1f24;font:400 13px Inter,system-ui,sans-serif}
+.gate-card input:focus{outline:0;border-color:#4790ad;box-shadow:0 0 0 3px rgba(71,144,173,.18)}
+.gate-card .primary{height:36px;justify-content:center;font-size:12.5px}
+.gate-card .primary:disabled{opacity:.6}
+.gate-err{margin:0;padding:8px 10px;border-radius:7px;background:#fdf0ef;color:#8d2b25;font-size:12px;line-height:1.4}
+.gate-err[hidden]{display:none}
+.gate-links{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;color:#6b727b}
+.gate-links button{padding:0;border:0;background:none;color:#3f86a3;font:600 12px Inter,system-ui,sans-serif;cursor:pointer}
+.gate-links button:hover{text-decoration:underline}
+html.gated body{overflow:hidden}
+.pf-link.danger{color:#b4382f}
+.pf-ok{margin:0 0 8px;color:#23824f;font-size:12px}
+.pf-ok[hidden]{display:none}
+[data-theme="dark"] .gate{background:#0f1214;color:#e4e7ea}
+[data-theme="dark"] .gate-card{background:#181b1f;border-color:#2b3036;box-shadow:none}
+[data-theme="dark"] .gate-sub,[data-theme="dark"] .gate-note,[data-theme="dark"] .gate-links{color:#9aa1a9}
+[data-theme="dark"] .gate-card input{background:#131619;border-color:#2b3036;color:#e4e7ea}
+[data-theme="dark"] .gate-err{background:#3a1c1a;color:#f4bdb7}
+[data-theme="dark"] .gate-links button{color:#6fb6d2}
+[data-theme="dark"] .pf-link.danger{color:#f0a39d}
+[data-theme="dark"] .pf-ok{color:#7fd0a1}
 /* Profile: the avatar at the bottom of the rail, and its popup beside it */
 .rail .profile-btn{display:inline-flex;align-items:center;justify-content:center;padding:0;color:#ffffff;font:700 8px Inter,sans-serif;cursor:pointer}
 .rail .profile-btn:hover,.rail .profile-btn[aria-expanded="true"]{box-shadow:0 0 0 2px #ffffff,0 0 0 3.5px #4790ad}
