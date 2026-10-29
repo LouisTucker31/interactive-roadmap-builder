@@ -100,7 +100,7 @@
 
   // Zoom scales the timeline horizontally: 100% = the view's basePx per column. 'fit'
   // sizes the view's fitDays to the visible width and follows window resizes.
-  var ZOOM_STEPS = [50, 75, 100, 125, 150, 200, 300];
+  var ZOOM_STEPS = [50, 75, 100, 125, 150, 200, 300, 500];
   var zoomMode = 'fit';
   var scale = SCALES.W;
 
@@ -189,16 +189,24 @@
     var now = nowCol();
     var cols = '';
     var lines = '';
-    for (var t = rangeStart; t < rangeEnd; t = add(t, scale.unit, 1)) {
-      var width = xOf(add(t, scale.unit, 1)) - xOf(t);
-      var label = colLabel(t, width);
-      cols += t === now
-        ? '<div class="col now" style="width: ' + width + 'px" aria-current="date"><span>' + label + '</span></div>'
-        : '<div class="col" style="width: ' + width + 'px">' + label + '</div>';
+    // Zoomed well into the hour view, hours split into half hours (from 300%) or quarter
+    // hours (from 500%), each with its own column and a fainter line.
+    var pct = zoomPct();
+    var split = scale.unit !== 'hour' ? 1 : pct >= 450 ? 4 : pct >= 280 ? 2 : 1;
+    var step = HOUR / split;
+    for (var t = rangeStart; t < rangeEnd; t = split > 1 ? t + step : add(t, scale.unit, 1)) {
+      var next = split > 1 ? t + step : add(t, scale.unit, 1);
+      var width = xOf(next) - xOf(t);
+      var label = split > 1 ? clockOf(t) : colLabel(t, width);
+      var isNow = split > 1 ? NOW >= t && NOW < next : t === now;
+      var part = split > 1 && t % HOUR !== 0; // a half or quarter hour, not on the hour
+      cols += isNow
+        ? '<div class="col now' + (part ? ' part' : '') + '" style="width: ' + width + 'px" aria-current="date"><span>' + label + '</span></div>'
+        : '<div class="col' + (part ? ' part' : '') + '" style="width: ' + width + 'px">' + label + '</div>';
       // Day/week views divide the chart at month boundaries; coarser views at every column,
-      // with a stronger line between days in hour view.
+      // with a stronger line between days in hour view and fainter ones between part hours.
       if (t > rangeStart && !scale.shade) {
-        lines += '<div class="mline' + (scale.unit === 'hour' && t % DAY === 0 ? ' day' : '') + '" style="left: ' + xOf(t) + 'px"></div>';
+        lines += '<div class="mline' + (part ? ' part' : scale.unit === 'hour' && t % DAY === 0 ? ' day' : '') + '" style="left: ' + xOf(t) + 'px"></div>';
       }
     }
     colsEl.innerHTML = cols;

@@ -102,7 +102,7 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 .chart{--week:75px;position:relative;min-height:100%;display:flex;flex-direction:column}
 .hd{position:sticky;top:0;z-index:5;background:#ffffff}
 .groups{display:flex;height:17px;border-bottom:1px solid #eceff2}
-.group{flex:none;overflow:clip;white-space:nowrap;font:700 9.5px "JetBrains Mono",monospace;letter-spacing:.09em;color:#2d3238;display:flex;align-items:center;justify-content:center;border-left:1px solid #e3e6ea}
+.group{flex:none;overflow:clip;white-space:nowrap;font:700 9.5px "JetBrains Mono",monospace;letter-spacing:.09em;color:#2d3238;display:flex;align-items:center;justify-content:flex-start;border-left:1px solid #e3e6ea}
 /* Group labels stick to the left edge so the current month/year stays readable */
 .group span{position:sticky;left:8px;padding:0 6px}
 .cols{display:flex;height:24px;border-bottom:1px solid #e3e6ea}
@@ -117,6 +117,8 @@ a{color:#3f6f86}a:hover{color:#1f4b5f}
 /* Hour view: a light shade outside 7am–6pm, with a stronger line between days */
 .chart[data-hours] .body{background-image:linear-gradient(90deg,#f8f9fb 0 calc(var(--day)*7/24),transparent calc(var(--day)*7/24) calc(var(--day)*.75),#f8f9fb calc(var(--day)*.75));background-size:var(--day) 100%}
 .mline.day{background:#c3cad2}
+.mline.part{background:#f0f2f5}
+.col.part{color:#9aa1a9;font-size:9.5px;border-left-color:#f4f5f7}
 .bar.tiny{padding:0}
 .bar.tiny>*{display:none}
 /* Current period (today's column): highlighted header label and a line at its start */
@@ -335,6 +337,8 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .rows{background-image:repeating-linear-gradient(180deg,transparent 0 33px,#1c2024 33px 34px)}
 [data-theme="dark"] .mline{background:#2b3036}
 [data-theme="dark"] .mline.day{background:#454c54}
+[data-theme="dark"] .mline.part{background:#1e2226}
+[data-theme="dark"] .col.part{color:#6b727b;border-left-color:#1e2226}
 [data-theme="dark"] .chart[data-hours] .body{background-image:linear-gradient(90deg,#15181b 0 calc(var(--day)*7/24),transparent calc(var(--day)*7/24) calc(var(--day)*.75),#15181b calc(var(--day)*.75))}
 [data-theme="dark"] .deps g{stroke:#4d555e}
 [data-theme="dark"] .deps marker path{stroke:#6a737d}
