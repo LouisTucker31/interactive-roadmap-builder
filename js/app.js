@@ -3015,6 +3015,69 @@
       '<span class="cname">' + esc(r.name) + '</span></div>';
   }
 
+  // One item in a day's list: its marker, time and name.
+  function itemLine(r, indent) {
+    var s = startDay(r);
+    var kind = r.type === 'task' && r.parent ? 'sub' : r.type;
+    var mark = r.type === 'milestone' ? '<i class="cmk ms"></i>' : r.type === 'phase' ? '<i class="cmk ph"></i>' : '<i class="cmk' + (r.parent ? ' sub' : '') + '"></i>';
+    var done = r.type === 'task' && r.progress >= 1;
+    return '<div class="citem k-' + kind + (indent ? ' in' : '') + (done ? ' done' : '') + (r.id === freshId ? ' fresh' : '') + '" data-id="' + esc(r.id) +
+      '" draggable="true" tabindex="0" role="button" title="' + esc(r.name + ' · ' + itemLabel(r) + ' · click to edit, drag to another day') +
+      '" style="' + colorVar(r).slice(2) + '">' + mark + (s % 1 ? '<span class="ctime">' + timeOf(s) + '</span>' : '') +
+      '<span class="cname">' + esc(r.name) + '</span></div>';
+  }
+
+  // A day's own items (those within the day). The week view lists them all, grouped under
+  // their phases; a month lists a quiet day's few items, and sums up a busier one:
+  // milestones, then a line per phase with its tasks and how many are done, then any
+  // other tasks. A summary line opens that week.
+  function dayHtml(t, items, full) {
+    if (!items.length) return '';
+    items.sort(function (a, b) { return startDay(a) - startDay(b) || rowIndex[a.id] - rowIndex[b.id]; });
+    var milestones = items.filter(function (r) { return r.type === 'milestone'; });
+    var groups = [];
+    var byId = {};
+    function group(id) {
+      if (!byId[id]) groups.push(byId[id] = { id: id, row: id ? data.rows[rowIndex[id]] : null, tasks: [], self: null });
+      return byId[id];
+    }
+    items.forEach(function (r) {
+      if (r.type === 'phase') group(r.id).self = r;
+      else if (r.type === 'task') group(phaseIdOf(r)).tasks.push(r);
+    });
+    groups.sort(function (a, b) { return (a.id ? 0 : 1) - (b.id ? 0 : 1); }); // tasks without a phase last
+    if (!full && items.length <= 3) return items.map(function (r) { return itemLine(r); }).join('');
+    var out = milestones.map(function (r) { return itemLine(r); }).join('');
+    var day = new Date(t);
+    var dayName = day.getUTCDate() + ' ' + MONTHS[day.getUTCMonth()];
+    groups.forEach(function (g) {
+      var name = g.row ? g.row.name : 'Other tasks';
+      var span = g.self ? timeOf(startDay(g.self)) + (g.self.end != null ? '–' + timeOf(g.self.end) : '') : '';
+      if (full) {
+        // Week view: the phase as a heading (editable when it's on this day), then its tasks.
+        if (g.id || groups.length > 1) {
+          out += '<div class="chead' + (g.id ? '' : ' other') + (g.self && g.self.id === freshId ? ' fresh' : '') + '"' +
+            (g.self ? ' data-id="' + esc(g.self.id) + '" draggable="true" tabindex="0" role="button" title="' + esc(g.self.name + ' · ' + itemLabel(g.self) + ' · click to edit') + '"' : '') +
+            '>' + (g.id ? '<i class="cmk ph"></i>' : '') + '<span class="cname">' + esc(name) + '</span>' + (span ? '<span class="ctime">' + span + '</span>' : '') + '</div>';
+        }
+        out += g.tasks.map(function (r) { return itemLine(r, !!g.id); }).join('');
+        return;
+      }
+      var n = g.tasks.length;
+      var doneN = g.tasks.filter(function (r) { return r.progress >= 1; }).length;
+      if (!g.id) {
+        out += '<div class="csum other" role="button" tabindex="0" data-cal-open="' + t + '" title="See them in the week">+ ' + n + ' other ' + (n === 1 ? 'task' : 'tasks') + '</div>';
+        return;
+      }
+      out += '<div class="csum" role="button" tabindex="0" data-cal-open="' + t + '" title="' +
+        esc(name + (span ? ' ' + span : '') + ' · ' + n + (n === 1 ? ' task' : ' tasks') + ' on ' + dayName + ', ' + doneN + ' done · click to see the week') + '">' +
+        '<i class="cmk ph"></i><span class="cname">' + esc(name) + '</span>' +
+        (n ? '<span class="ccount">' + n + '</span><span class="cprog"><b style="width: ' + doneN / n * 100 + '%"></b></span>' : '<span class="ctime">' + span + '</span>') +
+        '</div>';
+    });
+    return out;
+  }
+
   function renderCal() {
     var rows = data.rows.filter(function (r) { return cal.show[r.type] !== false; });
     var weeks = calWeeks();
@@ -3024,8 +3087,11 @@
     calEl.querySelector('[data-cal-days]').innerHTML = [1, 2, 3, 4, 5, 6, 0].map(function (d) {
       return '<span' + (d === 0 || d === 6 ? ' class="wkend"' : '') + '>' + WEEKDAYS[d] + '</span>';
     }).join('');
+    // Items over several days are bars along the top of the week; the rest list in their day.
+    var spans = rows.map(function (r) { return { r: r, sp: calSpan(r) }; });
+    var multi = spans.filter(function (x) { return x.sp[1] > x.sp[0]; }).map(function (x) { return x.r; });
     calGrid.innerHTML = weeks.map(function (ws) {
-      var w = weekSegs(ws, rows);
+      var w = weekSegs(ws, multi);
       var shownLanes = week ? w.lanes : Math.min(w.lanes, CAL_LANES);
       var hidden = [0, 0, 0, 0, 0, 0, 0];
       var segs = w.segs.filter(function (sg) {
@@ -3037,16 +3103,16 @@
       for (var c = 0; c < 7; c++) {
         var t = ws + c * DAY;
         var d = new Date(t);
+        var own = spans.filter(function (x) { return x.sp[0] === t && x.sp[1] === t; }).map(function (x) { return x.r; });
         var cls = 'cday' + (!week && startOf(t, 'month') !== month ? ' out' : '') + (t === TODAY ? ' is-today' : '') +
           (d.getUTCDay() % 6 === 0 ? ' wkend' : '');
         days += '<div class="' + cls + '" data-day="' + t + '" title="Click to add a task on ' + d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + '">' +
-          '<span class="cdate">' + (d.getUTCDate() === 1 || week ? d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] : d.getUTCDate()) + '</span></div>';
+          '<span class="cdate">' + (d.getUTCDate() === 1 || week ? d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] : d.getUTCDate()) + '</span>' +
+          '<div class="clist" style="margin-top: ' + (shownLanes * 22 + 3) + 'px">' + dayHtml(t, own, week) +
+          (hidden[c] ? '<button type="button" class="cmore" data-cal-more="' + ws + '" title="Show all of this week">+' + hidden[c] + ' more</button>' : '') +
+          '</div></div>';
       }
-      var more = hidden.map(function (n, c) {
-        return n ? '<button type="button" class="cmore" data-cal-more="' + ws + '" style="left: calc(' + c + ' * 100% / 7 + 2px); top: ' +
-          (28 + CAL_LANES * 22) + 'px" title="Show all of this week">+' + n + ' more</button>' : '';
-      }).join('');
-      return '<div class="cweek" style="--lanes: ' + shownLanes + '">' + days + segs.map(segHtml).join('') + more + '</div>';
+      return '<div class="cweek" style="--lanes: ' + shownLanes + '">' + days + segs.map(segHtml).join('') + '</div>';
     }).join('');
     calEl.querySelector('[data-cal-title]').textContent = week ? weekTitle(weeks[0]) : MONTHS_LONG[new Date(month).getUTCMonth()] + ' ' + new Date(month).getUTCFullYear();
     Array.prototype.forEach.call(calEl.querySelectorAll('[data-cal-view]'), function (b) {
@@ -3085,7 +3151,8 @@
     var step = t.closest('[data-cal-step]');
     var view = t.closest('[data-cal-view]');
     var more = t.closest('[data-cal-more]');
-    var seg = t.closest('.cseg[data-id]');
+    var seg = t.closest('.cseg[data-id], .citem[data-id], .chead[data-id]');
+    var open = t.closest('[data-cal-open]');
     var day = t.closest('.cday[data-day]');
     if (step) calAt = add(startOf(calAt, cal.view === 'week' ? 'week' : 'month'), cal.view === 'week' ? 'week' : 'month', +step.getAttribute('data-cal-step'));
     else if (t.closest('[data-cal-today]')) calAt = TODAY;
@@ -3093,6 +3160,9 @@
     else if (more) {
       cal.view = 'week';
       calAt = +more.getAttribute('data-cal-more');
+    } else if (open) {
+      cal.view = 'week';
+      calAt = +open.getAttribute('data-cal-open');
     } else if (seg) return openEdit(seg.getAttribute('data-id'));
     else if (day) {
       openForm();
@@ -3111,14 +3181,17 @@
     renderCal();
   });
   calEl.addEventListener('keydown', function (e) {
-    var seg = e.target.closest('.cseg[data-id]');
+    var seg = e.target.closest('.cseg[data-id], .citem[data-id], .chead[data-id]');
     if (seg && e.target === seg && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
       openEdit(seg.getAttribute('data-id'));
+    } else if (e.target.matches('[data-cal-open]') && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      e.target.click();
     }
   });
   calGrid.addEventListener('dragstart', function (e) {
-    var seg = e.target.closest('.cseg[data-id]');
+    var seg = e.target.closest('.cseg[data-id], .citem[data-id], .chead[data-id]');
     if (!seg) return;
     // Where in the item it was picked up, so a long bar moves by the days the mouse moves.
     var r = calSpan(data.rows[rowIndex[seg.getAttribute('data-id')]]);
@@ -3493,12 +3566,12 @@
       calAt = calSpan(item)[0];
       freshId = id;
       renderCal();
-      if (!calGrid.querySelector('.cseg[data-id="' + q + '"]')) { // under "+n more": show its week
+      if (!calGrid.querySelector('[data-id="' + q + '"]')) { // summed up or under "+n more": show its week
         cal.view = 'week';
         renderCal();
       }
       saveCal();
-      var seg = calGrid.querySelector('.cseg[data-id="' + q + '"]');
+      var seg = calGrid.querySelector('[data-id="' + q + '"]');
       if (seg) seg.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       setTimeout(function () { if (freshId === id) freshId = null; }, 2200);
       return;

@@ -588,8 +588,8 @@ button:disabled{cursor:not-allowed}
 .cdays span{padding:6px 8px;font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#6b727b}
 .cdays span.wkend{color:#9aa1a9}
 .cgrid{flex:1;display:flex;flex-direction:column}
-.cweek{position:relative;flex:1 0 auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));min-height:max(108px,calc(28px + var(--lanes) * 22px + 26px));border-bottom:1px solid #e3e6ea}
-.cal.week .cweek{flex:1;min-height:calc(40px + var(--lanes) * 22px)}
+.cweek{position:relative;flex:1 0 auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));min-height:108px;border-bottom:1px solid #e3e6ea}
+.cal.week .cweek{flex:1;min-height:200px}
 .cday{position:relative;min-width:0;padding:5px 7px;border-left:1px solid #eceff2;cursor:pointer}
 .cday:first-child{border-left:0}
 .cday.wkend{background:#f8f9fb}
@@ -621,7 +621,40 @@ button:disabled{cursor:not-allowed}
 .cmk.ms{border:0;border-radius:1.5px;background:#d4802c;transform:rotate(45deg)}
 .cmk.ph{width:9px;height:9px;border-color:#a596ea}
 .cseg.done .cmk{background:var(--c,#418dab)}
-.cmore{position:absolute;z-index:1;height:18px;padding:0 6px;border:0;border-radius:5px;background:none;color:#4a5159;font:600 10.5px Inter,system-ui,sans-serif;cursor:pointer}
+/* A day's own items: listed (a quiet day, or every day in the week view) or summed up */
+.clist{display:flex;flex-direction:column;gap:1px}
+.citem,.chead,.csum{display:flex;align-items:center;gap:5px;min-width:0;height:20px;padding:0 5px;border-radius:5px;font:500 11px/20px Inter,system-ui,sans-serif;color:#1b1f24;white-space:nowrap;overflow:hidden;cursor:pointer}
+.citem .cname,.chead .cname,.csum .cname{overflow:hidden;text-overflow:ellipsis}
+.citem .ctime,.chead .ctime,.csum .ctime{flex:none;font:500 10px "JetBrains Mono",monospace;color:#6b727b}
+.citem:hover,.csum:hover,.chead[data-id]:hover{background:#e9eef2}
+.citem:focus-visible,.csum:focus-visible,.chead:focus-visible{outline:2px solid #4790ad;outline-offset:-2px}
+.citem.in{padding-left:16px}
+.citem.k-phase,.chead{font-weight:700;color:#2d2560}
+.chead{margin-top:3px;background:#f1eefb;cursor:default}
+.chead[data-id]{cursor:pointer}
+.chead.other{background:#f1f3f5;color:#4a5159}
+.chead{height:auto;flex-wrap:wrap;padding:3px 5px;line-height:15px}
+.chead .cname{flex:1 1 0}
+.chead .ctime{flex-basis:100%;padding-left:14px;line-height:13px}
+.citem.done .cname{text-decoration:line-through;opacity:.65}
+.citem.done .cmk{background:var(--c,#418dab)}
+.citem.dragging{opacity:.35}
+.citem.fresh,.chead.fresh{animation:kfresh 2.2s ease-out}
+.csum{position:relative}
+.csum .cname{font-weight:700;color:#2d2560}
+.ccount{flex:none;margin-left:auto;min-width:16px;height:15px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:#ece8fb;color:#2d2560;font:600 10px/15px "JetBrains Mono",monospace;text-align:center}
+.cprog{position:absolute;left:19px;right:5px;bottom:1px;height:2px;border-radius:1px;background:#e3e0f4;overflow:hidden}
+.cprog b{display:block;height:100%;background:#8f7fe0}
+.csum.other{color:#4a5159;font-weight:600}
+.cmore{align-self:flex-start;height:18px;padding:0 6px;border:0;border-radius:5px;background:none;color:#4a5159;font:600 10.5px Inter,system-ui,sans-serif;cursor:pointer}
+[data-theme="dark"] .citem,[data-theme="dark"] .csum{color:#e4e7ea}
+[data-theme="dark"] .citem .ctime,[data-theme="dark"] .csum .ctime,[data-theme="dark"] .chead .ctime,[data-theme="dark"] .csum.other{color:#9aa1a9}
+[data-theme="dark"] .citem:hover,[data-theme="dark"] .csum:hover,[data-theme="dark"] .chead[data-id]:hover{background:#22262b}
+[data-theme="dark"] .citem.k-phase,[data-theme="dark"] .chead,[data-theme="dark"] .csum .cname{color:#c9c1f5}
+[data-theme="dark"] .chead{background:#221f36}
+[data-theme="dark"] .chead.other{background:#1c2024;color:#c9ced4}
+[data-theme="dark"] .cprog{background:#2b2742}
+[data-theme="dark"] .ccount{background:#2a2545;color:#ddd6fb}
 .cmore:hover,.cmore:focus-visible{background:#e3e7eb;color:#121417;outline:0}
 [data-theme="dark"] .cnav .ib{background:#181b1f;border-color:#2b3036;color:#9aa1a9}
 [data-theme="dark"] .cnav .ib:hover{background:#20242a;color:#f1f3f5}
