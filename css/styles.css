@@ -575,9 +575,9 @@ button:disabled{cursor:not-allowed}
 .btools .btn{height:28px}
 .btog[aria-pressed="true"]{background:#eef5f8;border-color:#b9d8e5;color:#2f6f89}
 .bscroll{flex:1;min-height:0;overflow:auto;background:#f6f7f9}
-.bcols{display:flex;align-items:flex-start;gap:12px;min-height:100%;padding:12px;box-sizing:border-box;width:max-content}
-.bcol{flex:none;width:272px;display:flex;flex-direction:column;max-height:100%;border-radius:10px;background:#eef0f3;border:1px solid #e3e6ea;transition:background .12s,border-color .12s}
-.board.compact .bcol{width:216px}
+.bcols{display:flex;align-items:flex-start;gap:12px;min-height:100%;padding:12px;box-sizing:border-box}
+.bcol{flex:1 0 272px;min-width:0;display:flex;flex-direction:column;max-height:100%;border-radius:10px;background:#eef0f3;border:1px solid #e3e6ea;transition:background .12s,border-color .12s}
+.board.compact .bcol{flex:0 0 216px}
 .bcol.over{background:#e3f0f6;border-color:#418dab}
 .bcol.fresh{animation:colfresh 2.2s ease-out}
 @keyframes colfresh{0%,45%{border-color:#418dab;box-shadow:0 0 0 3px rgba(65,141,171,.25)}}

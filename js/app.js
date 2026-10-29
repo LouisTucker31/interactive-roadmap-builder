@@ -2271,7 +2271,7 @@
     }
   });
   document.addEventListener('click', function (e) {
-    if (!colsMenu.hidden && !e.target.closest('.cwrap')) showColsMenu(false);
+    if (!colsMenu.hidden && e.target.isConnected && !e.target.closest('.cwrap')) showColsMenu(false);
   });
 
   filterEls.forEach(function (el) {
@@ -2683,7 +2683,7 @@
     }
   });
   document.addEventListener('click', function (e) {
-    if (!showMenu.hidden && !e.target.closest('.cwrap')) showShowMenu(false);
+    if (!showMenu.hidden && e.target.isConnected && !e.target.closest('.cwrap')) showShowMenu(false);
   });
 
   renderBoard();
