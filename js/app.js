@@ -349,10 +349,10 @@
           run.to = i;
           return;
         }
-        if (run && run.to > run.from) groups.push(run);
+        if (run) groups.push(run);
         run = day != null ? { day: day, from: i, to: i } : null;
       });
-      if (run && run.to > run.from) groups.push(run);
+      if (run) groups.push(run);
     }
     grouped = {};
     groups.forEach(function (g) {
@@ -376,11 +376,16 @@
       var cls = r.type === 'phase' ? 'ph' : r.type === 'milestone' ? 'ms' : r.parent ? 'sub' : '';
       return '<i class="' + cls + '" style="top: ' + (13 + k * ROW_PX) + 'px' + colorVar(r) + '"></i>';
     }).join('');
-    var tip = ' data-group="' + g.day + '" title="' + n + ' items on ' + dayLabel(g.day) + ', ' + span + ' · click to see them by the hour"';
-    return '<div class="group-day"' + tip + ' role="button" tabindex="0" style="left: ' + left + 'px; top: ' + top + 'px; width: ' + w +
+    var fresh = rows.some(function (r) { return r.id === freshId; }) ? ' fresh' : '';
+    var tip = ' data-group="' + g.day + '" title="' + itemsWord(n) + ' on ' + dayLabel(g.day) + ', ' + span + ' · click to see them by the hour"';
+    return '<div class="group-day' + fresh + '"' + tip + ' role="button" tabindex="0" style="left: ' + left + 'px; top: ' + top + 'px; width: ' + w +
       'px; height: ' + ((n - 1) * ROW_PX + 26) + 'px">' + dots + '</div>' +
-      '<div class="group-lbl"' + tip + ' style="left: ' + (left + w + 8) + 'px; top: ' + (top + 2) + 'px"><b>' + n + ' items</b> · ' +
-      dayLabel(g.day) + ' ' + span + '<em>View by the hour →</em></div>';
+      '<div class="wl-group' + fresh + '"' + tip + ' style="left: ' + (left + w + 6) + 'px; top: ' + (top + 3) + 'px"><b>' + n + '</b> ' +
+      (n === 1 ? 'item' : 'items') + '</div>';
+  }
+
+  function itemsWord(n) {
+    return n + (n === 1 ? ' item' : ' items');
   }
 
   // Open the hour view at a group's day, starting just before its first item.
@@ -447,8 +452,7 @@
         }
       });
       Object.keys(byDay).forEach(function (d) {
-        if (byDay[d].length === 1) units.push({ rows: byDay[d] });
-        else units.push({ rows: byDay[d], day: +d });
+        units.push({ rows: byDay[d], day: +d }); // even a single item, so every day reads the same
       });
       units.forEach(function (u) {
         var r = u.rows[0];
@@ -508,9 +512,11 @@
     wl.groups.forEach(function (u) {
       var first = Math.min.apply(null, u.rows.map(startDay));
       var last = Math.max.apply(null, u.rows.map(function (r) { return r.end != null ? r.end : startDay(r); }));
-      html += '<div class="wl-group" data-group="' + u.day + '" data-first="' + first + '" role="button" tabindex="0" title="' +
-        esc(u.rows.length + ' items on ' + dayLabel(u.day) + ', ' + timeOf(first) + '–' + timeOf(last) + ' · click to see them by the hour') +
-        '" style="left: ' + u.x1 + 'px; top: ' + (u.cy - 10) + 'px; min-width: ' + (u.x2 - u.x1) + 'px"><b>' + u.rows.length + '</b> items</div>';
+      var n = u.rows.length;
+      var fresh = u.rows.some(function (r) { return r.id === freshId; }) ? ' fresh' : '';
+      html += '<div class="wl-group' + fresh + '" data-group="' + u.day + '" data-first="' + first + '" role="button" tabindex="0" title="' +
+        esc(itemsWord(n) + ' on ' + dayLabel(u.day) + ', ' + timeOf(first) + '–' + timeOf(last) + ' · click to see them by the hour') +
+        '" style="left: ' + u.x1 + 'px; top: ' + (u.cy - 10) + 'px; min-width: ' + (u.x2 - u.x1) + 'px"><b>' + n + '</b> ' + (n === 1 ? 'item' : 'items') + '</div>';
     });
     return html;
   }
@@ -1715,8 +1721,7 @@
   // The empty task list has its own "Add a task" link, and the blank row under the last
   // one adds a task too.
   function goToRow(id) {
-    if (grouped[id]) setScale('H'); // inside a day group: show it by the hour
-    var i = rowIndex[id];
+    var i = rowIndex[id]; // in a day group, this scrolls to the group and lights it up
     if (i != null) reveal(data.rows[i], i, true);
   }
 

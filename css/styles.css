@@ -577,6 +577,9 @@ button:disabled{cursor:not-allowed}
 .wl-group{position:absolute;box-sizing:border-box;height:20px;padding:0 9px;border-radius:10px;background:#e6f2f7;border:1px solid #9cc8da;color:#2f6f89;font:500 11px/18px Inter,sans-serif;white-space:nowrap;cursor:pointer}
 .wl-group b{font-weight:700}
 .wl-group:hover,.wl-group:focus-visible{background:#d6eaf3;border-color:#418dab;outline:0}
+/* Lit up for a moment after going to an item inside it */
+.wl-group.fresh,.group-day.fresh{animation:gfresh 1.4s ease-out 2}
+@keyframes gfresh{0%,40%{border-color:#418dab;box-shadow:0 0 0 4px rgba(65,141,171,.3)}}
 .trow.wl-p{align-items:flex-start;gap:9px;padding:4px 10px 0 9px;box-sizing:border-box;border-left:3px solid var(--c,#a9b1ba);border-bottom:2px solid #d3d9e0;cursor:pointer;background:#f6f7f9;background:color-mix(in srgb,var(--c,#a9b1ba) 9%,#f6f7f9)}
 .trow.wl-p.none{border-left-color:#c3c9d0;background:#f3f4f6}
 .trow.wl-p:hover{background:color-mix(in srgb,var(--c,#a9b1ba) 16%,#f6f7f9)}
@@ -691,19 +694,12 @@ button:disabled{cursor:not-allowed}
 .group-day i.sub{width:6px;height:6px;margin:-3px 0 0 -3px;border-width:1.5px}
 .group-day i.ms{border-radius:1.5px;border:0;background:#d4802c;transform:rotate(45deg)}
 .group-day i.ph{width:10px;height:10px;margin:-5px 0 0 -5px;border-color:#a596ea}
-.group-lbl{position:absolute;display:flex;align-items:center;gap:6px;height:20px;padding:0 9px;border-radius:10px;background:#ffffff;border:1px solid #d5e3ea;box-shadow:0 1px 3px rgba(20,40,60,.08);font:400 11px Inter,sans-serif;color:#3a4048;white-space:nowrap;cursor:pointer}
-.group-lbl b{font-weight:600;color:#1b1f24}
-.group-lbl em{font-style:normal;font-weight:600;color:#3f86a3;margin-left:4px}
 .group-day:hover,.group-day:focus-visible{background:rgba(65,141,171,.18);border-color:#418dab;outline:0}
-.group-lbl:hover{border-color:#418dab}
 [data-theme="dark"] .group-day{background:rgba(90,166,196,.12);border-color:rgba(90,166,196,.45)}
 [data-theme="dark"] .group-day:hover,[data-theme="dark"] .group-day:focus-visible{background:rgba(90,166,196,.22);border-color:#5aa6c4}
 [data-theme="dark"] .group-day i{background:#131619}
 [data-theme="dark"] .group-day i.ms{background:#d4802c}
 [data-theme="dark"] .group-day i.ph{border-color:#6e63b8}
-[data-theme="dark"] .group-lbl{background:#181b1f;border-color:#2b3a42;color:#c9ced4}
-[data-theme="dark"] .group-lbl b{color:#f1f3f5}
-[data-theme="dark"] .group-lbl em{color:#6fb6d2}
 /* Project tag: the pill takes the tag's colour (--c); clicking opens the tag popup */
 .tagwrap{position:relative;display:inline-flex}
 button.pill{cursor:pointer;line-height:1;white-space:nowrap}
