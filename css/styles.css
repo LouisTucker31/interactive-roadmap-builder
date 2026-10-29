@@ -1289,7 +1289,7 @@ button.pill{cursor:pointer;line-height:1;white-space:nowrap}
 [data-theme="dark"] .ndone-hd{border-top-color:#2b3036}
 [data-theme="dark"] .nfold{color:#9aa1a9}
 [data-theme="dark"] .nclear{color:#f0a39d}
-/* Printing (Actions → Print): just the page you're on, without the app's controls */
+/* Printing (the browser's own Print, Ctrl+P): just the page you're on, without the app's controls */
 @media print{
 .tools,.rail,.foot,.dock,.ltools,.gut .caret,.bcol-add{display:none!important}
 .app{height:auto;min-height:0}

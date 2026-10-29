@@ -4221,26 +4221,6 @@
     };
   }
 
-  function download(filename, type, text) {
-    var url = URL.createObjectURL(new Blob([text], { type: type }));
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-  }
-
-  function fileBase() {
-    return (project().name.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') || 'project') + '-' + isoDate(TODAY);
-  }
-
-  // "2026-11-23 09:00", or just the date for an all-day value.
-  function stamp(day) {
-    return dateOf(day) + (day % 1 ? ' ' + timeOf(day) : '');
-  }
-
   // Templates: a project's items saved to start new projects from. Progress is cleared, and
   // dates are kept relative to the first day so a new project starts from today.
   var templates;
@@ -4398,8 +4378,8 @@
   });
   renderProjBtn();
 
-  // Actions: export the project (a spreadsheet, a full JSON copy, or print the page),
-  // duplicate it, save it as a template, or reset it. Reset takes several deliberate steps.
+  // Actions: duplicate the project, save it as a template, or reset it. Reset takes several
+  // deliberate steps.
   var actBtn = document.querySelector('[data-actions-btn]');
   var actMenu = document.querySelector('[data-actions-menu]');
   var actDialog = document.querySelector('[data-act-dialog]');
@@ -4410,45 +4390,6 @@
     actMenu.hidden = !open;
     actBtn.setAttribute('aria-expanded', String(open));
     if (open) actItems[0].focus();
-  }
-
-  function exportCsv() {
-    var head = ['Name', 'Type', 'Phase', 'Subtask of', 'Start', 'Finish', 'Length', 'Progress', 'Status', 'Person', 'Depends on', 'Colour'];
-    var lines = [head].concat(data.rows.map(function (r) {
-      var parent = r.parent && rowIndex[r.parent] != null ? data.rows[rowIndex[r.parent]].name : '';
-      var who = personById(r.person);
-      var st = statusOf(r);
-      var p = progressOf(r);
-      var color = COLORS.filter(function (c) { return c[1] === r.color; })[0];
-      return [
-        r.name, r.type === 'task' ? (r.parent ? 'Subtask' : 'Task') : r.type === 'milestone' ? 'Milestone' : 'Phase',
-        r.type === 'phase' ? '' : phaseName(r), parent, stamp(startDay(r)), r.end != null ? stamp(finishDay(r)) : '',
-        r.end != null ? duration(r) : '', p == null ? '' : Math.round(p * 100) + '%', st === 'ms' ? 'Milestone' : STATUS[st],
-        who ? who.name : '', depsOf(r).map(function (d) { return d.name; }).join('; '),
-        r.type === 'task' ? (color ? color[0] : 'Blue') : ''
-      ];
-    })).map(function (cells) {
-      return cells.map(function (c) {
-        c = String(c);
-        return /[",\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c;
-      }).join(',');
-    });
-    download(fileBase() + '.csv', 'text/csv;charset=utf-8', '﻿' + lines.join('\r\n')); // the BOM tells Excel it's UTF-8
-  }
-
-  function exportJson() {
-    var copy = planCopy();
-    var names = projectTags.map(tagById).filter(Boolean).map(function (t) { return t.name; });
-    download(fileBase() + '.json', 'application/json', JSON.stringify({
-      project: project().name,
-      tags: names,
-      exported: new Date().toISOString(),
-      planStart: isoDate(PLAN_START),
-      note: 'Days are counted from planStart; a fraction of a day is a time of day.',
-      rows: copy.rows,
-      deps: copy.deps,
-      people: copy.people
-    }, null, 2));
   }
 
   function duplicateProject() {
@@ -4537,10 +4478,7 @@
     if (!item) return;
     showActMenu(false);
     var act = item.getAttribute('data-act');
-    if (act === 'csv') exportCsv();
-    else if (act === 'json') exportJson();
-    else if (act === 'print') setTimeout(function () { window.print(); }, 50);
-    else if (act === 'duplicate') duplicateProject();
+    if (act === 'duplicate') duplicateProject();
     else if (act === 'template') openTemplateDialog();
     else if (act === 'reset') openResetDialog();
   });
