@@ -4852,6 +4852,7 @@
     me = { name: name, email: me.email, color: col ? col.value : me.color };
     saveMe();
     renderProfBtn();
+    if (onHome()) renderHome(); // the greeting and avatar on Workspace too
     profView = 'main';
     renderProfile();
   }
@@ -5059,23 +5060,23 @@
       '<input type="text" placeholder="Find a project" aria-label="Find a project" value="' + esc(homeState.q) + '" data-home-q></label>' +
       '<button type="button" class="primary" data-home-new><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>New project</button>' +
       '<button type="button" class="av hme" style="background: ' + esc(me.color) + '" title="Your profile" data-home-profile>' + esc(initials(me.name || '?')) + '</button></div></header>' +
-      '<div class="hwrap"><div class="hmain">' +
-      '<div class="hhello"><h1>' + greeting() + (first ? ', ' + esc(first) : '') + '</h1><p>' + WEEKDAYS_LONG[today.getUTCDay()] + ' ' + today.getUTCDate() + ' ' + MONTHS_LONG[today.getUTCMonth()] +
+      // The greeting and the view controls run across the top; below them the projects
+      // and the overview start level, each under its own small heading.
+      '<div class="hwrap"><div class="hhello"><h1>' + greeting() + (first ? ', ' + esc(first) : '') + '</h1><p>' + WEEKDAYS_LONG[today.getUTCDay()] + ' ' + today.getUTCDate() + ' ' + MONTHS_LONG[today.getUTCMonth()] +
       ' · ' + projects.length + (projects.length === 1 ? ' project' : ' projects') + '</p></div>' +
-      '<div class="hbar"><h2>Projects</h2>' +
-      (filterTag ? '<button type="button" class="hfilter" data-home-tag="" title="Show every project"># ' + esc(filterTag.name) + ' <span aria-hidden="true">×</span></button>' : '') +
-      '<span class="hspace"></span>' +
+      '<div class="hbar"><div class="bseg" role="group" aria-label="Show projects as">' +
+      '<button type="button" aria-pressed="' + (homeState.view === 'grid') + '" data-home-view="grid">Grid</button>' +
+      '<button type="button" aria-pressed="' + (homeState.view === 'list') + '" data-home-view="list">List</button></div>' +
       '<label class="hsort"><span class="blbl">Sort</span><select data-home-sort>' +
       [['recent', 'Recently opened'], ['name', 'Name'], ['start', 'Start date']].map(function (o) {
         return '<option value="' + o[0] + '"' + (homeState.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
       }).join('') + '</select></label>' +
-      '<div class="bseg" role="group" aria-label="Show projects as">' +
-      '<button type="button" aria-pressed="' + (homeState.view === 'grid') + '" data-home-view="grid">Grid</button>' +
-      '<button type="button" aria-pressed="' + (homeState.view === 'list') + '" data-home-view="list">List</button></div></div>' +
+      (filterTag ? '<button type="button" class="hfilter" data-home-tag="" title="Show every project"># ' + esc(filterTag.name) + ' <span aria-hidden="true">×</span></button>' : '') +
+      '</div><div class="hmain"><h2 class="hlabel">Projects</h2>' +
       '<div class="hgrid' + (homeState.view === 'list' ? ' as-list' : '') + '">' +
       (shown.length ? shown.map(cardHtml2).join('') : '<p class="hempty">No projects match' + (q ? ' “' + esc(homeState.q) + '”' : '') + (filterTag ? ' with # ' + esc(filterTag.name) : '') + '.</p>') +
       '<button type="button" class="hcard hadd" data-home-new><span>+</span>New project</button></div></div>' +
-      '<aside class="hside">' +
+      '<aside class="hside"><h2 class="hlabel">Overview</h2>' +
       '<section class="hbox"><h2>Coming up</h2>' + (soon.length ? '<ul class="hsoon">' + soon.slice(0, 6).map(function (x) {
         return '<li><button type="button" data-home-goto="' + esc(x.p.id) + '" data-item="' + esc(x.r.id) + '" title="Open it in ' + esc(x.p.name) + '">' +
           '<i class="cmk ' + (x.r.type === 'milestone' ? 'ms' : 'ph') + '" style="' + colorVar(x.r).slice(2) + '"></i>' +

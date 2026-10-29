@@ -614,12 +614,14 @@ button.logo:focus-visible{outline:2px solid #4790ad;outline-offset:2px}
 .hsearch:focus-within input{width:240px}
 .htools .av.hme{width:30px;height:30px;margin:0;border:0;font-size:10px;cursor:pointer}
 .htools .av.hme:hover{box-shadow:0 0 0 2px #ffffff,0 0 0 3.5px #4790ad}
-.hwrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;max-width:1400px;margin:0 auto;padding:24px}
+.hwrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:24px;max-width:1400px;margin:0 auto;padding:24px}
+.hhello{grid-column:1/-1}
+.hmain{grid-column:1;min-width:0}
+.hside{grid-column:2}
 .hhello h1{margin:0;font:600 22px Inter,system-ui,sans-serif;color:#14171a;letter-spacing:-.01em}
 .hhello p{margin:4px 0 0;font-size:12.5px;color:#6b727b}
-.hbar{display:flex;align-items:center;gap:10px;margin:26px 0 12px;flex-wrap:wrap}
-.hbar h2,.hbox h2{margin:0;font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#6b727b}
-.hspace{flex:1}
+.hbar{grid-column:1/-1;display:flex;align-items:center;gap:12px;margin:20px 0 22px;flex-wrap:wrap}
+.hlabel,.hbox h2{margin:0;font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#6b727b}
 .hsort{display:flex;align-items:center;gap:6px}
 .hsort select{height:28px;padding:0 6px;border:1px solid #dde1e6;border-radius:7px;background:#ffffff;color:#1b1f24;font:500 11.5px Inter,system-ui,sans-serif;cursor:pointer}
 .hfilter{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border:1px solid #b9d8e5;border-radius:12px;background:#eef5f8;color:#2f6f89;font:600 11px Inter,system-ui,sans-serif;cursor:pointer}
@@ -677,6 +679,8 @@ button.logo:focus-visible{outline:2px solid #4790ad;outline-offset:2px}
 .hgrid.as-list .hadd{min-height:44px;display:flex}
 /* The side column: coming up, notes, templates, tags */
 .hside{display:flex;flex-direction:column;gap:14px;min-width:0}
+.hlabel{height:14px;margin:0 0 10px}
+.hside .hlabel{margin-bottom:-4px} /* its column has 14px gaps; this keeps both headings the same distance above their boxes */
 .hbox{padding:14px 16px;border:1px solid #e3e6ea;border-radius:12px;background:#ffffff}
 .hbox h2{margin-bottom:10px}
 .hsoon,.hnotes,.hlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
@@ -706,7 +710,7 @@ button.logo:focus-visible{outline:2px solid #4790ad;outline-offset:2px}
 [data-theme="dark"] .home{background:#0f1214}
 [data-theme="dark"] .hhead{background:#131619;border-bottom-color:#262b31}
 [data-theme="dark"] .hbrand-n,[data-theme="dark"] .hhello h1,[data-theme="dark"] .hcard h3,[data-theme="dark"] .hcounts b{color:#f1f3f5}
-[data-theme="dark"] .hhello p,[data-theme="dark"] .hbar h2,[data-theme="dark"] .hbox h2,[data-theme="dark"] .hcounts,[data-theme="dark"] .hcur,[data-theme="dark"] .hmore,[data-theme="dark"] .hnext-w,[data-theme="dark"] .hsoon-t span,[data-theme="dark"] .hlist li>span span{color:#8a919a}
+[data-theme="dark"] .hhello p,[data-theme="dark"] .hlabel,[data-theme="dark"] .hbox h2,[data-theme="dark"] .hcounts,[data-theme="dark"] .hcur,[data-theme="dark"] .hmore,[data-theme="dark"] .hnext-w,[data-theme="dark"] .hsoon-t span,[data-theme="dark"] .hlist li>span span{color:#8a919a}
 [data-theme="dark"] .hcard,[data-theme="dark"] .hbox{background:#181b1f;border-color:#2b3036;box-shadow:none}
 [data-theme="dark"] .hcard:hover{border-color:#3a4047}
 [data-theme="dark"] .hcard-ft,[data-theme="dark"] .hlist li{border-color:#22272c}
@@ -723,7 +727,7 @@ button.logo:focus-visible{outline:2px solid #4790ad;outline-offset:2px}
 [data-theme="dark"] .hsort select,[data-theme="dark"] .hnote-add{background:#131619;border-color:#2b3036;color:#e4e7ea}
 [data-theme="dark"] .hfilter{background:#1d3440;border-color:#2b4c5a;color:#8fcbe2}
 [data-theme="dark"] .htools .av.hme:hover{box-shadow:0 0 0 2px #131619,0 0 0 3.5px #4790ad}
-@media (max-width:980px){.hwrap{grid-template-columns:1fr}.hgrid.as-list .hcard{grid-template-columns:1fr;grid-template-areas:"top" "name" "dates" "prog" "ft"}}
+@media (max-width:980px){.hwrap{grid-template-columns:1fr}.hside{grid-column:1;margin-top:24px}.hgrid.as-list .hcard{grid-template-columns:1fr;grid-template-areas:"top" "name" "dates" "prog" "ft"}}
 /* Profile: the avatar at the bottom of the rail, and its popup beside it */
 .rail .profile-btn{display:inline-flex;align-items:center;justify-content:center;padding:0;color:#ffffff;font:700 8px Inter,sans-serif;cursor:pointer}
 .rail .profile-btn:hover,.rail .profile-btn[aria-expanded="true"]{box-shadow:0 0 0 2px #ffffff,0 0 0 3.5px #4790ad}
