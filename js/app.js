@@ -493,7 +493,9 @@
         html += '<div class="wl-over" title="' + esc((bk.p ? bk.p.name : 'Unassigned') + ' has more than one task at once here') +
           '" style="left: ' + dayX(s[0]) + 'px; width: ' + Math.max(dayX(s[1]) - dayX(s[0]), 2) + 'px; top: ' + top + 'px; height: ' + h + 'px"></div>';
       });
-      html += '<div class="wl-sep" style="top: ' + (top + h - 1) + 'px"></div>';
+      var tint = bk.p ? ' style="--c: ' + esc(bk.p.color || AVATAR_COLORS[0]) + '; top: ' : ' style="top: ';
+      html = '<div class="wl-band' + (bk.p ? '' : ' none') + '"' + tint + top + 'px; height: ' + h + 'px"></div>' + html; // behind everything
+      html += '<div class="wl-sep" style="top: ' + (top + h - 2) + 'px"></div>';
     });
     wl.groups.forEach(function (u) {
       var first = Math.min.apply(null, u.rows.map(startDay));
@@ -810,7 +812,8 @@
       var name = bk.p ? bk.p.name : 'Unassigned';
       var tip = state === 'over' ? 'More than one task at once for ' + duration({ start: 0, end: bk.overDays })
         : state === 'ok' ? 'No overlapping work' : 'No work assigned';
-      return '<div class="trow wl-p" role="button" tabindex="0" data-person="' + esc(bk.id) + '" style="height: ' + bk.lanes * ROW_PX + 'px" title="' +
+      return '<div class="trow wl-p' + (bk.p ? '' : ' none') + '" role="button" tabindex="0" data-person="' + esc(bk.id) + '" style="height: ' + bk.lanes * ROW_PX + 'px' +
+        (bk.p ? '; --c: ' + esc(bk.p.color || AVATAR_COLORS[0]) : '') + '" title="' +
         esc(name + ' · ' + sub + ' · click to go to their first item') + '">' + face +
         '<span class="wl-who"><span class="tn">' + esc(name) + '</span><span class="wl-sub">' + esc(sub) + '</span></span>' +
         '<i class="wl-dot ' + state + '" title="' + tip + '"></i></div>';
