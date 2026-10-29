@@ -329,7 +329,7 @@
 
   // Day view and coarser: items timed within a single day would pile up on top of each
   // other at that day, so runs of them (one row after another, all on the same day) are
-  // drawn as one group instead, with a dot per row. Clicking a group opens the hour view
+  // drawn as day pills instead, one per row with its time. Clicking one opens the hour view
   // at that day. All-day items, and anything longer than a day, draw as usual.
   var grouped = {}; // row id → its group, while drawn grouped
 
@@ -361,37 +361,31 @@
     return groups;
   }
 
+  // A pill on each grouped row at its day, like the workload's: the item's marker and
+  // its time (a phase's span). Clicking it opens the hour view at that time.
   function groupHtml(g) {
-    var rows = data.rows.slice(g.from, g.to + 1);
-    var first = Math.min.apply(null, rows.map(startDay));
-    var last = Math.max.apply(null, rows.map(function (r) { return r.end != null ? r.end : startDay(r); }));
     var x1 = dayX(g.day);
-    var x2 = dayX(g.day + 1);
-    var w = Math.max(x2 - x1, 18);
-    var left = (x1 + x2) / 2 - w / 2;
-    var top = ROW_Y + g.from * ROW_PX - 13;
-    var n = rows.length;
-    var span = timeOf(first) + '–' + timeOf(last);
-    var dots = rows.map(function (r, k) {
-      var cls = r.type === 'phase' ? 'ph' : r.type === 'milestone' ? 'ms' : r.parent ? 'sub' : '';
-      return '<i class="' + cls + '" style="top: ' + (13 + k * ROW_PX) + 'px' + colorVar(r) + '"></i>';
+    var w = Math.max(dayX(g.day + 1) - x1, 64);
+    return data.rows.slice(g.from, g.to + 1).map(function (r, k) {
+      var s = startDay(r);
+      var when = timeOf(s) + (r.end != null ? '–' + timeOf(r.end) : '');
+      var mark = r.type === 'phase' ? 'ph' : r.type === 'milestone' ? 'ms' : r.parent ? 'sub' : '';
+      return '<div class="wl-group row-pill' + (r.id === freshId ? ' fresh' : '') + '" data-group="' + g.day + '" data-first="' + s +
+        '" role="button" tabindex="0" title="' + esc(r.name + ' · ' + itemLabel(r) + ' · click to see it by the hour') +
+        '" style="left: ' + x1 + 'px; top: ' + (ROW_Y + (g.from + k) * ROW_PX - 10) + 'px; min-width: ' + w + 'px">' +
+        '<i class="' + mark + '" style="' + colorVar(r).slice(2) + '"></i>' + when + '</div>';
     }).join('');
-    var fresh = rows.some(function (r) { return r.id === freshId; }) ? ' fresh' : '';
-    var tip = ' data-group="' + g.day + '" title="' + itemsWord(n) + ' on ' + dayLabel(g.day) + ', ' + span + ' · click to see them by the hour"';
-    return '<div class="group-day' + fresh + '"' + tip + ' role="button" tabindex="0" style="left: ' + left + 'px; top: ' + top + 'px; width: ' + w +
-      'px; height: ' + ((n - 1) * ROW_PX + 26) + 'px">' + dots + '</div>' +
-      '<div class="wl-group' + fresh + '"' + tip + ' style="left: ' + (left + w + 6) + 'px; top: ' + (top + 3) + 'px"><b>' + n + '</b> ' +
-      (n === 1 ? 'item' : 'items') + '</div>';
   }
 
   function itemsWord(n) {
     return n + (n === 1 ? ' item' : ' items');
   }
 
-  // Open the hour view at a group's day, starting just before its first item.
-  function openDay(day) {
+  // Open the hour view at a day, starting just before `first` (by default the day's first
+  // grouped item).
+  function openDay(day, first) {
     var rows = data.rows.filter(function (r) { return grouped[r.id] && grouped[r.id].day === day; });
-    var first = rows.length ? Math.min.apply(null, rows.map(startDay)) : day + 9 / 24;
+    if (first == null || isNaN(first)) first = rows.length ? Math.min.apply(null, rows.map(startDay)) : day + 9 / 24;
     var t = PLAN_START + first * DAY - HOUR;
     closePeek();
     setScale('H');
@@ -2023,7 +2017,7 @@
     }
     var hit = document.elementFromPoint(e.clientX, e.clientY);
     var day = hit && hit.closest('[data-group]');
-    if (day) return openDay(+day.getAttribute('data-group'));
+    if (day) return openDay(+day.getAttribute('data-group'), parseFloat(day.getAttribute('data-first')));
     var el = hit && hit.closest('.plan [data-id]');
     if (el) return openPeek(el.getAttribute('data-id'), el, e.clientX);
     var spot = spotAt(e.clientX, e.clientY);
@@ -2115,7 +2109,7 @@
     var g = e.target.closest('[data-group]');
     if (g && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
-      openDay(+g.getAttribute('data-group'));
+      openDay(+g.getAttribute('data-group'), parseFloat(g.getAttribute('data-first')));
     }
   });
 

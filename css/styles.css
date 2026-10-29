@@ -576,9 +576,18 @@ button:disabled{cursor:not-allowed}
 .wl-over{position:absolute;background:repeating-linear-gradient(135deg,rgba(207,70,70,.13) 0 6px,rgba(207,70,70,.06) 6px 12px);border-left:1.5px solid rgba(207,70,70,.55);border-right:1.5px solid rgba(207,70,70,.55);box-sizing:border-box}
 .wl-group{position:absolute;box-sizing:border-box;height:20px;padding:0 9px;border-radius:10px;background:#e6f2f7;border:1px solid #9cc8da;color:#2f6f89;font:500 11px/18px Inter,sans-serif;white-space:nowrap;cursor:pointer}
 .wl-group b{font-weight:700}
+/* Timeline rows in day view and coarser: a pill per row with its marker and time */
+.row-pill{display:inline-flex;align-items:center;gap:6px;font-family:"JetBrains Mono",monospace;font-size:10.5px}
+.row-pill i{flex:none;width:8px;height:8px;box-sizing:border-box;border-radius:50%;border:2px solid var(--c,#418dab);background:#ffffff}
+.row-pill i.sub{width:7px;height:7px;border-width:1.5px}
+.row-pill i.ms{border:0;border-radius:1.5px;background:#d4802c;transform:rotate(45deg)}
+.row-pill i.ph{width:10px;height:10px;border-color:#a596ea}
+[data-theme="dark"] .row-pill i{background:#131619}
+[data-theme="dark"] .row-pill i.ms{background:#d4802c}
+[data-theme="dark"] .row-pill i.ph{border-color:#6e63b8}
 .wl-group:hover,.wl-group:focus-visible{background:#d6eaf3;border-color:#418dab;outline:0}
 /* Lit up for a moment after going to an item inside it */
-.wl-group.fresh,.group-day.fresh{animation:gfresh 1.4s ease-out 2}
+.wl-group.fresh{animation:gfresh 1.4s ease-out 2}
 @keyframes gfresh{0%,40%{border-color:#418dab;box-shadow:0 0 0 4px rgba(65,141,171,.3)}}
 .trow.wl-p{align-items:flex-start;gap:9px;padding:4px 10px 0 9px;box-sizing:border-box;border-left:3px solid var(--c,#a9b1ba);border-bottom:2px solid #d3d9e0;cursor:pointer;background:#f6f7f9;background:color-mix(in srgb,var(--c,#a9b1ba) 9%,#f6f7f9)}
 .trow.wl-p.none{border-left-color:#c3c9d0;background:#f3f4f6}
@@ -688,18 +697,6 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .kc-ph,[data-theme="dark"] .kc-sub{color:#8a919a}
 [data-theme="dark"] .kc-pg{background:#262b31}
 [data-theme="dark"] .bnone button{color:#6fb6d2}
-/* Day groups (day view and coarser): a day's timed items as one capsule, a dot per row */
-.group-day{position:absolute;box-sizing:border-box;border-radius:9px;background:rgba(65,141,171,.1);border:1.5px solid rgba(65,141,171,.45);cursor:pointer;transition:background .12s,border-color .12s}
-.group-day i{position:absolute;left:50%;width:8px;height:8px;margin:-4px 0 0 -4px;box-sizing:border-box;border-radius:50%;border:2px solid var(--c,#418dab);background:#ffffff}
-.group-day i.sub{width:6px;height:6px;margin:-3px 0 0 -3px;border-width:1.5px}
-.group-day i.ms{border-radius:1.5px;border:0;background:#d4802c;transform:rotate(45deg)}
-.group-day i.ph{width:10px;height:10px;margin:-5px 0 0 -5px;border-color:#a596ea}
-.group-day:hover,.group-day:focus-visible{background:rgba(65,141,171,.18);border-color:#418dab;outline:0}
-[data-theme="dark"] .group-day{background:rgba(90,166,196,.12);border-color:rgba(90,166,196,.45)}
-[data-theme="dark"] .group-day:hover,[data-theme="dark"] .group-day:focus-visible{background:rgba(90,166,196,.22);border-color:#5aa6c4}
-[data-theme="dark"] .group-day i{background:#131619}
-[data-theme="dark"] .group-day i.ms{background:#d4802c}
-[data-theme="dark"] .group-day i.ph{border-color:#6e63b8}
 /* Project tag: the pill takes the tag's colour (--c); clicking opens the tag popup */
 .tagwrap{position:relative;display:inline-flex}
 button.pill{cursor:pointer;line-height:1;white-space:nowrap}
