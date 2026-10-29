@@ -564,6 +564,31 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .pp-sel .pp-del{color:#f0a39d}
 [data-theme="dark"] .pp-sel .pp-del.armed{color:#ffffff}
 [data-theme="dark"] .newp{background:#15181b;border-color:#2b3036}
+/* Workload: the timeline by person. Rows are people, overload is tinted red */
+.wl-sep{position:absolute;left:0;right:0;height:1px;background:#dfe3e8;pointer-events:none}
+.wl-over{position:absolute;background:repeating-linear-gradient(135deg,rgba(207,70,70,.13) 0 6px,rgba(207,70,70,.06) 6px 12px);border-left:1.5px solid rgba(207,70,70,.55);border-right:1.5px solid rgba(207,70,70,.55);box-sizing:border-box}
+.wl-group{position:absolute;box-sizing:border-box;height:20px;padding:0 9px;border-radius:10px;background:#e6f2f7;border:1px solid #9cc8da;color:#2f6f89;font:500 11px/18px Inter,sans-serif;white-space:nowrap;cursor:pointer}
+.wl-group b{font-weight:700}
+.wl-group:hover,.wl-group:focus-visible{background:#d6eaf3;border-color:#418dab;outline:0}
+.trow.wl-p{align-items:flex-start;gap:9px;padding-top:7px;box-sizing:border-box;border-bottom:1px solid #e3e6ea;cursor:pointer}
+.trow.wl-p:hover{background:#eef1f4}
+.trow.wl-p:focus-visible{outline:2px solid #4790ad;outline-offset:-2px}
+.trow.wl-p .pav{width:20px;height:20px;font-size:7.5px}
+.trow.wl-p .pav.none{box-sizing:border-box;border:1.5px dashed #a9b1ba;background:transparent}
+.wl-who{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.wl-who .tn{font-weight:600}
+.wl-sub{font-size:10px;color:#7b828b;overflow:hidden;text-overflow:ellipsis}
+.wl-dot{flex:none;width:7px;height:7px;margin:6px 2px 0 0;border-radius:50%;background:#b0b5bc}
+.wl-dot.ok{background:#2fa36b}
+.wl-dot.over{background:#cf4646;box-shadow:0 0 0 3px rgba(207,70,70,.18)}
+.app[data-page="workload"] .gut .caret{display:none}
+[data-theme="dark"] .wl-sep{background:#2b3036}
+[data-theme="dark"] .wl-group{background:#16303a;border-color:#2b4c5a;color:#8fcbe2}
+[data-theme="dark"] .wl-group:hover,[data-theme="dark"] .wl-group:focus-visible{background:#1d3d4a;border-color:#5aa6c4}
+[data-theme="dark"] .trow.wl-p{border-bottom-color:#2b3036}
+[data-theme="dark"] .trow.wl-p:hover{background:#1c2024}
+[data-theme="dark"] .trow.wl-p .pav.none{border-color:#5a6169}
+[data-theme="dark"] .wl-sub{color:#8a919a}
 /* Board: kanban columns of cards */
 .blbl{font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#7b828b}
 .bseg{display:inline-flex;border:1px solid #dde1e6;border-radius:7px;padding:2px;gap:1px}

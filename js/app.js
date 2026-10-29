@@ -309,7 +309,7 @@
 
   // Where a row's shape sits: horizontal extent, vertical centre and top edge.
   function box(row, i) {
-    var cy = ROW_Y + i * ROW_PX;
+    var cy = workload ? (wl.cy[row.id] != null ? wl.cy[row.id] : ROW_Y) : ROW_Y + i * ROW_PX;
     if (isPoint(row)) {
       var x = dayX(row.type === 'milestone' ? row.day : row.start);
       var xe = row.end != null ? dayX(row.end) : x; // a milestone's finish diamond
@@ -380,6 +380,7 @@
     var rows = data.rows.filter(function (r) { return grouped[r.id] && grouped[r.id].day === day; });
     var first = rows.length ? Math.min.apply(null, rows.map(startDay)) : day + 9 / 24;
     var t = PLAN_START + first * DAY - HOUR;
+    closePeek();
     setScale('H');
     recentre(t);
     scroller.scrollLeft = xOf(t);
@@ -387,14 +388,139 @@
     syncTodayArrow();
   }
 
+  // Workload: the same timeline, but a row per person (and Unassigned) instead of a row
+  // per item. Each person's tasks and milestones are packed into as few lanes as they fit
+  // without overlapping on screen, and times when they have two timed tasks at once are
+  // tinted red: that's their overload. In day view and coarser, a person's several timed
+  // items on one day become one "n items" pill that opens the hour view. Phases and
+  // dependency arrows aren't drawn here.
+  var workload = false;
+  var wl = null; // the layout: each row's lane centre, each person's block
+
+  // Where several timed tasks run at once: [start, end] day ranges, merged.
+  function overlaps(rows) {
+    var ev = [];
+    rows.forEach(function (r) {
+      if (r.type !== 'task' || r.end == null) return;
+      ev.push([r.start, 1], [r.end, -1]);
+    });
+    ev.sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; }); // finishes before starts
+    var out = [];
+    var n = 0;
+    var from = null;
+    ev.forEach(function (e) {
+      n += e[1];
+      if (n >= 2 && from == null) from = e[0];
+      if (n < 2 && from != null) {
+        if (e[0] > from) out.push([from, e[0]]);
+        from = null;
+      }
+    });
+    return out;
+  }
+
+  function workloadLayout() {
+    var items = data.rows.filter(function (r) { return r.type !== 'phase'; });
+    var owners = data.people.map(function (p) { return { id: p.id, p: p }; });
+    var unassigned = items.filter(function (r) { return !personById(r.person); });
+    if (unassigned.length || !owners.length) owners.push({ id: '', p: null });
+    var layout = { cy: {}, blocks: [], groups: [], grouped: {}, lanes: 0 };
+    owners.forEach(function (o) {
+      var mine = items.filter(function (r) { return (personById(r.person) ? r.person : '') === o.id; });
+      // Things to place: single items, or in coarse views a day's several timed items.
+      var units = [];
+      var byDay = {};
+      mine.forEach(function (r) {
+        if (scale.unit !== 'hour' && intraday(r)) {
+          var d = Math.floor(startDay(r));
+          (byDay[d] = byDay[d] || []).push(r);
+        } else {
+          units.push({ rows: [r] });
+        }
+      });
+      Object.keys(byDay).forEach(function (d) {
+        if (byDay[d].length === 1) units.push({ rows: byDay[d] });
+        else units.push({ rows: byDay[d], day: +d });
+      });
+      units.forEach(function (u) {
+        var r = u.rows[0];
+        if (u.day != null) {
+          u.x1 = dayX(u.day);
+          u.x2 = u.x1 + Math.max(dayX(u.day + 1) - u.x1, 64);
+        } else {
+          var b = { x1: dayX(startDay(r)) };
+          if (r.type === 'milestone') b = { x1: b.x1 - 6, x2: (r.end != null ? dayX(r.end) : b.x1 + 6) + 6 };
+          else if (r.end == null) b.x2 = b.x1 + 26 + r.name.length * 6.6; // ring and name
+          else b.x2 = Math.max(dayX(r.end), b.x1 + 4);
+          u.x1 = b.x1 - (r.end == null && r.type === 'task' ? 6 : 0);
+          u.x2 = b.x2;
+        }
+      });
+      units.sort(function (a, b) { return a.x1 - b.x1; });
+      var ends = []; // each lane's right edge so far
+      units.forEach(function (u) {
+        var k = 0;
+        while (k < ends.length && ends[k] > u.x1 - 6) k++;
+        ends[k] = u.x2;
+        u.lane = k;
+      });
+      var lanes = Math.max(1, ends.length);
+      units.forEach(function (u) {
+        var cy = ROW_Y + (layout.lanes + u.lane) * ROW_PX;
+        u.rows.forEach(function (r) { layout.cy[r.id] = cy; });
+        if (u.day != null) {
+          u.cy = cy;
+          layout.groups.push(u);
+          u.rows.forEach(function (r) { layout.grouped[r.id] = u; });
+        }
+      });
+      var over = overlaps(mine);
+      layout.blocks.push({
+        id: o.id, p: o.p, rows: mine, first: layout.lanes, lanes: lanes, over: over,
+        overDays: over.reduce(function (sum, s) { return sum + s[1] - s[0]; }, 0)
+      });
+      layout.lanes += lanes;
+    });
+    return layout;
+  }
+
+  function workloadHtml() {
+    var html = '';
+    wl.blocks.forEach(function (bk) {
+      var top = ROW_Y - ROW_PX / 2 + bk.first * ROW_PX;
+      var h = bk.lanes * ROW_PX;
+      bk.over.forEach(function (s) {
+        html += '<div class="wl-over" title="' + esc((bk.p ? bk.p.name : 'Unassigned') + ' has more than one task at once here') +
+          '" style="left: ' + dayX(s[0]) + 'px; width: ' + Math.max(dayX(s[1]) - dayX(s[0]), 2) + 'px; top: ' + top + 'px; height: ' + h + 'px"></div>';
+      });
+      html += '<div class="wl-sep" style="top: ' + (top + h - 1) + 'px"></div>';
+    });
+    wl.groups.forEach(function (u) {
+      var first = Math.min.apply(null, u.rows.map(startDay));
+      var last = Math.max.apply(null, u.rows.map(function (r) { return r.end != null ? r.end : startDay(r); }));
+      html += '<div class="wl-group" data-group="' + u.day + '" data-first="' + first + '" role="button" tabindex="0" title="' +
+        esc(u.rows.length + ' items on ' + dayLabel(u.day) + ', ' + timeOf(first) + '–' + timeOf(last) + ' · click to see them by the hour') +
+        '" style="left: ' + u.x1 + 'px; top: ' + (u.cy - 10) + 'px; min-width: ' + (u.x2 - u.x1) + 'px"><b>' + u.rows.length + '</b> items</div>';
+    });
+    return html;
+  }
+
   function renderPlan() {
     var html = '';
     var bands = '';
-    dayGroups().forEach(function (g) { html += groupHtml(g); });
+    if (workload) {
+      wl = workloadLayout();
+      grouped = wl.grouped;
+      html += workloadHtml();
+    } else {
+      dayGroups().forEach(function (g) { html += groupHtml(g); });
+    }
     data.rows.forEach(function (row, i) {
       if (grouped[row.id]) return; // drawn as part of a day group
+      if (workload && row.type === 'phase') return;
       var b = box(row, i);
       var who = personById(row.person);
+      var face = workload ? null : who; // the workload row already says whose it is
       var tip = ' data-id="' + esc(row.id) + '" title="' + esc(row.name + ' · ' + itemLabel(row) + (who ? ' · ' + who.name : '')) + '"';
       var state = (row.id === freshId ? ' fresh' : '') + (row.id === movingId ? ' moving' : '');
       if (row.type === 'phase') {
@@ -422,7 +548,7 @@
         // A task at a moment: a ring (filled with a tick once done) with its name beside it.
         html += '<div class="pt' + (row.parent ? ' lt' : '') + (row.progress >= 1 ? ' done' : '') + state + '"' + tip +
           ' style="left: ' + b.x1 + 'px; top: ' + (b.cy - 10) + 'px' + colorVar(row) + '"><i></i>' +
-          '<span class="t">' + esc(row.name) + '</span>' + (who ? avatar(who) : '') + '</div>';
+          '<span class="t">' + esc(row.name) + '</span>' + (face ? avatar(face) : '') + '</div>';
       } else {
         // Progress darkens the done part of the bar, whatever its colour.
         var fill = row.progress && !row.parent
@@ -431,19 +557,19 @@
         html += '<div class="bar ' + (row.parent ? 'lt' : 'dk') + (b.x2 - b.x1 < 30 ? ' tiny' : '') + state + '" data-id="' + esc(row.id) +
           '" style="left: ' + b.x1 + 'px; top: ' + b.top + 'px; width: ' + (b.x2 - b.x1) + 'px' + fill + colorVar(row) + '" title="' +
           esc(row.name + ' · ' + rangeLabel(row) + (who ? ' · ' + who.name : '')) + '">' +
-          '<span class="t">' + esc(row.name) + '</span>' + (who && b.x2 - b.x1 >= 70 ? avatar(who) : '') + '</div>';
+          '<span class="t">' + esc(row.name) + '</span>' + (face && b.x2 - b.x1 >= 70 ? avatar(face) : '') + '</div>';
       }
     });
     plan.innerHTML = html;
     bandsEl.innerHTML = bands;
 
     // Leave a screen of blank space below the last row so the chart can always scroll down.
-    var lastRow = ROW_Y + data.rows.length * ROW_PX;
+    var lastRow = ROW_Y + (workload ? wl.lanes : data.rows.length) * ROW_PX;
     chartBody.style.minHeight = Math.max(620, lastRow + scroller.clientHeight - 41 - 2 * ROW_PX) + 'px';
 
     // Each arrow leaves the end of `from` and drops onto the start of `to`.
     depsEl.innerHTML = data.deps.filter(function (dep) {
-      return rowIndex[dep[0]] != null && rowIndex[dep[1]] != null && !grouped[dep[0]] && !grouped[dep[1]];
+      return !workload && rowIndex[dep[0]] != null && rowIndex[dep[1]] != null && !grouped[dep[0]] && !grouped[dep[1]];
     }).map(function (dep) {
       var fi = rowIndex[dep[0]];
       var ti = rowIndex[dep[1]];
@@ -459,6 +585,7 @@
     }).join('');
 
     renderStats();
+    if (workload) renderPeopleList(); // lanes change with zoom, so the people rows do too
   }
 
   // Footer counts come straight from the data, so they stay right as the plan changes.
@@ -639,6 +766,7 @@
   var chartBody = chart.querySelector('.body');
 
   function renderTaskList() {
+    if (workload) return renderPeopleList();
     if (!data.rows.length) {
       taskRowsEl.innerHTML = '<div class="trow empty">Nothing here yet.&nbsp;<button type="button" data-empty-add>Add a task</button></div>';
       return;
@@ -665,6 +793,36 @@
     }).join('') +
       // The empty row after the last one adds a new task; it only shows itself on hover.
       '<div class="trow add" role="button" tabindex="0" title="Add a task" data-add-row><i class="ic"></i><span class="tn">New task</span></div>';
+  }
+
+  // Workload: the panel lists people, each as tall as their lanes, with how many items they
+  // have and any overload. Clicking one goes to their first item.
+  function renderPeopleList() {
+    if (!wl) wl = workloadLayout();
+    var overloaded = wl.blocks.filter(function (bk) { return bk.overDays > 0; }).length;
+    panel.querySelector('.gut-title').textContent = 'People' + (overloaded ? ' · ' + overloaded + ' overloaded' : '');
+    taskRowsEl.innerHTML = wl.blocks.map(function (bk) {
+      var n = bk.rows.length;
+      var state = bk.overDays > 0 ? 'over' : n ? 'ok' : 'idle';
+      var sub = n ? n + (n === 1 ? ' item' : ' items') : 'Nothing assigned';
+      if (bk.overDays > 0) sub += ' · ' + duration({ start: 0, end: bk.overDays }) + ' overlap';
+      var face = bk.p ? avatar(bk.p) : '<span class="pav none" aria-hidden="true"></span>';
+      var name = bk.p ? bk.p.name : 'Unassigned';
+      var tip = state === 'over' ? 'More than one task at once for ' + duration({ start: 0, end: bk.overDays })
+        : state === 'ok' ? 'No overlapping work' : 'No work assigned';
+      return '<div class="trow wl-p" role="button" tabindex="0" data-person="' + esc(bk.id) + '" style="height: ' + bk.lanes * ROW_PX + 'px" title="' +
+        esc(name + ' · ' + sub + ' · click to go to their first item') + '">' + face +
+        '<span class="wl-who"><span class="tn">' + esc(name) + '</span><span class="wl-sub">' + esc(sub) + '</span></span>' +
+        '<i class="wl-dot ' + state + '" title="' + tip + '"></i></div>';
+    }).join('');
+  }
+
+  // Go to a person's earliest item on the workload timeline.
+  function goToPerson(id) {
+    var bk = wl && wl.blocks.filter(function (b) { return b.id === id; })[0];
+    if (!bk || !bk.rows.length) return;
+    var first = bk.rows.slice().sort(function (a, b) { return startDay(a) - startDay(b); })[0];
+    goToRow(first.id);
   }
 
   function syncPanelScroll() {
@@ -1176,6 +1334,7 @@
     form.reset();
     fillOptions(editing);
     if (spot && spot.phase != null) form.elements.phase.value = spot.phase;
+    if (spot && spot.person) pickPerson(spot.person); // clicked in someone's workload row
     var f = form.elements;
     Array.prototype.forEach.call(f.type, function (r) { r.disabled = !!editing; });
     deleteBtn.hidden = !editing;
@@ -1555,6 +1714,8 @@
       sorted = false;
       return;
     }
+    var pr = e.target.closest('[data-person]');
+    if (pr) return goToPerson(pr.getAttribute('data-person'));
     if (e.target.closest('[data-empty-add],[data-add-row]')) return openForm();
     var tr = e.target.closest('.trow[data-id]');
     if (!tr) return;
@@ -1565,6 +1726,11 @@
     if (e.target.closest('[data-add-row]') && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
       return openForm();
+    }
+    var pr = e.target.closest('[data-person]');
+    if (pr && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      return goToPerson(pr.getAttribute('data-person'));
     }
     var tr = e.target.closest('.trow[data-id]');
     if (!tr || e.target.closest('[data-row-edit]')) return;
@@ -1592,6 +1758,11 @@
     var t = timeAt(clientX - r.left);
     t = scale.unit === 'hour' ? Math.floor(t / (HOUR / 4)) * HOUR / 4 : startOf(t, 'day');
     var y = clientY - r.top;
+    if (workload) { // the person whose row it is
+      var lane = Math.floor((y - ROW_Y) / ROW_PX + 0.5);
+      var bk = wl.blocks.filter(function (b) { return lane >= b.first && lane < b.first + b.lanes; })[0];
+      return { time: t, phase: null, person: bk ? bk.id : null, y: y };
+    }
     var row = data.rows[Math.floor((y - ROW_Y) / ROW_PX + 0.5)];
     var phase = !row ? phaseAt(t) : row.type === 'phase' ? row.id : phaseOf(row.parent ? data.rows[rowIndex[row.parent]] : row);
     return { time: t, phase: phase, y: y };
@@ -1619,7 +1790,7 @@
     ghost.style.left = xOf(spot.time) + 'px';
     ghost.firstChild.style.top = spot.y + 'px';
     ghost.firstChild.textContent = '+ ' + (scale.unit === 'hour' ? clockOf(spot.time) : dayLabel((spot.time - PLAN_START) / DAY)) +
-      (spot.phase ? ' · ' + data.rows[rowIndex[spot.phase]].name : '');
+      (spot.phase ? ' · ' + data.rows[rowIndex[spot.phase]].name : personById(spot.person) ? ' · ' + personById(spot.person).name : '');
   });
   scroller.addEventListener('pointerleave', function () { ghost.hidden = true; });
 
@@ -2717,6 +2888,17 @@
     });
     closePeek();
     try { localStorage.setItem('roadmapPage', page); } catch (e) {}
+    // Workload redraws the timeline by person, with the people panel always open.
+    if ((page === 'workload') !== workload) {
+      workload = page === 'workload';
+      if (!workload) panel.querySelector('.gut-title').textContent = 'Task';
+      var open = false;
+      try { open = localStorage.getItem('taskPanel') === 'open'; } catch (e) {}
+      panel.classList.toggle('open', workload || open);
+      renderPlan();
+      renderTaskList();
+      syncPanelScroll();
+    }
   }
 
   pageBtns.forEach(function (btn) {
@@ -2726,7 +2908,7 @@
   renderList();
   var savedPage;
   try { savedPage = localStorage.getItem('roadmapPage'); } catch (e) {}
-  setPage(savedPage === 'list' || savedPage === 'board' ? savedPage : 'timeline');
+  setPage(['list', 'board', 'workload'].indexOf(savedPage) >= 0 ? savedPage : 'timeline');
 
   // Project tag: the tag beside the project name. Tags are a shared list (kept in this
   // browser apart from the plan), so other projects can use the same tag; this project
