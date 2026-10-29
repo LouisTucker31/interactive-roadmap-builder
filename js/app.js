@@ -1243,14 +1243,23 @@
       }
       return;
     }
-    // Single keys: N adds a task, T goes back to today on the timeline.
+    // Single keys: N adds a task, T goes back to today.
     if (e.shiftKey || e.repeat) return;
     if (key === 'n') {
       e.preventDefault();
       openForm();
-    } else if (key === 't' && app.getAttribute('data-page') !== 'list') {
-      e.preventDefault();
-      scrollToTime(home(), 0);
+    } else if (key === 't') {
+      // Back to today: on the timeline (and workload), or this month or week on the calendar.
+      var pg = app.getAttribute('data-page');
+      if (pg === 'timeline' || pg === 'workload') {
+        e.preventDefault();
+        scrollToTime(home(), 0);
+      } else if (pg === 'calendar') {
+        e.preventDefault();
+        calAt = TODAY;
+        saveCal();
+        renderCal();
+      }
     }
   });
 
@@ -4756,8 +4765,10 @@
     if (profView === 'edit') {
       profPop.innerHTML = '<div class="pf-hd"><button type="button" class="pf-back" aria-label="Back" data-pf-view="main">' + BACK + '</button>Edit profile</div>' +
         '<div class="pf-body">' +
-        '<label class="sfld"><span class="fl">Name</span><input type="text" maxlength="60" value="' + esc(me.name) + '" autocomplete="name" data-pf-name></label>' +
-        '<label class="sfld"><span class="fl">Email</span><input type="email" maxlength="120" value="' + esc(me.email) + '" placeholder="you@example.com" autocomplete="email" data-pf-email></label>' +
+        '<label class="sfld"><span class="fl">Display name</span><input type="text" maxlength="60" value="' + esc(me.name) + '" autocomplete="name" data-pf-name></label>' +
+        // The email is the account's sign-in, so it's shown here but not edited.
+        '<div class="sfld"><span class="fl">Email</span><div class="pf-email">' + (me.email ? esc(me.email) : 'Arrives with sign-in') + '</div>' +
+        '<span class="pf-hint">Your sign-in email. It can’t be changed here.</span></div>' +
         '<div class="sfld"><span class="fl">Avatar colour</span><div class="pcolors" role="radiogroup" aria-label="Avatar colour">' + AVATAR_COLORS.map(function (c) {
           return '<label class="sw sm"><input type="radio" name="pfColor" value="' + c + '"' + (c === me.color ? ' checked' : '') + ' aria-label="Colour ' + c + '"><span style="background: ' + c + '"></span></label>';
         }).join('') + '</div></div>' +
@@ -4769,7 +4780,7 @@
     if (profView === 'keys') {
       var keys = [
         [mod + ' Z', 'Undo'], [mod + ' Y', 'Redo (also ' + mod + ' Shift Z)'], [mod + ' F', 'Search'],
-        ['N', 'New task'], ['T', 'Back to today on the timeline'], ['Esc', 'Close a popup, or put back an item being moved'],
+        ['N', 'New task'], ['T', 'Back to today (timeline, workload, calendar)'], ['Esc', 'Close a popup, or put back an item being moved'],
         ['↑ ↓ Enter', 'Pick a search result'], ['Enter', 'Open the selected row or card'],
         ['E', 'Edit the selected task list row'], ['Alt ↑ ↓', 'Move the selected task list row'],
         ['Hold, then drag', 'Move an item on the timeline']
@@ -4786,7 +4797,7 @@
     var mode = themeMode();
     profPop.innerHTML = '<div class="pf-me">' +
       '<span class="pav pf-av" style="background: ' + esc(me.color) + '" aria-hidden="true">' + esc(initials(me.name || '?')) + '</span>' +
-      '<div class="pf-who"><b>' + esc(me.name || 'Your name') + '</b><span>' + (me.email ? esc(me.email) : 'No email yet') + '</span></div>' +
+      '<div class="pf-who"><b>' + esc(me.name || 'Your name') + '</b><span>' + (me.email ? esc(me.email) : 'Not signed in') + '</span></div>' +
       '<button type="button" class="btn" data-pf-view="edit">Edit</button></div>' +
       '<div class="pf-sec"><span class="pf-lbl">Appearance</span><div class="bseg" role="group" aria-label="Theme">' +
       [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']].map(function (o) {
@@ -4819,15 +4830,14 @@
 
   function saveProfileForm() {
     var name = profPop.querySelector('[data-pf-name]').value.trim().replace(/\s+/g, ' ');
-    var email = profPop.querySelector('[data-pf-email]').value.trim();
     var err = profPop.querySelector('[data-pf-err]');
-    if (!name || (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
-      err.textContent = name ? 'That email doesn’t look quite right.' : 'Add your name.';
+    if (!name) {
+      err.textContent = 'Add your display name.';
       err.hidden = false;
       return;
     }
     var col = profPop.querySelector('[name="pfColor"]:checked');
-    me = { name: name, email: email, color: col ? col.value : me.color };
+    me = { name: name, email: me.email, color: col ? col.value : me.color };
     saveMe();
     renderProfBtn();
     profView = 'main';
@@ -4858,7 +4868,7 @@
       }
       openProfile(false);
       profBtn.focus();
-    } else if (e.key === 'Enter' && profView === 'edit' && e.target.matches('input[type=text], input[type=email]')) {
+    } else if (e.key === 'Enter' && profView === 'edit' && e.target.matches('input[type=text]')) {
       e.preventDefault();
       saveProfileForm();
     }

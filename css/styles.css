@@ -627,7 +627,8 @@ button:disabled{cursor:not-allowed}
 .pf-back:hover,.pf-back:focus-visible{background:#f2f4f6;outline:0}
 .pf-body{padding:12px 14px 2px}
 .pf-body .sfld{margin-bottom:12px}
-.pf-body input[type=email]{box-sizing:border-box;height:32px;padding:0 10px;border:1px solid #dde1e6;border-radius:7px;background:#ffffff;color:#1b1f24;font:400 12.5px Inter,system-ui,sans-serif}
+.pf-email{height:32px;padding:0 10px;border:1px dashed #dde1e6;border-radius:7px;background:#fafbfc;color:#4a5159;font:400 12.5px/30px Inter,system-ui,sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-hint{font-size:10.5px;color:#8a929b}
 .pf-body input:focus{outline:0;border-color:#4790ad;box-shadow:0 0 0 3px rgba(71,144,173,.18)}
 .pf-keys{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;margin:0;padding:12px 14px 14px;align-items:center}
 .pf-keys dt{display:flex;gap:3px;white-space:nowrap}
@@ -642,7 +643,7 @@ button:disabled{cursor:not-allowed}
 [data-theme="dark"] .pf-link:hover:not(:disabled),[data-theme="dark"] .pf-link:focus-visible,[data-theme="dark"] .pf-back:hover{background:#22262b}
 [data-theme="dark"] .pf-link:disabled{color:#5a6169}
 [data-theme="dark"] .pf-back{color:#c9ced4}
-[data-theme="dark"] .pf-body input[type=email]{background:#131619;border-color:#2b3036;color:#e4e7ea}
+[data-theme="dark"] .pf-email{background:#15181b;border-color:#2b3036;color:#c9ced4}
 [data-theme="dark"] .pf-keys dd{color:#c9ced4}
 [data-theme="dark"] .pf-keys kbd{background:#22262b;border-color:#30353c;color:#e4e7ea}
 /* Project settings: a section menu on the left, the sections scrolling on the right */
