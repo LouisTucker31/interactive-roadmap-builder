@@ -14,11 +14,31 @@
   }
 
   toggle.addEventListener('click', function () {
-    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    root.setAttribute('data-theme', next);
-    try { localStorage.setItem('theme', next); } catch (e) {}
-    syncToggle();
+    setThemeMode(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
   });
+
+  // 'light', 'dark' or 'system' (follow the computer's setting, as it changes). Set from
+  // the rail's moon/sun or the profile popup.
+  var systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+  function themeMode() {
+    var saved;
+    try { saved = localStorage.getItem('theme'); } catch (e) {}
+    return saved === 'light' || saved === 'dark' ? saved : 'system';
+  }
+
+  function setThemeMode(mode) {
+    try {
+      if (mode === 'system') localStorage.removeItem('theme');
+      else localStorage.setItem('theme', mode);
+    } catch (e) {}
+    root.setAttribute('data-theme', mode === 'system' ? (systemDark.matches ? 'dark' : 'light') : mode);
+    syncToggle();
+  }
+
+  if (systemDark.addEventListener) {
+    systemDark.addEventListener('change', function () { if (themeMode() === 'system') setThemeMode('system'); });
+  }
 
   syncToggle();
 
@@ -4704,6 +4724,160 @@
     if (!notesPop.hidden && !editNote) renderNotes();
   });
   syncNotesBadge();
+
+  // Profile: the avatar at the bottom of the rail opens a popup about you (not the
+  // project): your name, email and avatar colour (kept in this browser until there are
+  // accounts), the theme, the keyboard shortcuts, and account actions that arrive with
+  // accounts. Views: the main one, 'edit' for the profile form, 'keys' for shortcuts.
+  var profBtn = document.querySelector('[data-profile-btn]');
+  var profPop = document.querySelector('[data-profile-pop]');
+  var profView = 'main';
+  var me = { name: 'Louis Tucker', email: '', color: '#dfae2f' };
+  try {
+    var savedMe = JSON.parse(localStorage.getItem('roadmapProfile'));
+    if (savedMe) Object.keys(me).forEach(function (k) { if (savedMe[k] != null) me[k] = savedMe[k]; });
+  } catch (e) {}
+
+  function saveMe() {
+    try { localStorage.setItem('roadmapProfile', JSON.stringify(me)); } catch (e) {}
+  }
+
+  function renderProfBtn() {
+    profBtn.textContent = initials(me.name || '?');
+    profBtn.style.background = me.color;
+    profBtn.title = (me.name || 'Your profile') + ' · your profile';
+  }
+
+  var CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>';
+  var BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>';
+
+  function renderProfile() {
+    var mod = MAC ? '⌘' : 'Ctrl';
+    if (profView === 'edit') {
+      profPop.innerHTML = '<div class="pf-hd"><button type="button" class="pf-back" aria-label="Back" data-pf-view="main">' + BACK + '</button>Edit profile</div>' +
+        '<div class="pf-body">' +
+        '<label class="sfld"><span class="fl">Name</span><input type="text" maxlength="60" value="' + esc(me.name) + '" autocomplete="name" data-pf-name></label>' +
+        '<label class="sfld"><span class="fl">Email</span><input type="email" maxlength="120" value="' + esc(me.email) + '" placeholder="you@example.com" autocomplete="email" data-pf-email></label>' +
+        '<div class="sfld"><span class="fl">Avatar colour</span><div class="pcolors" role="radiogroup" aria-label="Avatar colour">' + AVATAR_COLORS.map(function (c) {
+          return '<label class="sw sm"><input type="radio" name="pfColor" value="' + c + '"' + (c === me.color ? ' checked' : '') + ' aria-label="Colour ' + c + '"><span style="background: ' + c + '"></span></label>';
+        }).join('') + '</div></div>' +
+        '<p class="tp-err" hidden data-pf-err></p></div>' +
+        '<div class="tp-ft"><button class="btn" type="button" data-pf-view="main">Cancel</button><button class="primary" type="button" data-pf-save>Save</button></div>';
+      profPop.querySelector('[data-pf-name]').focus();
+      return;
+    }
+    if (profView === 'keys') {
+      var keys = [
+        [mod + ' Z', 'Undo'], [mod + ' Y', 'Redo (also ' + mod + ' Shift Z)'], [mod + ' F', 'Search'],
+        ['N', 'New task'], ['T', 'Back to today on the timeline'], ['Esc', 'Close a popup, or put back an item being moved'],
+        ['↑ ↓ Enter', 'Pick a search result'], ['Enter', 'Open the selected row or card'],
+        ['E', 'Edit the selected task list row'], ['Alt ↑ ↓', 'Move the selected task list row'],
+        ['Hold, then drag', 'Move an item on the timeline']
+      ];
+      profPop.innerHTML = '<div class="pf-hd"><button type="button" class="pf-back" aria-label="Back" data-pf-view="main">' + BACK + '</button>Keyboard shortcuts</div>' +
+        '<dl class="pf-keys">' + keys.map(function (k) {
+          // Each key in its own cap; "Hold, then drag" is one step, so one cap.
+          var caps = k[0].indexOf(',') >= 0 ? [k[0]] : k[0].split(' ');
+          return '<dt>' + caps.map(function (x) { return '<kbd>' + esc(x) + '</kbd>'; }).join('') + '</dt><dd>' + esc(k[1]) + '</dd>';
+        }).join('') + '</dl>';
+      profPop.querySelector('.pf-back').focus();
+      return;
+    }
+    var mode = themeMode();
+    profPop.innerHTML = '<div class="pf-me">' +
+      '<span class="pav pf-av" style="background: ' + esc(me.color) + '" aria-hidden="true">' + esc(initials(me.name || '?')) + '</span>' +
+      '<div class="pf-who"><b>' + esc(me.name || 'Your name') + '</b><span>' + (me.email ? esc(me.email) : 'No email yet') + '</span></div>' +
+      '<button type="button" class="btn" data-pf-view="edit">Edit</button></div>' +
+      '<div class="pf-sec"><span class="pf-lbl">Appearance</span><div class="bseg" role="group" aria-label="Theme">' +
+      [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']].map(function (o) {
+        return '<button type="button" aria-pressed="' + (mode === o[0]) + '" data-pf-theme="' + o[0] + '">' + o[1] + '</button>';
+      }).join('') + '</div></div>' +
+      '<div class="pf-sec pf-links"><button type="button" class="pf-link" data-pf-view="keys">Keyboard shortcuts' + CHEV + '</button></div>' +
+      '<div class="pf-sec pf-links"><span class="pf-lbl">Account <em>coming with sign-in</em></span>' +
+      '<button type="button" class="pf-link" disabled title="Arrives with accounts">Change password</button>' +
+      '<button type="button" class="pf-link" disabled title="Arrives with accounts">Sign out</button></div>' +
+      '<div class="pf-ft">Workspace · everything is saved in this browser</div>';
+    var first = profPop.querySelector('[data-pf-view="edit"]');
+    if (first) first.focus();
+  }
+
+  function placeProfile() {
+    var r = profBtn.getBoundingClientRect();
+    var h = profPop.offsetHeight;
+    profPop.style.left = r.right + 10 + 'px';
+    profPop.style.top = Math.max(8, Math.min(r.bottom - h + 6, window.innerHeight - h - 8)) + 'px';
+  }
+
+  function openProfile(open) {
+    profView = 'main';
+    profPop.hidden = !open;
+    profBtn.setAttribute('aria-expanded', String(open));
+    if (open) {
+      renderProfile();
+      placeProfile();
+    }
+  }
+
+  function saveProfileForm() {
+    var name = profPop.querySelector('[data-pf-name]').value.trim().replace(/\s+/g, ' ');
+    var email = profPop.querySelector('[data-pf-email]').value.trim();
+    var err = profPop.querySelector('[data-pf-err]');
+    if (!name || (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+      err.textContent = name ? 'That email doesn’t look quite right.' : 'Add your name.';
+      err.hidden = false;
+      return;
+    }
+    var col = profPop.querySelector('[name="pfColor"]:checked');
+    me = { name: name, email: email, color: col ? col.value : me.color };
+    saveMe();
+    renderProfBtn();
+    profView = 'main';
+    renderProfile();
+    placeProfile();
+  }
+
+  profBtn.addEventListener('click', function () { openProfile(profPop.hidden); });
+  profPop.addEventListener('click', function (e) {
+    var view = e.target.closest('[data-pf-view]');
+    var theme = e.target.closest('[data-pf-theme]');
+    if (view) {
+      profView = view.getAttribute('data-pf-view');
+      renderProfile();
+      placeProfile();
+    } else if (theme) {
+      setThemeMode(theme.getAttribute('data-pf-theme'));
+      renderProfile();
+    } else if (e.target.closest('[data-pf-save]')) {
+      saveProfileForm();
+    }
+  });
+  profPop.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (profView !== 'main') {
+        profView = 'main';
+        renderProfile();
+        return placeProfile();
+      }
+      openProfile(false);
+      profBtn.focus();
+    } else if (e.key === 'Enter' && profView === 'edit' && e.target.matches('input[type=text], input[type=email]')) {
+      e.preventDefault();
+      saveProfileForm();
+    }
+  });
+  document.addEventListener('pointerdown', function (e) {
+    if (!profPop.hidden && !profPop.contains(e.target) && !profBtn.contains(e.target)) openProfile(false);
+  });
+  window.addEventListener('resize', function () { if (!profPop.hidden) placeProfile(); });
+  // The rail's moon/sun changes the theme too; keep the popup's switch in step.
+  toggle.addEventListener('click', function () { if (!profPop.hidden && profView === 'main') renderProfile(); });
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'roadmapProfile') return;
+    try { me = JSON.parse(e.newValue) || me; } catch (err) {}
+    renderProfBtn();
+  });
+  renderProfBtn();
 
   // Tooltips: hovering (or tabbing to) anything with a title shows it in the app's own
   // small popup, and an icon-only button shows its aria-label. The title is set aside
