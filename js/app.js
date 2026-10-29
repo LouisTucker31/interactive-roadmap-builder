@@ -825,7 +825,7 @@
     // Clicking a row scrolls the chart to it; the ⋯ button that shows on hover edits it
     // (see the task form below).
     var more = '<button type="button" class="more" data-row-edit tabindex="-1" aria-label="Edit" title="Edit">' +
-      '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg></button>';
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button>';
     taskRowsEl.innerHTML = data.rows.map(function (row) {
       var attrs = ' data-id="' + esc(row.id) + '" role="button" tabindex="0"';
       function tip(text) { return ' title="' + esc(text + ' · click to go to it, drag to reorder, E to edit') + '"'; }
@@ -1470,7 +1470,7 @@
         return '<label class="pp" title="' + esc(p.name) + '"><input type="radio" name="person" value="' + esc(p.id) + '" aria-label="' + esc(p.name) + '">' + avatar(p) + '</label>';
       }).join('') +
       '<button type="button" class="pp-add" aria-label="New person" title="New person" data-new-person-btn>' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"></path></svg></button>';
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></button>';
     pickPerson(value);
   }
 
@@ -2373,7 +2373,7 @@
         '<button type="button" class="sortb' + (on ? ' on' : '') + '" data-sort="' + c.key + '" title="Sort by ' + c.label.toLowerCase() + '">' +
         c.label + '<i class="arr' + (on && listState.dir < 0 ? ' down' : '') + '" aria-hidden="true"></i></button>' +
         (c.fixed ? '' : '<button type="button" class="hidec" data-hide-col="' + c.key + '" aria-label="Hide ' + c.label + ' column" title="Hide column">' +
-          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>') +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>') +
         '</th>';
     }).join('') + '</tr>';
 
@@ -2690,9 +2690,9 @@
     return cols;
   }
 
-  var ICON_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path></svg>';
-  var ICON_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>';
-  var ICON_LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 6h6v6M5 18h14M11 12l8-6"></path></svg>';
+  var ICON_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>';
+  var ICON_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>';
+  var ICON_LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>';
 
   function cardHtml(r) {
     var who = personById(r.person);
@@ -3322,7 +3322,7 @@
     tagBtn.title = t ? 'Project tag · click to change' : 'Tag this project';
   }
 
-  var PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13 7l4 4"></path></svg>';
+  var PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>';
 
   function renderTagPop() {
     if (tagEditing) {
@@ -3701,7 +3701,7 @@
   }
 
   function renderProjPop() {
-    var TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>';
+    var TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>';
     if (projMode) {
       var m = projMode;
       var p = m.kind === 'rename' ? projects.filter(function (x) { return x.id === m.id; })[0] : null;
@@ -4033,7 +4033,7 @@
     return '<li class="note' + (n.done ? ' done' : '') + '" data-note="' + esc(n.id) + '"' + (n.done || editNote === n.id ? '' : ' draggable="true"') + '>' +
       '<label class="nchk"><input type="checkbox"' + (n.done ? ' checked' : '') + ' aria-label="' + (n.done ? 'Mark as not done' : 'Mark as done') + '" data-note-done><span></span></label>' +
       text + '<button type="button" class="ndel" aria-label="Delete note" title="Delete" data-note-del>' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></li>';
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button></li>';
   }
 
   function renderNotes() {
@@ -4045,7 +4045,7 @@
       '<div class="nadd"><input type="text" maxlength="300" placeholder="Add a note and press Enter" aria-label="Add a note" data-note-new></div>' +
       '<ul class="nlist" data-note-list="open">' + (open.map(noteHtml).join('') || '<li class="nempty">' + (done.length ? 'Nothing left to do.' : 'Nothing here yet. Jot down things to do, chase or remember.') + '</li>') + '</ul>' +
       (done.length ? '<div class="ndone-hd"><button type="button" class="nfold" aria-expanded="' + showDone + '" data-note-fold>' +
-        '<svg viewBox="0 0 24 24" width="9" height="9" fill="currentColor" aria-hidden="true"><path d="M8 5l10 7-10 7z"></path></svg>Done (' + done.length + ')</button>' +
+        '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>Done (' + done.length + ')</button>' +
         '<button type="button" class="nclear" data-note-clear>Clear done</button></div>' +
         (showDone ? '<ul class="nlist">' + done.map(noteHtml).join('') + '</ul>' : '') : '');
     var add = notesPop.querySelector('[data-note-new]');
