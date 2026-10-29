@@ -1012,13 +1012,14 @@
     });
   }
 
-  // Every change goes through here, so the timeline, task list and list view all stay in step.
+  // Every change goes through here, so the timeline, task list, list and board all stay in step.
   function refresh() {
     reindex();
     renderPlan();
     renderTaskList();
     syncPanelScroll();
     renderList();
+    renderBoard();
   }
 
   // Another tab saved the plan: load its version so every open tab shows the same plan.
@@ -1532,6 +1533,7 @@
     freshId = row.id;
     renderPlan();
     renderList();
+    renderBoard();
     setTimeout(function () { if (freshId === row.id) freshId = null; }, 1600);
   }
 
@@ -2380,8 +2382,315 @@
     else openEdit(tr.getAttribute('data-id'));
   });
 
-  // Pages: the rail switches between the timeline and the list. The list sits over the
-  // timeline rather than replacing it, so the chart keeps its scroll position underneath.
+  // Board: the plan as a kanban. Cards are tasks and milestones (subtasks too, unless
+  // switched off); phases group cards rather than being cards themselves. Columns are by
+  // status, phase, person or day. Drag a card to another column to change that about it
+  // (its progress, phase, person or day), click it to edit it, or add one from the foot
+  // of a column, already set for that column. Show picks what each card shows. Settings
+  // are remembered in this browser.
+  var boardEl = document.querySelector('[data-board]');
+  var boardCols = boardEl.querySelector('[data-board-cols]');
+  var showBtn = boardEl.querySelector('[data-show-btn]');
+  var showMenu = boardEl.querySelector('[data-show-menu]');
+  var CARD_FIELDS = [
+    ['phase', 'Phase'], ['date', 'Date'], ['time', 'Time'], ['length', 'Length'], ['progress', 'Progress'],
+    ['person', 'Person'], ['status', 'Status'], ['deps', 'Depends on'], ['color', 'Colour']
+  ];
+  var board = { group: 'status', subtasks: true, width: 'comfortable', hide: ['length', 'deps'] };
+  try {
+    var savedBoard = JSON.parse(localStorage.getItem('roadmapBoard'));
+    if (savedBoard) Object.keys(board).forEach(function (k) { if (savedBoard[k] != null) board[k] = savedBoard[k]; });
+  } catch (e) {}
+  var dragId = null; // the card being dragged
+
+  function saveBoard() {
+    try { localStorage.setItem('roadmapBoard', JSON.stringify(board)); } catch (e) {}
+  }
+
+  function showing(field) {
+    return board.hide.indexOf(field) < 0;
+  }
+
+  function phaseIdOf(row) {
+    return phaseOf(row.parent && rowIndex[row.parent] != null ? data.rows[rowIndex[row.parent]] : row);
+  }
+
+  // Which column a card is in, for the current grouping.
+  function columnOf(row) {
+    if (board.group === 'status') return statusOf(row);
+    if (board.group === 'phase') return phaseIdOf(row);
+    if (board.group === 'person') return personById(row.person) ? row.person : '';
+    return String(Math.floor(startDay(row)));
+  }
+
+  function boardColumns() {
+    var cards = data.rows.filter(function (r) { return r.type !== 'phase' && (board.subtasks || !r.parent); });
+    var cols;
+    if (board.group === 'status') {
+      cols = [['open', 'Not started'], ['active', 'In progress'], ['done', 'Done'], ['ms', 'Milestones']].map(function (c) {
+        return { key: c[0], title: c[1], dot: '<i class="bdot ' + c[0] + '"></i>' };
+      });
+    } else if (board.group === 'phase') {
+      cols = [{ key: '', title: 'No phase', dot: '<i class="bdot none"></i>' }].concat(data.rows.filter(function (r) {
+        return r.type === 'phase';
+      }).map(function (p) {
+        return { key: p.id, title: p.name, dot: '<i class="bdot ph"></i>' };
+      }));
+    } else if (board.group === 'person') {
+      cols = [{ key: '', title: 'Unassigned', dot: '<i class="bdot none"></i>' }].concat(data.people.map(function (p) {
+        return { key: p.id, title: p.name, dot: avatar(p) };
+      }));
+    } else {
+      var days = [];
+      cards.forEach(function (r) {
+        var d = Math.floor(startDay(r));
+        if (days.indexOf(d) < 0) days.push(d);
+      });
+      cols = days.sort(function (a, b) { return a - b; }).map(function (d) {
+        return { key: String(d), title: WEEKDAYS[new Date(PLAN_START + d * DAY).getUTCDay()] + ' ' + listDate(d), dot: '<i class="bdot day"></i>' };
+      });
+    }
+    cols.forEach(function (c) {
+      c.cards = cards.filter(function (r) { return columnOf(r) === c.key; });
+    });
+    // "No phase" only shows when something is in it, or there are no phases at all.
+    if (board.group === 'phase' && !cols[0].cards.length && cols.length > 1) cols.shift();
+    return cols;
+  }
+
+  var ICON_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path></svg>';
+  var ICON_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>';
+  var ICON_LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 6h6v6M5 18h14M11 12l8-6"></path></svg>';
+
+  function cardHtml(r) {
+    var who = personById(r.person);
+    var s = startDay(r);
+    var ms = r.type === 'milestone';
+    var parent = r.parent && rowIndex[r.parent] != null ? data.rows[rowIndex[r.parent]] : null;
+    var meta = [];
+    if (showing('status') && board.group !== 'status') {
+      var st = statusOf(r);
+      meta.push('<span class="st ' + st + '">' + (st === 'ms' ? 'Milestone' : STATUS[st]) + '</span>');
+    }
+    if (showing('date') && board.group !== 'day') meta.push('<span class="kc-d">' + ICON_CAL + listDate(Math.floor(s)) + '</span>');
+    if (showing('time') && (s % 1 || (r.end != null && r.end % 1))) {
+      meta.push('<span class="kc-d">' + ICON_CLOCK + timeOf(s) + (r.end != null && r.end - s < 1 ? '–' + timeOf(r.end) : '') + '</span>');
+    }
+    if (showing('length') && r.end != null) meta.push('<span class="kc-d">' + duration(r) + '</span>');
+    if (showing('deps')) {
+      var ds = depsOf(r);
+      if (ds.length) {
+        meta.push('<span class="kc-d" title="Depends on ' + esc(ds.map(function (d) { return d.name; }).join(', ')) + '">' + ICON_LINK + ds.length + '</span>');
+      }
+    }
+    var face = showing('person') && who && board.group !== 'person'
+      ? '<span class="kc-who" title="' + esc(who.name) + '">' + avatar(who) + '</span>' : '';
+    var p = r.type === 'task' ? r.progress || 0 : 0;
+    return '<div class="kcard' + (ms ? ' ms' : '') + (r.parent ? ' sub' : '') + (showing('color') ? '' : ' plain') + (r.id === freshId ? ' fresh' : '') +
+      '" draggable="true" tabindex="0" role="button" data-id="' + esc(r.id) + '" style="' + colorVar(r).slice(2) + '" title="' +
+      esc(r.name + ' · ' + itemLabel(r) + ' · click to edit, drag to move') + '">' +
+      (showing('phase') && board.group !== 'phase' && phaseName(r) ? '<span class="kc-ph">' + esc(phaseName(r)) + '</span>' : '') +
+      '<span class="kc-n">' + (ms ? '<i class="kc-ms"></i>' : '') + esc(r.name) + '</span>' +
+      (parent ? '<span class="kc-sub">↳ ' + esc(parent.name) + '</span>' : '') +
+      (meta.length || face ? '<div class="kc-f"><div class="kc-m">' + meta.join('') + '</div>' + face + '</div>' : '') +
+      (showing('progress') && p > 0 ? '<span class="kc-pg"><b style="width: ' + p * 100 + '%"></b></span>' : '') +
+      '</div>';
+  }
+
+  function renderBoard() {
+    var cols = boardColumns();
+    var n = cols.reduce(function (sum, c) { return sum + c.cards.length; }, 0);
+    boardCols.innerHTML = cols.length ? cols.map(function (c) {
+      var addWord = board.group === 'status' && c.key === 'ms' ? 'milestone' : 'task';
+      return '<section class="bcol" data-col="' + esc(c.key) + '"><header class="bcol-hd">' + c.dot +
+        '<span class="bcol-t">' + esc(c.title) + '</span><span class="bcol-n">' + c.cards.length + '</span></header>' +
+        '<div class="bcol-body">' + (c.cards.map(cardHtml).join('') || '<p class="bcol-empty">Nothing here</p>') + '</div>' +
+        '<button type="button" class="bcol-add" data-col-add="' + esc(c.key) + '">+ New ' + addWord + '</button></section>';
+    }).join('') : '<p class="bnone">Nothing here yet.&nbsp;<button type="button" data-board-new>Add a task</button></p>';
+    boardEl.querySelector('[data-board-count]').textContent = n + (n === 1 ? ' card' : ' cards');
+    boardEl.classList.toggle('compact', board.width === 'compact');
+
+    Array.prototype.forEach.call(boardEl.querySelectorAll('[data-group-by]'), function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-group-by') === board.group));
+    });
+    Array.prototype.forEach.call(boardEl.querySelectorAll('[data-width]'), function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-width') === board.width));
+    });
+    boardEl.querySelector('[data-board-subtasks]').setAttribute('aria-pressed', String(board.subtasks));
+    var hidden = board.hide.length;
+    var badge = boardEl.querySelector('[data-show-count]');
+    badge.hidden = !hidden;
+    badge.textContent = hidden + ' hidden';
+    showMenu.innerHTML = CARD_FIELDS.map(function (f) {
+      return '<button type="button" role="menuitemcheckbox" aria-checked="' + showing(f[0]) + '" data-field="' + f[0] + '">' + f[1] + '</button>';
+    }).join('') + '<div class="zsep" role="separator"></div><button type="button" data-show-all' + (hidden ? '' : ' disabled') + '>Show everything</button>';
+  }
+
+  // Whether a card can go into a column: milestones only to Milestones and tasks never
+  // there; a subtask's phase comes from its parent, so it can't change phase on its own.
+  function canDrop(row, key) {
+    if (!row || columnOf(row) === key) return false;
+    if (board.group === 'status') return (row.type === 'milestone') === (key === 'ms');
+    if (board.group === 'phase') return !row.parent;
+    return true;
+  }
+
+  // Dropping a card on a column changes that about it. Rows are replaced with changed
+  // copies, so js/data.js rows stay untouched.
+  function moveCard(id, key) {
+    var i = rowIndex[id];
+    var row = data.rows[i];
+    var copy = {};
+    Object.keys(row).forEach(function (k) { copy[k] = row[k]; });
+    copy.added = true;
+    if (board.group === 'status') {
+      if (key === 'open') delete copy.progress;
+      else if (key === 'done') copy.progress = 1;
+      else copy.progress = row.progress > 0 && row.progress < 1 ? row.progress : 0.5;
+    } else if (board.group === 'person') {
+      if (key) copy.person = key;
+      else delete copy.person;
+    } else if (board.group === 'day') {
+      var shift = Number(key) - Math.floor(startDay(row)); // same time of day, new day
+      ['start', 'end', 'day'].forEach(function (k) { if (copy[k] != null) copy[k] += shift; });
+    }
+    data.rows[i] = copy;
+    if (board.group === 'phase') {
+      var block = takeOut(copy);
+      Array.prototype.splice.apply(data.rows, [placeFor(copy, key), 0].concat(block));
+    }
+    freshId = id;
+    refresh();
+    savePlan();
+    setTimeout(function () { if (freshId === id) freshId = null; }, 1600);
+  }
+
+  // A new item from the foot of a column starts out set for that column.
+  function addInColumn(key) {
+    openForm();
+    var f = form.elements;
+    if (board.group === 'status') {
+      if (key === 'ms') f.type.value = 'milestone';
+      if (key === 'active') f.progress.value = 50;
+      if (key === 'done') f.progress.value = 100;
+    } else if (board.group === 'phase') {
+      f.phase.value = key;
+    } else if (board.group === 'person') {
+      pickPerson(key);
+    } else {
+      f.startDate.value = dateOf(Number(key));
+    }
+    syncForm();
+  }
+
+  boardEl.addEventListener('click', function (e) {
+    var t = e.target;
+    var by = t.closest('[data-group-by]');
+    var width = t.closest('[data-width]');
+    var add = t.closest('[data-col-add]');
+    var card = t.closest('.kcard[data-id]');
+    if (by) board.group = by.getAttribute('data-group-by');
+    else if (width) board.width = width.getAttribute('data-width');
+    else if (t.closest('[data-board-subtasks]')) board.subtasks = !board.subtasks;
+    else if (add) return addInColumn(add.getAttribute('data-col-add'));
+    else if (t.closest('[data-board-new]')) return openForm();
+    else if (card) return openEdit(card.getAttribute('data-id'));
+    else return;
+    saveBoard();
+    renderBoard();
+  });
+  boardEl.addEventListener('keydown', function (e) {
+    var card = e.target.closest('.kcard[data-id]');
+    if (card && e.target === card && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      openEdit(card.getAttribute('data-id'));
+    }
+  });
+
+  // Dragging cards between columns.
+  boardCols.addEventListener('dragstart', function (e) {
+    var card = e.target.closest('.kcard[data-id]');
+    if (!card) return;
+    dragId = card.getAttribute('data-id');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', dragId); } catch (err) {}
+    hideTip();
+    setTimeout(function () { card.classList.add('dragging'); }, 0);
+  });
+  boardCols.addEventListener('dragover', function (e) {
+    var col = e.target.closest('.bcol');
+    var ok = col && dragId && canDrop(data.rows[rowIndex[dragId]], col.getAttribute('data-col'));
+    Array.prototype.forEach.call(boardCols.querySelectorAll('.bcol.over'), function (c) { if (c !== col || !ok) c.classList.remove('over'); });
+    if (!ok) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    col.classList.add('over');
+  });
+  boardCols.addEventListener('drop', function (e) {
+    var col = e.target.closest('.bcol');
+    e.preventDefault();
+    var id = dragId;
+    dragId = null;
+    if (col && id && canDrop(data.rows[rowIndex[id]], col.getAttribute('data-col'))) moveCard(id, col.getAttribute('data-col'));
+    else renderBoard();
+  });
+  boardCols.addEventListener('dragend', function () {
+    dragId = null;
+    Array.prototype.forEach.call(boardCols.querySelectorAll('.over, .dragging'), function (el) {
+      el.classList.remove('over');
+      el.classList.remove('dragging');
+    });
+  });
+  boardCols.addEventListener('dragleave', function (e) {
+    var col = e.target.closest('.bcol');
+    if (col && !col.contains(e.relatedTarget)) col.classList.remove('over');
+  });
+
+  // The Show menu: which details the cards show.
+  function showShowMenu(open) {
+    showMenu.hidden = !open;
+    showBtn.setAttribute('aria-expanded', String(open));
+    if (open) showMenu.querySelector('button').focus();
+  }
+
+  showBtn.addEventListener('click', function () { showShowMenu(showMenu.hidden); });
+  showMenu.addEventListener('click', function (e) {
+    var item = e.target.closest('[data-field]');
+    if (item) {
+      var key = item.getAttribute('data-field');
+      var i = board.hide.indexOf(key);
+      if (i >= 0) board.hide.splice(i, 1);
+      else board.hide.push(key);
+    } else if (e.target.closest('[data-show-all]')) {
+      board.hide = [];
+    } else {
+      return;
+    }
+    saveBoard();
+    renderBoard();
+    var same = item ? showMenu.querySelector('[data-field="' + item.getAttribute('data-field') + '"]') : showMenu.querySelector('button');
+    if (same) same.focus();
+  });
+  showMenu.addEventListener('keydown', function (e) {
+    var items = Array.prototype.slice.call(showMenu.querySelectorAll('button:not(:disabled)'));
+    var i = items.indexOf(document.activeElement);
+    if (e.key === 'Escape') {
+      showShowMenu(false);
+      showBtn.focus();
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
+    }
+  });
+  document.addEventListener('click', function (e) {
+    if (!showMenu.hidden && !e.target.closest('.cwrap')) showShowMenu(false);
+  });
+
+  renderBoard();
+
+  // Pages: the rail switches between the timeline, the list and the board. The list and
+  // board sit over the timeline rather than replacing it, so the chart keeps its scroll
+  // position underneath.
   function setPage(page) {
     app.setAttribute('data-page', page);
     pageBtns.forEach(function (btn) {
@@ -2401,7 +2710,7 @@
   renderList();
   var savedPage;
   try { savedPage = localStorage.getItem('roadmapPage'); } catch (e) {}
-  setPage(savedPage === 'list' ? 'list' : 'timeline');
+  setPage(savedPage === 'list' || savedPage === 'board' ? savedPage : 'timeline');
 
   // Project tag: the tag beside the project name. Tags are a shared list (kept in this
   // browser apart from the plan), so other projects can use the same tag; this project
@@ -2675,8 +2984,25 @@
     searchIn.value = '';
     searchIn.blur();
     if (rowIndex[id] == null) return;
-    if (app.getAttribute('data-page') !== 'list') return goToRow(id);
-    var sel = '.lrow[data-id="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]';
+    var page = app.getAttribute('data-page');
+    var q = window.CSS && CSS.escape ? CSS.escape(id) : id;
+    if (page === 'board') {
+      var row = data.rows[rowIndex[id]];
+      if (row.type === 'phase') board.group = 'phase'; // phases are columns, not cards
+      else if (row.parent) board.subtasks = true;
+      saveBoard();
+      freshId = id;
+      renderBoard();
+      var target = boardCols.querySelector(row.type === 'phase' ? '.bcol[data-col="' + q + '"]' : '.kcard[data-id="' + q + '"]');
+      if (target) {
+        if (row.type === 'phase') target.classList.add('fresh');
+        target.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+      }
+      setTimeout(function () { if (freshId === id) freshId = null; }, 2200);
+      return;
+    }
+    if (page !== 'list') return goToRow(id);
+    var sel = '.lrow[data-id="' + q + '"]';
     if (!listBody.querySelector(sel)) clearFilters(); // it was filtered out
     freshId = id;
     renderList();
