@@ -4999,10 +4999,14 @@
       '<button type="button" role="menuitem" data-hact="duplicate">Duplicate</button>' +
       '<button type="button" role="menuitem" data-hact="template">Save as template…</button>' +
       '<div class="zsep" role="separator"></div>' +
+      '<button type="button" role="menuitem" data-hact="pin">' + (p.pinned ? 'Unpin' : 'Pin to top') + '</button>' +
+      '<button type="button" role="menuitem" data-hact="archive">' + (p.archived ? 'Unarchive' : 'Archive') + '</button>' +
+      '<div class="zsep" role="separator"></div>' +
       '<button type="button" role="menuitem" class="danger" data-hact="delete"' + (projects.length < 2 ? ' disabled title="Your only project can’t be deleted"' : '') + '>Delete…</button></div>' : '';
-    return '<article class="hcard s-' + s.status + '" data-proj="' + esc(p.id) + '" tabindex="0" role="button" title="Open ' + esc(p.name) + '">' +
-      '<div class="hcard-top"><span class="hstatus ' + s.status + '">' + STATUS_WORD[s.status] + '</span>' +
+    return '<article class="hcard s-' + s.status + (p.archived ? ' archived' : '') + '" data-proj="' + esc(p.id) + '" tabindex="0" role="button" title="Open ' + esc(p.name) + '">' +
+      '<div class="hcard-top">' + (p.archived ? '<span class="hstatus">Archived</span>' : '<span class="hstatus ' + s.status + '">' + STATUS_WORD[s.status] + '</span>') +
       (p.id === currentId ? '<span class="hcur">Last open</span>' : '') +
+      (p.pinned ? '<span class="hpin" title="Pinned to the top">' + PIN_ICON + '</span>' : '') +
       '<button type="button" class="hdots" aria-label="More for ' + esc(p.name) + '" title="More" aria-haspopup="menu" aria-expanded="' + (homeMenu === p.id) + '" data-hmenu>' +
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button>' + menu + '</div>' +
       '<h3>' + esc(p.name) + '</h3>' +
@@ -5016,6 +5020,42 @@
       '<div class="hcard-ft">' + next + avatarsHtml(s.plan.people) + '</div></article>';
   }
 
+  var PIN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"></path><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path></svg>';
+
+  // Coming up across every live (not archived) project, a heading per day: milestones and
+  // phases from today on, up to `max` items; the project's name shows when there's more
+  // than one project involved.
+  function comingUpHtml(all, max) {
+    var soon = [];
+    all.forEach(function (s) {
+      if (s.p.archived) return;
+      s.plan.rows.forEach(function (r) {
+        if ((r.type === 'milestone' || r.type === 'phase') && startDay(r) >= Math.floor(NOW_DAY)) soon.push({ r: r, p: s.p });
+      });
+    });
+    if (!soon.length) return '<p class="hnone">No milestones or phases coming up.</p>';
+    soon.sort(function (a, b) { return startDay(a.r) - startDay(b.r) || (a.r.type === 'milestone' ? -1 : 1); });
+    var several = soon.some(function (x) { return x.p !== soon[0].p; });
+    var days = [];
+    soon.slice(0, max).forEach(function (x) {
+      var d = Math.floor(startDay(x.r));
+      if (!days.length || days[days.length - 1].d !== d) days.push({ d: d, items: [] });
+      days[days.length - 1].items.push(x);
+    });
+    var more = soon.length - Math.min(max, soon.length);
+    return days.map(function (g) {
+      var date = new Date(PLAN_START + g.d * DAY);
+      return '<div class="hday"><div class="hday-hd"><b>' + WEEKDAYS[date.getUTCDay()] + ' ' + date.getUTCDate() + ' ' + MONTHS[date.getUTCMonth()] + '</b>' +
+        '<em>' + esc(relDay(g.d)) + '</em></div><ul class="hsoon">' + g.items.map(function (x) {
+          var s = startDay(x.r);
+          return '<li><button type="button" data-home-goto="' + esc(x.p.id) + '" data-item="' + esc(x.r.id) + '" title="Open it in ' + esc(x.p.name) + '">' +
+            '<span class="hsoon-time">' + (s % 1 ? timeOf(s) : 'All day') + '</span>' +
+            '<i class="cmk ' + (x.r.type === 'milestone' ? 'ms' : 'ph') + '" style="' + colorVar(x.r).slice(2) + '"></i>' +
+            '<span class="hsoon-n">' + esc(x.r.name) + '</span>' + (several ? '<span class="hsoon-p">' + esc(x.p.name) + '</span>' : '') + '</button></li>';
+        }).join('') + '</ul></div>';
+    }).join('') + (more ? '<p class="hnone">+ ' + more + ' more after that</p>' : '');
+  }
+
   function greeting() {
     var h = new Date().getHours();
     return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
@@ -5024,11 +5064,17 @@
   function renderHome() {
     var all = projects.map(projectSummary);
     var q = homeState.q.trim().toLowerCase();
+    var archivedN = all.filter(function (s) { return s.p.archived; }).length;
+    if (!archivedN) homeState.archived = false;
     var shown = all.filter(function (s) {
+      if (s.p.archived && !homeState.archived) return false;
       if (homeState.tag && !s.tags.some(function (t) { return t.id === homeState.tag; })) return false;
       if (!q) return true;
       return [s.p.name, s.p.description || ''].concat(s.tags.map(function (t) { return t.name; })).join(' ').toLowerCase().indexOf(q) >= 0;
     }).sort(function (a, b) {
+      // Pinned first, then archived last, then the chosen order.
+      if (!!a.p.pinned !== !!b.p.pinned) return a.p.pinned ? -1 : 1;
+      if (!!a.p.archived !== !!b.p.archived) return a.p.archived ? 1 : -1;
       if (homeState.sort === 'name') return a.p.name.toLowerCase() < b.p.name.toLowerCase() ? -1 : 1;
       if (homeState.sort === 'start') return (a.first == null ? Infinity : a.first) - (b.first == null ? Infinity : b.first);
       return (b.p.openedAt || 0) - (a.p.openedAt || 0);
@@ -5036,15 +5082,6 @@
     var today = new Date(TODAY);
     var first = (me.name || '').split(' ')[0];
     var filterTag = homeState.tag && tagById(homeState.tag);
-
-    // What's coming up across every project: milestones and phases from now on.
-    var soon = [];
-    all.forEach(function (s) {
-      s.plan.rows.forEach(function (r) {
-        if ((r.type === 'milestone' || r.type === 'phase') && startDay(r) >= Math.floor(NOW_DAY)) soon.push({ r: r, p: s.p });
-      });
-    });
-    soon.sort(function (a, b) { return startDay(a.r) - startDay(b.r); });
 
     // Tags in use, with how many projects have each.
     var tagUse = tags.map(function (t) {
@@ -5060,9 +5097,9 @@
       '<input type="text" placeholder="Find a project" aria-label="Find a project" value="' + esc(homeState.q) + '" data-home-q></label>' +
       '<button type="button" class="primary" data-home-new><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>New project</button>' +
       '<button type="button" class="av hme" style="background: ' + esc(me.color) + '" title="Your profile" data-home-profile>' + esc(initials(me.name || '?')) + '</button></div></header>' +
-      // The greeting and the view controls run across the top; below them the projects
-      // and the overview start level, each under its own small heading.
-      '<div class="hwrap"><div class="hhello"><h1>' + greeting() + (first ? ', ' + esc(first) : '') + '</h1><p>' + WEEKDAYS_LONG[today.getUTCDay()] + ' ' + today.getUTCDate() + ' ' + MONTHS_LONG[today.getUTCMonth()] +
+      // The projects on the left under the greeting and view controls; the overview
+      // runs down the right from the top.
+      '<div class="hwrap"><div class="hmain"><div class="hhello"><h1>' + greeting() + (first ? ', ' + esc(first) : '') + '</h1><p>' + WEEKDAYS_LONG[today.getUTCDay()] + ' ' + today.getUTCDate() + ' ' + MONTHS_LONG[today.getUTCMonth()] +
       ' · ' + projects.length + (projects.length === 1 ? ' project' : ' projects') + '</p></div>' +
       '<div class="hbar"><div class="bseg" role="group" aria-label="Show projects as">' +
       '<button type="button" aria-pressed="' + (homeState.view === 'grid') + '" data-home-view="grid">Grid</button>' +
@@ -5072,17 +5109,14 @@
         return '<option value="' + o[0] + '"' + (homeState.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
       }).join('') + '</select></label>' +
       (filterTag ? '<button type="button" class="hfilter" data-home-tag="" title="Show every project"># ' + esc(filterTag.name) + ' <span aria-hidden="true">×</span></button>' : '') +
-      '</div><div class="hmain"><h2 class="hlabel">Projects</h2>' +
+      (archivedN ? '<button type="button" class="btn btog harch" aria-pressed="' + !!homeState.archived + '" data-home-archived>' +
+        (homeState.archived ? 'Hide archived' : 'Show archived') + ' <b class="hcount">' + archivedN + '</b></button>' : '') +
+      '</div><h2 class="hlabel">Projects</h2>' +
       '<div class="hgrid' + (homeState.view === 'list' ? ' as-list' : '') + '">' +
       (shown.length ? shown.map(cardHtml2).join('') : '<p class="hempty">No projects match' + (q ? ' “' + esc(homeState.q) + '”' : '') + (filterTag ? ' with # ' + esc(filterTag.name) : '') + '.</p>') +
       '<button type="button" class="hcard hadd" data-home-new><span>+</span>New project</button></div></div>' +
       '<aside class="hside"><h2 class="hlabel">Overview</h2>' +
-      '<section class="hbox"><h2>Coming up</h2>' + (soon.length ? '<ul class="hsoon">' + soon.slice(0, 6).map(function (x) {
-        return '<li><button type="button" data-home-goto="' + esc(x.p.id) + '" data-item="' + esc(x.r.id) + '" title="Open it in ' + esc(x.p.name) + '">' +
-          '<i class="cmk ' + (x.r.type === 'milestone' ? 'ms' : 'ph') + '" style="' + colorVar(x.r).slice(2) + '"></i>' +
-          '<span class="hsoon-t"><b>' + esc(x.r.name) + '</b><span>' + esc(x.p.name) + ' · ' + esc(listDate(startDay(x.r))) + '</span></span>' +
-          '<em>' + esc(relDay(startDay(x.r))) + '</em></button></li>';
-      }).join('') + '</ul>' : '<p class="hnone">No milestones or phases coming up.</p>') + '</section>' +
+      '<section class="hbox"><h2>Coming up</h2>' + comingUpHtml(all, 8) + '</section>' +
       '<section class="hbox"><h2>Notes</h2>' +
       '<input type="text" class="hnote-add" maxlength="300" placeholder="Add a note and press Enter" aria-label="Add a note" data-home-note>' +
       (openNotes.length ? '<ul class="hnotes">' + openNotes.slice(0, 6).map(function (n) {
@@ -5184,6 +5218,13 @@
     if (!p) return;
     homeMenu = null;
     if (act === 'open') return openFromHome(id);
+    if (act === 'pin' || act === 'archive') {
+      var flag = act === 'pin' ? 'pinned' : 'archived';
+      if (p[flag]) delete p[flag];
+      else p[flag] = true;
+      saveProjects();
+      return renderHome();
+    }
     if (act === 'rename') {
       return homeDialog('<div class="dlg-hd"><h2 id="act-title">Rename project</h2></div><div class="dlg-body">' +
         '<label class="fld"><span class="fl">Name</span><input type="text" maxlength="60" value="' + esc(p.name) + '" data-rn-name></label></div>' +
@@ -5281,6 +5322,7 @@
     if (t.closest('[data-home-profile]')) return openProfile(true);
     if (tag) homeState.tag = tag.getAttribute('data-home-tag');
     else if (view) homeState.view = view.getAttribute('data-home-view');
+    else if (t.closest('[data-home-archived]')) homeState.archived = !homeState.archived;
     else if (go) {
       var itemId = go.getAttribute('data-item');
       if (go.getAttribute('data-home-goto') === currentId) {

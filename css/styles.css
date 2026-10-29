@@ -615,12 +615,12 @@ button.logo:focus-visible{outline:2px solid #4790ad;outline-offset:2px}
 .htools .av.hme{width:30px;height:30px;margin:0;border:0;font-size:10px;cursor:pointer}
 .htools .av.hme:hover{box-shadow:0 0 0 2px #ffffff,0 0 0 3.5px #4790ad}
 .hwrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:24px;max-width:1400px;margin:0 auto;padding:24px}
-.hhello{grid-column:1/-1}
+
 .hmain{grid-column:1;min-width:0}
 .hside{grid-column:2}
 .hhello h1{margin:0;font:600 22px Inter,system-ui,sans-serif;color:#14171a;letter-spacing:-.01em}
 .hhello p{margin:4px 0 0;font-size:12.5px;color:#6b727b}
-.hbar{grid-column:1/-1;display:flex;align-items:center;gap:12px;margin:20px 0 22px;flex-wrap:wrap}
+.hbar{display:flex;align-items:center;gap:12px;margin:18px 0 22px;flex-wrap:wrap}
 .hlabel,.hbox h2{margin:0;font:600 9.5px Inter,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#6b727b}
 .hsort{display:flex;align-items:center;gap:6px}
 .hsort select{height:28px;padding:0 6px;border:1px solid #dde1e6;border-radius:7px;background:#ffffff;color:#1b1f24;font:500 11.5px Inter,system-ui,sans-serif;cursor:pointer}
@@ -680,7 +680,8 @@ button.logo:focus-visible{outline:2px solid #4790ad;outline-offset:2px}
 /* The side column: coming up, notes, templates, tags */
 .hside{display:flex;flex-direction:column;gap:14px;min-width:0}
 .hlabel{height:14px;margin:0 0 10px}
-.hside .hlabel{margin-bottom:-4px} /* its column has 14px gaps; this keeps both headings the same distance above their boxes */
+.hside .hlabel{margin-bottom:-4px} /* its column has 14px gaps between boxes */
+.hside{padding-top:6px}
 .hbox{padding:14px 16px;border:1px solid #e3e6ea;border-radius:12px;background:#ffffff}
 .hbox h2{margin-bottom:10px}
 .hsoon,.hnotes,.hlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
@@ -691,6 +692,27 @@ button.logo:focus-visible{outline:2px solid #4790ad;outline-offset:2px}
 .hsoon-t b{font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hsoon-t span{font-size:10.5px;color:#7b828b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hsoon em{flex:none;font-style:normal;font-size:10.5px;color:#3f86a3;font-weight:600}
+/* Coming up, a heading per day */
+.hday+.hday{margin-top:10px}
+.hday-hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 6px 4px;border-bottom:1px solid #f0f2f5;margin-bottom:2px}
+.hday-hd b{font-size:12px;font-weight:600;color:#1b1f24}
+.hday-hd em{font-style:normal;font-size:10.5px;font-weight:600;color:#3f86a3}
+.hsoon-time{flex:none;min-width:44px;font:500 10.5px "JetBrains Mono",monospace;color:#6b727b;white-space:nowrap}
+.hsoon-n{flex:1;min-width:0;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hsoon-p{flex:none;max-width:90px;font-size:10.5px;color:#8a929b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hsoon button{padding:5px 6px}
+/* Pinned and archived projects */
+.hpin{display:inline-grid;place-items:center;color:#3f86a3}
+.hpin svg{width:13px;height:13px}
+.hcard.archived{opacity:.6}
+.hcard.archived:hover{opacity:1}
+.harch{height:28px}
+.harch .hcount{margin-left:4px}
+[data-theme="dark"] .hday-hd{border-bottom-color:#22272c}
+[data-theme="dark"] .hday-hd b{color:#f1f3f5}
+[data-theme="dark"] .hday-hd em{color:#6fb6d2}
+[data-theme="dark"] .hsoon-time{color:#9aa1a9}
+[data-theme="dark"] .hpin{color:#6fb6d2}
 .hnone{margin:0;font-size:11.5px;color:#8a929b;font-style:italic;line-height:1.45}
 .hnote-add{box-sizing:border-box;width:100%;height:30px;margin-bottom:8px;padding:0 9px;border:1px solid #dde1e6;border-radius:7px;background:#ffffff;color:#1b1f24;font:400 12px Inter,system-ui,sans-serif}
 .hnote-add:focus{outline:0;border-color:#4790ad;box-shadow:0 0 0 3px rgba(71,144,173,.18)}
