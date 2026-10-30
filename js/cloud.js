@@ -170,6 +170,20 @@
   var APP_FILES = ['core', 'timeline', 'timeline-controls', 'plan', 'task-form', 'task-list', 'details', 'list', 'board',
     'calendar', 'settings', 'pages', 'tags', 'search', 'projects', 'notes', 'profile', 'home', 'start'];
 
+  // Signed in: fetch the app's files while the first sync runs, so they're ready when it ends.
+  var preloaded = false;
+  function preloadApp() {
+    if (preloaded) return;
+    preloaded = true;
+    APP_FILES.forEach(function (name) {
+      var link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'script';
+      link.href = 'js/app/' + name + '.js';
+      document.head.appendChild(link);
+    });
+  }
+
   // While they load, page-level events are held back: a handler set up by an early file could
   // otherwise run before the files it calls into have arrived. Input is dropped (the app is
   // still hidden); storage and history changes are replayed once everything has loaded.
@@ -211,6 +225,7 @@
 
   function start(u) {
     user = u;
+    preloadApp();
     takeUnsent(u);
     showGate('loading');
     pull(true).then(function (result) {
@@ -250,7 +265,7 @@
   }
 
   // The sign-in screen: sign in, create an account, reset a forgotten password, or (from
-  // a reset email) choose a new one. Also a short "Loading your workspace" while syncing.
+  // a reset email) choose a new one. The marketing website links to #signup or #signin. Also a short "Loading your workspace" while syncing.
   var gate = document.createElement('div');
   gate.className = 'gate';
   gate.setAttribute('role', 'dialog');
@@ -432,6 +447,6 @@
   showGate('loading');
   sb.auth.getSession().then(function (r) {
     var session = r.data && r.data.session;
-    if (!session && !user) showGate('signin');
+    if (!session && !user) showGate(location.hash === '#signup' ? 'signup' : 'signin');
   });
 })();

@@ -3,6 +3,11 @@
 A project planner (timeline, list, calendar, board) that signs in and syncs through Supabase.
 Plain HTML, CSS and JavaScript with no build step.
 
+This repo is the app only. A separate marketing website advertises it and links to the app's
+sign-up and sign-in screens: `#signup` opens "Create your account", anything else opens "Sign in"
+(for example `https://app.yourdomain.com/#signup`). The app is kept out of search results
+(`noindex` in `index.html`, and `X-Robots-Tag` in `_headers`); the website does the SEO.
+
 - `index.html`: the page
 - `css/`: `styles.css` (colour tokens at the top) and `fonts.css`
 - `js/early.js`: runs in `<head>` before the page draws (theme, framing check)
@@ -11,6 +16,8 @@ Plain HTML, CSS and JavaScript with no build step.
 - `js/app/*.js`: the app, loaded in order by `js/cloud.js` (the list is `APP_FILES` there)
 - `supabase/schema.sql`: the database table, its row level security and limits
 - `_headers`: HTTP security headers for hosts that support them
+- `manifest.webmanifest` and `assets/icon-*.png`, `assets/apple-touch-icon.png`: so the app can be
+  added to a phone's home screen
 
 To run it locally, serve the folder over HTTP (for example `npx serve .`) and open it in a browser.
 
