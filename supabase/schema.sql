@@ -40,9 +40,7 @@ create policy "Remove your own data" on public.user_data
 -- keeps anything near the limit in the browser rather than sending it.
 alter table public.user_data drop constraint if exists user_data_key_name;
 alter table public.user_data add constraint user_data_key_name
-  check (key ~ '^roadmap(Projects|Tags|Templates|Notes|Profile|Plan(:.{1,200})?)
-grant select, insert, update, delete on public.user_data to authenticated;
-);
+  check (key ~ '^roadmap(Projects|Tags|Templates|Notes|Profile|Plan(:.{1,200})?)$');
 
 alter table public.user_data drop constraint if exists user_data_value_size;
 alter table public.user_data add constraint user_data_value_size
