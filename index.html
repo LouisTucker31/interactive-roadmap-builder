@@ -198,15 +198,25 @@
 <label><input type="radio" name="type" value="task" checked><span>Task</span></label><label><input type="radio" name="type" value="milestone"><span>Milestone</span></label><label><input type="radio" name="type" value="phase"><span>Phase</span></label>
 </div>
 
-<label class="field"><span class="field-label">Name</span><input type="text" name="name" maxlength="80" autocomplete="off" placeholder="e.g. Billing page" required></label>
+<input class="title-input" type="text" name="name" maxlength="80" autocomplete="off" placeholder="Name, e.g. Billing page" aria-label="Name" required>
 
 <div class="when">
 <div class="field"><span class="field-label" data-start-label>Start</span><div class="date-time"><input type="date" name="startDate" aria-label="Start date" required><input type="time" name="startTime" aria-label="Start time" value="09:00" data-time></div></div>
 <div class="field"><span class="field-label"><span data-end-label>Finish</span><button class="clear-btn" type="button" hidden data-end-clear>Clear</button></span><div class="date-time"><input type="date" name="endDate" aria-label="Finish date"><input type="time" name="endTime" aria-label="Finish time" value="17:00" data-time></div></div>
 </div>
 <label class="checkbox"><input type="checkbox" name="allDay" checked> All day</label>
-<div class="field" data-for="task"><span class="field-label">Colour</span><div class="swatches" role="radiogroup" aria-label="Colour" data-colors></div></div>
-<div class="field"><span class="field-label">Person</span>
+<!-- The rest as chips showing their value; a chip opens its picker in the panel below -->
+<div class="props">
+<button class="chip" type="button" aria-expanded="false" aria-controls="prop-color" data-for="task" data-chip="color"><span class="hidden-label">Colour: </span><i class="chip-dot" data-chip-dot></i><span data-chip-color></span></button>
+<button class="chip" type="button" aria-expanded="false" aria-controls="prop-person" data-chip="person"><span class="hidden-label">Person: </span><span class="chip-person" data-chip-person></span></button>
+<label class="chip chip-select" data-for="task milestone" title="Phase"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"></path><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"></path><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"></path></svg><select name="phase" aria-label="Phase" data-phases></select></label>
+<label class="chip chip-select" data-for="task" title="Subtask of"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 10 5 5-5 5"></path><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></svg><select name="parent" aria-label="Subtask of" data-parents></select></label>
+<button class="chip" type="button" aria-expanded="false" aria-controls="prop-progress" data-for="task" data-chip="progress"><span class="hidden-label">Progress: </span><span class="progress-bar"><b data-chip-bar></b></span><output data-progress-out>0%</output></button>
+<button class="chip" type="button" aria-expanded="false" aria-controls="prop-deps" data-for="task milestone" data-chip="deps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg><span data-deps-count>Depends on</span></button>
+</div>
+
+<div class="prop-panel" id="prop-color" hidden data-panel="color"><div class="swatches" role="radiogroup" aria-label="Colour" data-colors></div></div>
+<div class="prop-panel" id="prop-person" hidden data-panel="person">
 <div class="people-pick" data-people></div>
 <div class="person-selected" data-person-sel></div>
 <div class="new-person" hidden data-new-person>
@@ -214,15 +224,10 @@
 <div class="new-person-row"><div class="person-colors" role="radiogroup" aria-label="Avatar colour" data-person-colors></div></div>
 </div>
 </div>
+<div class="prop-panel" id="prop-progress" hidden data-panel="progress"><input type="range" name="progress" min="0" max="100" step="5" value="0" aria-label="Progress"></div>
+<div class="prop-panel" id="prop-deps" hidden data-panel="deps"><span class="field-label">Depends on <em>can’t start until these finish</em></span><div class="deps-list" data-dep-options></div></div>
 
-<div class="two">
-<label class="field" data-for="task milestone"><span class="field-label">Phase</span><select name="phase" data-phases></select></label>
-<label class="field" data-for="task"><span class="field-label">Subtask of</span><select name="parent" data-parents></select></label>
-</div>
-
-<div class="field" data-for="task"><span class="field-label">Progress <output data-progress-out>0%</output></span><input type="range" name="progress" min="0" max="100" step="5" value="0" aria-label="Progress"></div>
-
-<div class="field" data-for="task milestone"><button class="fold" type="button" aria-expanded="false" aria-controls="dep-options" data-deps-toggle><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><span class="field-label">Depends on <em>can’t start until these finish</em></span><span class="fold-count" data-deps-count></span></button><div class="deps-list" id="dep-options" hidden data-dep-options></div></div>
+<label class="field"><span class="field-label">Notes</span><textarea name="notes" rows="2" maxlength="1000" placeholder="What’s left to do, links, anything to remember"></textarea></label>
 
 <p class="form-error" role="alert" data-nt-error hidden></p>
 </div>

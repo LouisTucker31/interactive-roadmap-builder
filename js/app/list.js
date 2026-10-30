@@ -110,6 +110,11 @@ var LIST_COLS = [
       var ds = depsOf(r);
       return ds.length ? '<span class="list-deps" title="' + esc(ds.map(function (d) { return d.name; }).join(', ')) + '">' +
         esc(ds.map(function (d) { return d.name; }).join(', ')) + '</span>' : '<span class="empty-value">None</span>';
+    } },
+  { key: 'notes', label: 'Notes',
+    val: function (r) { return r.notes ? r.notes.toLowerCase() : '~'; }, // no notes sorts last
+    cell: function (r) {
+      return r.notes ? '<span class="list-notes" title="' + esc(r.notes) + '">' + esc(r.notes) + '</span>' : '';
     } }
 ];
 

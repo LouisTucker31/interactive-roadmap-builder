@@ -1386,6 +1386,13 @@ button.name:focus-visible {
   padding: 4px 14px 12px;
 }
 
+.details-notes {
+  max-height: 96px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .details-body dt {
   color: var(--text-faint);
   white-space: nowrap;
@@ -1854,6 +1861,192 @@ button:disabled {
 .dialog input[type=range] {
   accent-color: var(--accent);
   margin: 2px 0;
+}
+
+/* Task form: the name reads as a title (a box shows on hover and focus) */
+.dialog input.title-input {
+  height: 36px;
+  margin: 0 -10px; /* the text lines up with the fields below */
+  border-color: transparent;
+  background: transparent;
+  font: 600 15px Inter, system-ui, sans-serif;
+}
+
+.dialog input.title-input:hover:not(:focus) {
+  border-color: var(--grey-884);
+}
+
+.dialog textarea {
+  box-sizing: border-box;
+  min-height: 52px;
+  max-height: 200px;
+  padding: 7px 9px;
+  border: 1px solid var(--grey-884);
+  border-radius: 7px;
+  background: var(--white);
+  color: var(--grey-124);
+  font: 400 12px/1.45 Inter, system-ui, sans-serif;
+  resize: vertical;
+  field-sizing: content; /* grows with what's typed */
+}
+
+.dialog textarea:focus {
+  outline: 0;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px var(--focus-glow);
+}
+
+/* Task form: colour, person, phase, subtask, progress and dependencies as chips showing their
+   value. A chip opens its picker in the panel below; phase and subtask are selects. */
+.props {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--grey-884);
+  border-radius: 14px;
+  background: var(--white);
+  color: var(--grey-124);
+  font: 500 11.5px Inter, system-ui, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chip[hidden],
+.prop-panel[hidden] {
+  display: none;
+}
+
+.chip:hover {
+  background: var(--grey-971);
+}
+
+.chip:focus-visible,
+.chip-select:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.chip[aria-expanded="true"] {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px var(--focus-glow);
+}
+
+.chip svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  color: var(--text-faint);
+}
+
+.chip-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.chip-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chip[data-chip="person"] {
+  padding-left: 5px;
+}
+
+.chip-person > :last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip .person-avatar.none {
+  box-sizing: border-box;
+  border: 1.5px dashed var(--grey-696);
+}
+
+.chip .progress-bar {
+  width: 36px;
+}
+
+.chip output {
+  font: 500 10.5px "JetBrains Mono", monospace;
+}
+
+.chip-select {
+  gap: 2px;
+  padding: 0 8px 0 10px;
+}
+
+.dialog .chip-select select {
+  height: 26px;
+  max-width: 190px;
+  padding: 0 22px 0 4px;
+  margin-right: -14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  field-sizing: content; /* as wide as the chosen option */
+}
+
+.chip-select::after {
+  content: "";
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-right: 2px;
+  background: var(--text-faint);
+  -webkit-mask: var(--icon-chevron-down) center / contain no-repeat;
+  mask: var(--icon-chevron-down) center / contain no-repeat;
+  pointer-events: none;
+}
+
+.dialog .chip-select select:focus {
+  box-shadow: none;
+}
+
+.chip-select:has(select:disabled) {
+  cursor: default;
+}
+
+.prop-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: -4px;
+  padding: 10px;
+  border: 1px solid var(--line-3);
+  border-radius: 8px;
+  background: var(--surface-3);
+}
+
+.prop-panel .deps-list {
+  background: var(--white);
+}
+
+/* Read by screen readers, not shown: what a chip's value is */
+.hidden-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .when,
@@ -2409,6 +2602,32 @@ button:disabled {
   background: var(--surface);
   border-color: var(--line-1);
   color: var(--text-4);
+}
+
+[data-theme="dark"] .dialog input.title-input:not(:focus) {
+  border-color: transparent;
+  background: transparent;
+}
+
+[data-theme="dark"] .dialog input.title-input:hover:not(:focus) {
+  border-color: var(--line-1);
+}
+
+[data-theme="dark"] .dialog textarea,
+[data-theme="dark"] .chip,
+[data-theme="dark"] .prop-panel .deps-list {
+  background: var(--surface);
+  border-color: var(--line-1);
+  color: var(--text-4);
+}
+
+[data-theme="dark"] .dialog textarea:focus,
+[data-theme="dark"] .chip[aria-expanded="true"] {
+  border-color: var(--focus);
+}
+
+[data-theme="dark"] .chip:hover {
+  background: var(--surface-6);
 }
 
 [data-theme="dark"] .swatch input:checked+span {
@@ -3068,6 +3287,15 @@ button:disabled {
 .status.ms {
   background: var(--milestone-tint);
   color: #b0621d;
+}
+
+.list-notes {
+  display: inline-block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  color: var(--text-6);
 }
 
 .list-deps {
@@ -7118,52 +7346,6 @@ button.pill {
   padding: 12px 10px;
   color: var(--text-faint);
   font-style: italic;
-}
-
-/* Depends on folds away in the form */
-.fold {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  width: 100%;
-  padding: 2px 0;
-  border: 0;
-  background: none;
-  color: var(--text-9);
-  cursor: pointer;
-  text-align: left;
-}
-
-.fold svg {
-  flex: none;
-  transition: transform .15s ease;
-}
-
-.fold[aria-expanded="true"] svg {
-  transform: rotate(90deg);
-}
-
-.fold .field-label {
-  flex: 1;
-}
-
-.fold:hover .field-label {
-  color: var(--text-3);
-}
-
-.fold:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-.fold-count {
-  font: 500 10.5px Inter, sans-serif;
-  color: var(--accent-text-4);
-}
-
-.deps-list[hidden] {
-  display: none;
 }
 
 [data-theme="dark"] .pill {

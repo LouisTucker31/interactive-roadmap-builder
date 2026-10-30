@@ -36,7 +36,7 @@ function runSearch() {
   searchHits = data.rows.map(function (r, i) {
     var who = personById(r.person);
     var kind = r.type === 'task' ? (r.parent ? 'subtask' : 'task') : r.type;
-    var hay = [r.name, phaseName(r), who ? who.name : '', kind].join(' ').toLowerCase();
+    var hay = [r.name, phaseName(r), who ? who.name : '', kind, r.notes || ''].join(' ').toLowerCase();
     if (!words.every(function (w) { return hay.indexOf(w) >= 0; })) return null;
     var name = r.name.toLowerCase();
     // Names starting with the search come first, then names containing it, then the rest.

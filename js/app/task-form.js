@@ -4,7 +4,8 @@
 
 // Task form: creates a task, milestone or phase row, or edits one. Everything js/data.js
 // can describe can be entered here: name, dates (optionally with times), colour, phase,
-// parent task, progress and dependencies. A new row goes at the end of its phase, or
+// parent task, progress, dependencies and notes. Colour, person, phase, subtask, progress and
+// dependencies are chips that show their value; a chip opens its picker in the panel below. A new row goes at the end of its phase, or
 // straight after its parent's other subtasks; an edited row moves only if its phase or
 // parent changed.
 var dialog = document.querySelector('[data-new-dialog]');
@@ -52,9 +53,49 @@ function syncForm() {
   // A subtask sits under its parent, so its phase comes from there.
   form.elements.phase.disabled = type === 'task' && !!form.elements.parent.value;
   form.querySelector('[data-progress-out]').textContent = form.elements.progress.value + '%';
+  form.querySelector('[data-chip-bar]').style.width = form.elements.progress.value + '%';
   var deps = form.querySelectorAll('[name="deps"]:checked').length;
-  form.querySelector('[data-deps-count]').textContent = deps ? deps + ' selected' : '';
+  form.querySelector('[data-deps-count]').textContent = deps ? 'Depends on ' + deps : 'Depends on';
+  var color = form.querySelector('[name="color"]:checked');
+  var named = COLORS.filter(function (c, i) { return (i ? c[1] : '') === (color ? color.value : ''); })[0] || COLORS[0];
+  form.querySelector('[data-chip-dot]').style.background = named[1];
+  form.querySelector('[data-chip-color]').textContent = named[0];
+  var who = chosenPerson();
+  form.querySelector('[data-chip-person]').innerHTML = who ? avatar(who) + '<span>' + esc(who.name) + '</span>' : '<span class="person-avatar none"></span><span>Unassigned</span>';
+  // A panel whose chip doesn't apply to this type closes.
+  if (openPanel && form.querySelector('[data-chip="' + openPanel + '"]').hidden) showPanel(null);
 }
+
+// The panel under the chips: one picker at a time; its chip again, or Esc, closes it.
+var openPanel = null;
+
+function showPanel(name, focus) {
+  openPanel = name;
+  Array.prototype.forEach.call(form.querySelectorAll('[data-panel]'), function (p) {
+    p.hidden = p.getAttribute('data-panel') !== name;
+  });
+  Array.prototype.forEach.call(form.querySelectorAll('[data-chip]'), function (c) {
+    c.setAttribute('aria-expanded', String(c.getAttribute('data-chip') === name));
+  });
+  if (!name || !focus) return;
+  var first = form.querySelector('[data-panel="' + name + '"]').querySelector('input:checked, input[type=range], input');
+  if (first) first.focus();
+}
+
+form.querySelector('.props').addEventListener('click', function (e) {
+  var chip = e.target.closest('[data-chip]');
+  if (!chip) return;
+  var name = chip.getAttribute('data-chip');
+  showPanel(openPanel === name ? null : name, e.detail === 0); // focus into it from the keyboard
+});
+
+form.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape' || !openPanel || e.defaultPrevented) return;
+  e.preventDefault();
+  var chip = form.querySelector('[data-chip="' + openPanel + '"]');
+  showPanel(null);
+  chip.focus();
+});
 
 // Phases split the rows into sections: rows before the first phase have none.
 function sectionEnd(phaseId) {
@@ -72,7 +113,7 @@ function fillOptions(row) {
 
   // Subtasks only go one level deep, so a task that has subtasks can't become one.
   var hasKids = row && row.type === 'task' && childCount(row) > 0;
-  form.elements.parent.innerHTML = '<option value="">None (top level)</option>' + (hasKids ? '' : data.rows.filter(function (r) {
+  form.elements.parent.innerHTML = '<option value="">Not a subtask</option>' + (hasKids ? '' : data.rows.filter(function (r) {
     return r.type === 'task' && !r.parent && r !== row;
   }).map(function (r) {
     return '<option value="' + esc(r.id) + '">' + esc(r.name) + '</option>';
@@ -113,6 +154,7 @@ function openForm(row, spot) {
   if (editing) {
     f.type.value = row.type;
     f.name.value = row.name;
+    f.notes.value = row.notes || '';
     var start = row.type === 'milestone' ? row.day : row.start;
     var timed = start % 1 !== 0 || (row.end != null && row.end % 1 !== 0);
     f.allDay.checked = !timed;
@@ -153,7 +195,7 @@ function openForm(row, spot) {
   }
   if (!editing) applyDefaults(!!spot);
   errEl.hidden = true;
-  foldDeps(false);
+  showPanel(null);
   syncForm();
   dialog.showModal();
   f.name.focus();
@@ -198,6 +240,7 @@ function syncPersonSel() {
     ? '<span class="person-name">' + esc(p.name) + '</span><button type="button" data-edit-person>Edit</button>' +
       '<button type="button" class="person-delete" data-remove-person>Delete</button>'
     : '<span class="empty-value">Unassigned</span>';
+  syncForm(); // the Person chip
 }
 
 function showPersonBox(person) {
@@ -339,17 +382,6 @@ function applyDefaults(clicked) {
   }
 }
 
-// Depends on folds away, closed each time the form opens; its heading counts what's ticked.
-var depsToggle = form.querySelector('[data-deps-toggle]');
-var depsList = form.querySelector('[data-dep-options]');
-
-function foldDeps(open) {
-  depsToggle.setAttribute('aria-expanded', String(open));
-  depsList.hidden = !open;
-}
-
-depsToggle.addEventListener('click', function () { foldDeps(depsList.hidden); });
-
 function openEdit(id) {
   if (rowIndex[id] != null) openForm(data.rows[rowIndex[id]]);
 }
@@ -393,6 +425,8 @@ function saveRow() {
     if (+f.progress.value) row.progress = f.progress.value / 100;
   }
   if (type === 'phase' && editing && editing.color) row.color = editing.color; // set in Settings → Phases
+  var notes = f.notes.value.trim();
+  if (notes) row.notes = notes;
   // A name typed into New person but not yet added is added now.
   if (!newPersonEl.hidden && f.newPerson.value.trim() && !commitPerson()) return;
   var who = chosenPerson();

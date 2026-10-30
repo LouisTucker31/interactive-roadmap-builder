@@ -46,6 +46,7 @@ function openPeek(id, el, clientX) {
     if (after) items.push(['Depends on', after]);
     if (before) items.push(['Holds up', before]);
   }
+  if (row.notes) items.push(['Notes', '<span class="details-notes">' + esc(row.notes) + '</span>']);
   peek.querySelector('[data-peek-body]').innerHTML = items.map(function (it) {
     return '<dt>' + it[0] + '</dt><dd>' + it[1] + '</dd>';
   }).join('');
