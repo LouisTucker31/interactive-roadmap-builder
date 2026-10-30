@@ -232,6 +232,9 @@ calEl.addEventListener('click', function (e) {
   } else if (open) {
     cal.view = 'week';
     calAt = +open.getAttribute('data-cal-open');
+  } else if ((seg || day) && popupJustClosed) {
+    popupJustClosed = false; // that click closed a popup; the next one opens or adds
+    return;
   } else if (seg) return openEdit(seg.getAttribute('data-id'));
   else if (day) {
     openForm();

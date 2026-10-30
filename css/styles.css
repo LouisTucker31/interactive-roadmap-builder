@@ -1863,19 +1863,6 @@ button:disabled {
   margin: 2px 0;
 }
 
-/* Task form: the name reads as a title (a box shows on hover and focus) */
-.dialog input.title-input {
-  height: 36px;
-  margin: 0 -10px; /* the text lines up with the fields below */
-  border-color: transparent;
-  background: transparent;
-  font: 600 15px Inter, system-ui, sans-serif;
-}
-
-.dialog input.title-input:hover:not(:focus) {
-  border-color: var(--grey-884);
-}
-
 .dialog textarea {
   box-sizing: border-box;
   min-height: 52px;
@@ -2617,15 +2604,6 @@ button:disabled {
   background: var(--surface);
   border-color: var(--line-1);
   color: var(--text-4);
-}
-
-[data-theme="dark"] .dialog input.title-input:not(:focus) {
-  border-color: transparent;
-  background: transparent;
-}
-
-[data-theme="dark"] .dialog input.title-input:hover:not(:focus) {
-  border-color: var(--line-1);
 }
 
 [data-theme="dark"] .dialog textarea,

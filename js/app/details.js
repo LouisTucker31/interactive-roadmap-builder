@@ -152,13 +152,19 @@ peek.querySelector('[data-peek-edit]').addEventListener('click', function () {
   closePeek();
   openEdit(id);
 });
-// Clicking anywhere else closes it, and that click does nothing more: the next click on the
-// timeline adds an item or opens another one's details.
-var peekJustClosed = false;
+// Clicking off this or any other popup or menu closes it, and that click does nothing more:
+// the next click on the timeline or calendar adds an item or opens another one's details.
+// Runs first (capture), before the popups' own handlers close them.
+var popupJustClosed = false;
 document.addEventListener('pointerdown', function (e) {
-  peekJustClosed = !peek.hidden && !peek.contains(e.target);
-  if (peekJustClosed) closePeek();
-});
+  var open = [peek, notesPop, profPop, projPop, tagPop, actMenu, zoomMenu, colsMenu, showMenu, searchRes].filter(function (p) {
+    return !p.hidden && !p.contains(e.target);
+  });
+  popupJustClosed = open.length > 0;
+  if (open.indexOf(peek) >= 0) closePeek();
+  // The chart keeps focus where it was while panning, so the search box doesn't blur by itself.
+  if (open.indexOf(searchRes) >= 0 && !e.target.closest('[data-search]')) searchIn.blur();
+}, true);
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape' && !peek.hidden && !move) closePeek();
 });
@@ -172,8 +178,8 @@ scroller.addEventListener('click', function (e) {
     dragMoved = false;
     return;
   }
-  if (peekJustClosed) {
-    peekJustClosed = false;
+  if (popupJustClosed) {
+    popupJustClosed = false;
     return;
   }
   var hit = document.elementFromPoint(e.clientX, e.clientY);
