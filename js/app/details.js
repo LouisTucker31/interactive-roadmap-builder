@@ -44,7 +44,7 @@ function openPeek(id, el, clientX) {
     var after = rowLinks(data.deps.filter(function (d) { return d[1] === id; }).map(function (d) { return d[0]; }));
     var before = rowLinks(data.deps.filter(function (d) { return d[0] === id; }).map(function (d) { return d[1]; }));
     if (after) items.push(['Depends on', after]);
-    if (before) items.push(['Blocks', before]);
+    if (before) items.push(['Holds up', before]);
   }
   peek.querySelector('[data-peek-body]').innerHTML = items.map(function (it) {
     return '<dt>' + it[0] + '</dt><dd>' + it[1] + '</dd>';

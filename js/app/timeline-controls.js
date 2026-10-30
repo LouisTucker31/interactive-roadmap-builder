@@ -53,7 +53,7 @@ function syncTodayArrow() {
   var label = here ? word : offset < 0 ? word + ' →' : '← ' + word;
   if (todayBtn.textContent !== label) todayBtn.textContent = label;
   todayBtn.classList.toggle('here', here);
-  todayBtn.title = here ? "You're viewing " + word.toLowerCase() : 'Back to ' + word.toLowerCase();
+  todayBtn.title = here ? 'You’re viewing ' + word.toLowerCase() : 'Back to ' + word.toLowerCase();
 }
 
 // Drag to pan: hold the left mouse button and drag to move the chart freely in any
@@ -213,7 +213,7 @@ function renderTaskList() {
 function renderPeopleList() {
   if (!wl) wl = workloadLayout();
   var overloaded = wl.blocks.filter(function (bk) { return bk.overDays > 0; }).length;
-  panel.querySelector('.task-panel-title').textContent = 'People' + (overloaded ? ' · ' + overloaded + ' overloaded' : '');
+  panel.querySelector('.task-panel-title').textContent = 'People' + (overloaded ? ' · ' + overloaded + ' with overlaps' : '');
   taskRowsEl.innerHTML = wl.blocks.map(function (bk) {
     var n = bk.rows.length;
     var state = bk.overDays > 0 ? 'over' : n ? 'ok' : 'idle';
@@ -221,8 +221,8 @@ function renderPeopleList() {
     if (bk.overDays > 0) sub += ' · ' + duration({ start: 0, end: bk.overDays }) + ' overlap';
     var face = bk.p ? avatar(bk.p) : '<span class="person-avatar none" aria-hidden="true"></span>';
     var name = bk.p ? bk.p.name : 'Unassigned';
-    var tip = state === 'over' ? 'More than one task at once for ' + duration({ start: 0, end: bk.overDays })
-      : state === 'ok' ? 'No overlapping work' : 'No work assigned';
+    var tip = state === 'over' ? 'Overlapping tasks for ' + duration({ start: 0, end: bk.overDays })
+      : state === 'ok' ? 'No overlapping tasks' : 'Nothing assigned';
     return '<div class="task-row workload-person' + (bk.p ? '' : ' none') + '" role="button" tabindex="0" data-person="' + esc(bk.id) + '" style="height: ' + bk.lanes * ROW_PX + 'px' +
       (bk.p ? '; --c: ' + safeColor(bk.p.color, AVATAR_COLORS[0]) : '') + '" title="' +
       esc(name + ' · ' + sub + ' · click to go to their first item') + '">' + face +

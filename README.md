@@ -16,19 +16,19 @@ To run it locally, serve the folder over HTTP (for example `npx serve .`) and op
 
 ## Hosting and security headers
 
-The site is on GitHub Pages, which can't send custom HTTP headers. What's covered anyway:
+Three security headers are missing while the site is on GitHub Pages, which can't send custom
+headers: `X-Content-Type-Options`, `Permissions-Policy`, and `frame-ancestors`. They're all in
+`_headers`, which Cloudflare Pages and Netlify apply automatically (both deploy from this repo, no
+build command, output directory `/`). The plan is to move to Cloudflare Pages with a custom
+domain; when that happens, update the Supabase Site URL and Redirect URLs to the new address.
+
+Until then, the rest is covered without headers:
 
 - **Content-Security-Policy** is set with a `<meta>` tag in `index.html`.
 - **Referrer-Policy** is set with `<meta name="referrer">`.
-- **Framing**: `frame-ancestors` can't be set from a `<meta>` tag, so `js/early.js` hides the page
-  when it's inside another site's frame. The app needs JavaScript, so a frame that blocks
-  scripts gets nothing usable either.
+- **Framing**: `js/early.js` hides the page when it's inside another site's frame. The app needs
+  JavaScript, so a frame that blocks scripts gets nothing usable either.
 - **HTTPS and HSTS** come from GitHub Pages itself.
-
-Still missing on GitHub Pages: `X-Content-Type-Options`, `Permissions-Policy`, and
-`frame-ancestors` as a real header. `_headers` has the complete set. Moving to Cloudflare Pages or
-Netlify (both deploy from this repo, no build command, output directory `/`) applies it
-automatically. If the address changes, update the Supabase Site URL and Redirect URLs to match.
 
 After any hosting change, check the live headers with https://securityheaders.com.
 (Mozilla's HTTP Observatory only scans a domain's root, so it can't grade a GitHub Pages

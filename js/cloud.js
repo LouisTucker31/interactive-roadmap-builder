@@ -320,6 +320,27 @@
     return error && (error.name === 'AuthRetryableFetchError' || error.status === 0);
   }
 
+  // Supabase's own error messages are technical, so the common ones are said plainly here and
+  // anything else gets the caller's general message.
+  var AUTH_MESSAGES = {
+    invalid_credentials: 'That email and password don’t match.',
+    email_not_confirmed: 'Confirm your email first: open the link we sent you, then sign in.',
+    user_already_exists: 'There’s already an account for this email. Sign in instead.',
+    email_exists: 'There’s already an account for this email. Sign in instead.',
+    email_address_invalid: 'Enter a valid email address.',
+    weak_password: 'Choose a longer password, or one that’s harder to guess.',
+    same_password: 'Choose a password you haven’t used for this account before.',
+    over_email_send_rate_limit: 'Too many emails sent. Wait a few minutes, then try again.',
+    over_request_rate_limit: 'Too many attempts. Wait a few minutes, then try again.',
+    signup_disabled: 'New accounts can’t be created at the moment.',
+    session_not_found: 'This link has expired. Ask for a new one.',
+    session_expired: 'This link has expired. Ask for a new one.'
+  };
+
+  function authMessage(error, fallback) {
+    return AUTH_MESSAGES[error.code] || fallback;
+  }
+
   gate.addEventListener('click', function (e) {
     var to = e.target.closest('[data-gate]');
     if (to) showGate(to.getAttribute('data-gate'));
@@ -340,24 +361,24 @@
     if (view === 'signin') {
       sb.auth.signInWithPassword({ email: email, password: password }).then(function (r) {
         if (offline(r.error)) return unreachable();
-        if (r.error) return gateError(/confirm/i.test(r.error.message) ? 'Confirm your email first: open the link we sent you, then sign in.' : 'That email and password don’t match.');
+        if (r.error) return gateError(authMessage(r.error, /confirm/i.test(r.error.message) ? AUTH_MESSAGES.email_not_confirmed : AUTH_MESSAGES.invalid_credentials));
       }, unreachable);
     } else if (view === 'signup') {
       sb.auth.signUp({ email: email, password: password, options: { emailRedirectTo: SITE, data: { name: get('name') } } }).then(function (r) {
         if (offline(r.error)) return unreachable();
-        if (r.error) return gateError(r.error.message);
+        if (r.error) return gateError(authMessage(r.error, 'Your account wasn’t created. Check your details and try again.'));
         if (!r.data.session) showGate('sent', 'We’ve sent a link to ' + email + '. Open it to confirm your account, then sign in.');
       }, unreachable);
     } else if (view === 'forgot') {
       sb.auth.resetPasswordForEmail(email, { redirectTo: SITE }).then(function (r) {
         if (offline(r.error)) return unreachable();
-        if (r.error) return gateError(r.error.message);
+        if (r.error) return gateError(authMessage(r.error, 'The reset link wasn’t sent. Wait a few minutes, then try again.'));
         showGate('sent', 'If there’s an account for ' + email + ', a link to reset its password is on its way.');
       }, unreachable);
     } else if (view === 'recover') {
       sb.auth.updateUser({ password: password }).then(function (r) {
         if (offline(r.error)) return unreachable();
-        if (r.error) return gateError(r.error.message);
+        if (r.error) return gateError(authMessage(r.error, 'Your new password wasn’t saved. Try again, or ask for a new reset link.'));
         recovering = false;
         start(user); // signed in already by the reset link
       }, unreachable);
@@ -375,7 +396,10 @@
     available: !!sb,
     email: function () { return user ? user.email : ''; },
     changePassword: function (password) {
-      return sb.auth.updateUser({ password: password }).then(function (r) { if (r.error) throw r.error; });
+      return sb.auth.updateUser({ password: password }).then(function (r) {
+        if (offline(r.error)) throw new Error('Couldn’t reach the server. Check your connection and try again.');
+        if (r.error) throw new Error(authMessage(r.error, 'Your password wasn’t changed. Try again.'));
+      });
     },
     // Send anything unsaved, sign out, and clear this browser's copy so the next person
     // to use it doesn't see it.

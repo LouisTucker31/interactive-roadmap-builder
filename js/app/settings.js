@@ -10,7 +10,7 @@
 var setEl = document.querySelector('[data-settings]');
 var setNav = setEl.querySelector('[data-settings-nav]');
 var setBody = setEl.querySelector('[data-settings-body]');
-var SECTIONS = [['general', 'General'], ['people', 'People'], ['phases', 'Phases'], ['defaults', 'Defaults'], ['templates', 'Templates'], ['danger', 'Danger zone']];
+var SECTIONS = [['general', 'General'], ['people', 'People'], ['phases', 'Phases'], ['defaults', 'Defaults'], ['templates', 'Templates'], ['danger', 'Reset or delete']];
 var setEditing = null; // { kind: 'person' | 'phase' | 'template', id } being edited inline
 var PAGES = [['', 'Where you left off'], ['timeline', 'Timeline'], ['list', 'List'], ['calendar', 'Calendar'], ['board', 'Board'], ['workload', 'Workload']];
 var LENGTHS = [[0, 'No finish'], [15, '15 minutes'], [30, '30 minutes'], [60, '1 hour'], [120, '2 hours'], [1440, '1 day'], [2880, '2 days'], [10080, '1 week']];
@@ -68,7 +68,7 @@ function renderSettings() {
     '<p class="settings-saved" aria-live="polite" data-set-saved></p></section>';
 
   // People
-  html += '<section class="settings-section" id="set-people"><h2>People</h2><p class="settings-desc">Everyone you can put on an item. Deleting someone unassigns their items; merging moves their items to someone else.</p><div class="settings-list">' +
+  html += '<section class="settings-section" id="set-people"><h2>People</h2><p class="settings-desc">Everyone you can put on an item. Deleting someone unassigns their items. Merging moves their items to someone else.</p><div class="settings-list">' +
     (data.people.length ? data.people.map(function (q) {
       var uses = data.rows.filter(function (r) { return r.person === q.id; }).length;
       if (setEditing && setEditing.kind === 'person' && setEditing.id === q.id) {
@@ -93,7 +93,7 @@ function renderSettings() {
         '<button type="button" class="popup-edit popup-delete" aria-label="Delete ' + esc(q.name) + '" title="Delete" data-person-del>' + TRASH_ICON + '</button>' +
         '</div></div>';
     }).join('') : '<p class="settings-empty">No people yet.</p>') +
-    '</div><div class="settings-add"><input type="text" maxlength="60" placeholder="Add someone: their name" aria-label="New person\'s name" data-person-new><button type="button" class="btn" data-person-add>Add</button></div></section>';
+    '</div><div class="settings-add"><input type="text" maxlength="60" placeholder="Add someone: their name" aria-label="New person’s name" data-person-new><button type="button" class="btn" data-person-add>Add</button></div></section>';
 
   // Phases
   var phases = phaseRows();
@@ -104,7 +104,7 @@ function renderSettings() {
       if (setEditing && setEditing.kind === 'phase' && setEditing.id === ph.id) {
         return '<div class="settings-item editing" data-phase-row="' + esc(ph.id) + '">' + ring +
           '<input type="text" maxlength="80" value="' + esc(ph.name) + '" aria-label="Phase name" data-edit-name>' +
-          swatchesHtml('editColor', COLORS, ph.color || '', '#a596ea', 'Lavender (default)') +
+          swatchesHtml('editColor', COLORS, ph.color || '', '#a596ea', 'Light purple (default)') +
           '<div class="settings-actions"><button type="button" class="btn" data-edit-cancel>Cancel</button><button type="button" class="primary" data-phase-save>Save</button></div></div>';
       }
       return '<div class="settings-item" data-phase-row="' + esc(ph.id) + '">' + ring +
@@ -137,7 +137,7 @@ function renderSettings() {
     '<p class="settings-desc">Week start applies straight away and reloads the page. Opening defaults apply the first time the project is opened in a tab.</p></section>';
 
   // Templates
-  html += '<section class="settings-section" id="set-templates"><h2>Templates</h2><p class="settings-desc">Start new projects from a saved copy of this one, from the project menu by the name at the top.</p>' +
+  html += '<section class="settings-section" id="set-templates"><h2>Templates</h2><p class="settings-desc">Save this project as a template, then start new projects from it in the project menu (click the project name at the top).</p>' +
     '<button type="button" class="btn" data-set-template>Save this project as a template…</button><div class="settings-list">' +
     (templates.length ? templates.map(function (tp) {
       if (setEditing && setEditing.kind === 'template' && setEditing.id === tp.id) {
@@ -149,10 +149,10 @@ function renderSettings() {
         '<button type="button" class="popup-edit popup-delete" aria-label="Delete ' + esc(tp.name) + '" title="Delete template" data-template-del>' + TRASH_ICON + '</button></div></div>';
     }).join('') : '<p class="settings-empty">No templates yet.</p>') + '</div></section>';
 
-  // Danger zone
+  // Reset or delete
   var only = projects.length < 2;
-  html += '<section class="settings-section danger" id="set-danger"><h2>Danger zone</h2>' +
-    '<div class="settings-danger"><div><b>Reset project</b><span>Remove every item and dependency, leaving it empty. People and the tag stay.</span></div><button type="button" class="btn del" data-set-reset>Reset project…</button></div>' +
+  html += '<section class="settings-section danger" id="set-danger"><h2>Reset or delete</h2>' +
+    '<div class="settings-danger"><div><b>Reset project</b><span>Remove every item and dependency, leaving it empty. People and tags stay.</span></div><button type="button" class="btn del" data-set-reset>Reset project…</button></div>' +
     '<div class="settings-danger"><div><b>Delete project</b><span>' + (only ? 'This is your only project, so it can’t be deleted. Reset it instead.' : 'Remove the project and everything in it for good. This can’t be undone.') +
     '</span></div><button type="button" class="btn del" data-set-delete' + (only ? ' disabled' : '') + '>Delete project…</button></div></section>';
 

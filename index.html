@@ -26,8 +26,8 @@
 <div class="notes-wrap"><button class="btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="notes-pop" data-notes-btn><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"></path><path d="M15 3v4a2 2 0 0 0 2 2h4"></path></svg><span class="btn-label">Notes</span><b class="notes-badge" hidden data-notes-count></b></button><div class="notes-popup" id="notes-pop" role="dialog" aria-label="Notes" hidden data-notes-pop></div></div>
 <div class="search" data-search><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input type="text" placeholder="Search" aria-label="Search the plan" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-results" data-search-input><span class="shortcut" data-search-kbd>⌘F</span><div class="search-results" id="search-results" role="listbox" aria-label="Search results" hidden data-search-results></div></div>
 <div class="btn-group">
-<button type="button" disabled="" aria-label="Undo" title="Undo (Ctrl+Z)" data-undo><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"></path></svg></button>
-<button type="button" aria-label="Redo" title="Redo (Ctrl+Y)" disabled="" data-redo><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"></path><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"></path></svg></button>
+<button type="button" disabled="" aria-label="Undo" title="Undo" data-undo><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"></path></svg></button>
+<button type="button" aria-label="Redo" title="Redo" disabled="" data-redo><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"></path><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"></path></svg></button>
 </div>
 <div class="actions-wrap"><button class="btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="actions-menu" data-actions-btn>Actions<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 11px; height: 11px"><path d="m6 9 6 6 6-6"></path></svg></button>
 <div class="dropdown actions-menu" id="actions-menu" role="menu" aria-label="Actions" hidden data-actions-menu>
@@ -195,7 +195,7 @@
 <div class="people-pick" data-people></div>
 <div class="person-selected" data-person-sel></div>
 <div class="new-person" hidden data-new-person>
-<div class="new-person-row"><input type="text" name="newPerson" maxlength="60" placeholder="Their name" autocomplete="off" aria-label="Person's name"><button class="primary" type="button" data-add-person>Add</button><button class="btn" type="button" data-cancel-person>Cancel</button></div>
+<div class="new-person-row"><input type="text" name="newPerson" maxlength="60" placeholder="Their name" autocomplete="off" aria-label="Person’s name"><button class="primary" type="button" data-add-person>Add</button><button class="btn" type="button" data-cancel-person>Cancel</button></div>
 <div class="new-person-row"><div class="person-colors" role="radiogroup" aria-label="Avatar colour" data-person-colors></div></div>
 </div>
 </div>
@@ -207,7 +207,7 @@
 
 <div class="field" data-for="task"><span class="field-label">Progress <output data-progress-out>0%</output></span><input type="range" name="progress" min="0" max="100" step="5" value="0" aria-label="Progress"></div>
 
-<div class="field" data-for="task milestone"><button class="fold" type="button" aria-expanded="false" aria-controls="dep-options" data-deps-toggle><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><span class="field-label">Depends on <em>can't start until these finish</em></span><span class="fold-count" data-deps-count></span></button><div class="deps-list" id="dep-options" hidden data-dep-options></div></div>
+<div class="field" data-for="task milestone"><button class="fold" type="button" aria-expanded="false" aria-controls="dep-options" data-deps-toggle><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><span class="field-label">Depends on <em>can’t start until these finish</em></span><span class="fold-count" data-deps-count></span></button><div class="deps-list" id="dep-options" hidden data-dep-options></div></div>
 
 <p class="form-error" role="alert" data-nt-error hidden></p>
 </div>

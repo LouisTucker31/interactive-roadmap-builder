@@ -44,8 +44,8 @@ function syncForm() {
   });
   // Every type's finish is optional, and a new row starts without one: a task or
   // milestone without one happens at a moment, a phase runs until the next phase.
-  form.querySelector('[data-start-label]').textContent = type === 'task' ? 'Start' : 'Starts';
-  form.querySelector('[data-end-label]').innerHTML = (type === 'task' ? 'Finish' : 'Ends') + ' <em>optional</em>';
+  form.querySelector('[data-start-label]').textContent = 'Start';
+  form.querySelector('[data-end-label]').innerHTML = 'Finish <em>optional</em>';
   form.querySelector('[data-end-clear]').hidden = !form.elements.endDate.value;
   form.querySelector('[data-nt-title]').textContent = (editing ? 'Edit ' : 'New ') + word;
   form.querySelector('[data-nt-submit]').textContent = editing ? 'Save changes' : 'Create ' + word;

@@ -478,7 +478,7 @@ function workloadHtml() {
     var top = ROW_Y - ROW_PX / 2 + bk.first * ROW_PX;
     var h = bk.lanes * ROW_PX;
     bk.over.forEach(function (s) {
-      html += '<div class="workload-overlap" title="' + esc((bk.p ? bk.p.name : 'Unassigned') + ' has more than one task at once here') +
+      html += '<div class="workload-overlap" title="' + esc((bk.p ? bk.p.name : 'Unassigned') + ' has overlapping tasks here') +
         '" style="left: ' + dayX(s[0]) + 'px; width: ' + Math.max(dayX(s[1]) - dayX(s[0]), 2) + 'px; top: ' + top + 'px; height: ' + h + 'px"></div>';
     });
     var tint = bk.p ? ' style="--c: ' + safeColor(bk.p.color, AVATAR_COLORS[0]) + '; top: ' : ' style="top: ';

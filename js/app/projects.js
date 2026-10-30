@@ -212,7 +212,7 @@ function openTemplateDialog() {
     var same = templates.filter(function (t) { return t.name.toLowerCase() === input.value.trim().toLowerCase(); })[0];
     var note = actForm.querySelector('[data-tpl-replace]');
     note.hidden = !same;
-    note.textContent = same ? 'There’s already a template called ' + same.name + '; this replaces it.' : '';
+    note.textContent = same ? 'There’s already a template called ' + same.name + '. Saving replaces it.' : '';
     actForm.querySelector('[data-tpl-save]').textContent = same ? 'Replace template' : 'Save template';
     actForm.querySelector('[data-tpl-save]').disabled = !input.value.trim();
   };
@@ -239,10 +239,10 @@ function openResetDialog() {
   var nRows = data.rows.length;
   actForm.innerHTML = '<div class="dialog-head"><h2 id="act-title">Reset ' + esc(name) + '?</h2></div><div class="dialog-body">' +
     '<p class="act-warn">This removes all ' + itemsWord(nRows) + ' and ' + data.deps.length + (data.deps.length === 1 ? ' dependency' : ' dependencies') +
-    ' from this project, leaving it empty. Its people, tag and your notes stay.</p>' +
+    ' from this project, leaving it empty. Its people and tags, and your notes, stay.</p>' +
     '<label class="checkbox"><input type="checkbox" data-reset-ok> I understand everything in this project will be removed</label>' +
     '<label class="field"><span class="field-label">Type <b>' + esc(name) + '</b> to confirm</span><input type="text" autocomplete="off" spellcheck="false" data-reset-name></label>' +
-    '<p class="act-note">Changed your mind straight after? Undo (Ctrl+Z) brings it all back.</p></div>' +
+    '<p class="act-note">If you change your mind, Undo (' + shortcut(['mod', 'Z']) + ') brings everything back.</p></div>' +
     '<div class="dialog-foot"><button class="btn" type="button" data-act-close>Cancel</button><button class="btn del" type="submit" disabled data-reset-go>Reset project</button></div>';
   actDialog.showModal();
   var ok = actForm.querySelector('[data-reset-ok]');

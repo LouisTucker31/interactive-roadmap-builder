@@ -315,7 +315,7 @@ function homeDialog(html, onSubmit) {
 
 function newProjectDialog(templateId) {
   homeDialog('<div class="dialog-head"><h2 id="act-title">New project</h2></div><div class="dialog-body">' +
-    '<label class="field"><span class="field-label">Name</span><input type="text" maxlength="60" placeholder="e.g. Ex THUNDER" data-np-name></label>' +
+    '<label class="field"><span class="field-label">Name</span><input type="text" maxlength="60" placeholder="e.g. Website relaunch" data-np-name></label>' +
     '<div class="field"><span class="field-label">Start from</span><div class="new-project-from">' +
     '<label class="new-project-option"><input type="radio" name="npFrom" value=""' + (templateId ? '' : ' checked') + '><span><b>Blank</b><em>An empty project</em></span></label>' +
     templates.map(function (t) {

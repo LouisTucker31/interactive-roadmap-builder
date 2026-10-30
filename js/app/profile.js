@@ -50,7 +50,6 @@ window.addEventListener('cloud-status', function () {
 });
 
 function renderProfile() {
-  var mod = MAC ? '⌘' : 'Ctrl';
   if (profView === 'password') {
     profPop.innerHTML = '<div class="profile-head"><button type="button" class="profile-back" aria-label="Back" data-pf-view="main">' + BACK + '</button>Change password</div>' +
       '<div class="profile-body">' +
@@ -78,10 +77,12 @@ function renderProfile() {
   }
   if (profView === 'keys') {
     var keys = [
-      [mod + ' Z', 'Undo'], [mod + ' Y', 'Redo (also ' + mod + ' Shift Z)'], [mod + ' F', 'Search'],
+      [KEYS.mod + ' Z', 'Undo'],
+      MAC ? [KEYS.mod + ' ' + KEYS.shift + ' Z', 'Redo (also ⌘ Y)'] : [KEYS.mod + ' Y', 'Redo (also Ctrl Shift Z)'],
+      [KEYS.mod + ' F', 'Search'],
       ['N', 'New task'], ['T', 'Back to today (timeline, workload, calendar)'], ['Esc', 'Close a popup, or put back an item being moved'],
       ['↑ ↓ Enter', 'Pick a search result'], ['Enter', 'Open the selected row or card'],
-      ['E', 'Edit the selected task list row'], ['Alt ↑ ↓', 'Move the selected task list row'],
+      ['E', 'Edit the selected task list row'], [KEYS.alt + ' ↑ ↓', 'Move the selected task list row'],
       ['Hold, then drag', 'Move an item on the timeline']
     ];
     profPop.innerHTML = '<div class="profile-head"><button type="button" class="profile-back" aria-label="Back" data-pf-view="main">' + BACK + '</button>Keyboard shortcuts</div>' +
@@ -185,7 +186,7 @@ function savePassword() {
       if (!profPop.hidden) renderProfile();
     }, 1200);
   }, function (e2) {
-    err.textContent = e2 && e2.message ? e2.message : 'That didn’t work. Try again.';
+    err.textContent = e2 && e2.message ? e2.message : 'Your password wasn’t changed. Check your connection and try again.';
     err.hidden = false;
     btn.disabled = false;
   });

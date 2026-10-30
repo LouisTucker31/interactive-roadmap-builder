@@ -4,13 +4,12 @@
 
 // Search: type in the top bar to find anything in the plan by its name, phase, person
 // or type. Results update as you type; click one (or pick it with ↑/↓ and Enter) to go
-// to it on the page you're on, where it lights up for a moment. Ctrl+F (⌘F) jumps here.
+// to it on the page you're on, where it lights up for a moment. Ctrl+F (⌘F on a Mac) jumps here.
 var searchIn = document.querySelector('[data-search-input]');
 var searchRes = document.querySelector('[data-search-results]');
 var searchHits = [];
 var searchSel = 0;
-var MAC = /Mac|iPhone|iPad/.test(navigator.platform);
-document.querySelector('[data-search-kbd]').textContent = MAC ? '⌘F' : 'Ctrl F';
+document.querySelector('[data-search-kbd]').textContent = shortcut(['mod', 'F']);
 
 // The name with every searched-for word marked.
 function markWords(name, words) {

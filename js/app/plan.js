@@ -2,7 +2,7 @@
 // Part of the app: js/cloud.js loads js/app/*.js in order once you're signed in; they share one scope.
 'use strict';
 
-// Undo and redo (the top bar buttons, Ctrl+Z and Ctrl+Y / Ctrl+Shift+Z). Each saved
+// Undo and redo (the top bar buttons, Ctrl+Z and Ctrl+Y / Ctrl+Shift+Z, ⌘Z and ⌘⇧Z on a Mac). Each saved
 // change keeps a snapshot of the plan from before it. Snapshots are JSON, with
 // js/data.js rows kept as references like the saved plan, so they're unaffected by
 // later edits. History lasts until the page is reloaded.
@@ -11,6 +11,8 @@ var redoStack = [];
 var current = null; // the snapshot of the plan as it is now
 var undoBtn = document.querySelector('[data-undo]');
 var redoBtn = document.querySelector('[data-redo]');
+undoBtn.title = 'Undo (' + shortcut(['mod', 'Z']) + ')';
+redoBtn.title = 'Redo (' + shortcut(MAC ? ['mod', 'shift', 'Z'] : ['mod', 'Y']) + ')';
 
 function snapshot() {
   return JSON.stringify({

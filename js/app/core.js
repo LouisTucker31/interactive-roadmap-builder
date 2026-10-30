@@ -107,6 +107,15 @@ function defaults() {
 
 var WEEK_START = defaults().weekStart === 0 ? 0 : 1;
 
+// Shortcut keys as the computer in use names them: ⌘ ⌥ ⇧ on a Mac, Ctrl Alt Shift elsewhere.
+// shortcut(['mod', 'shift', 'Z']) gives "⌘⇧Z" on a Mac and "Ctrl+Shift+Z" elsewhere.
+var MAC = /mac|iphone|ipad/i.test(navigator.userAgentData ? navigator.userAgentData.platform : navigator.platform);
+var KEYS = MAC ? { mod: '⌘', alt: '⌥', shift: '⇧' } : { mod: 'Ctrl', alt: 'Alt', shift: 'Shift' };
+
+function shortcut(keys) {
+  return keys.map(function (k) { return KEYS[k] || k; }).join(MAC ? '' : '+');
+}
+
 // A colour from saved data, only if it's a plain #rrggbb; anything else could carry extra CSS
 // into the style attribute it's written into, so it gets the fallback instead.
 function safeColor(color, fallback) {
