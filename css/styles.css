@@ -171,8 +171,12 @@
 /* Item kinds are short modifier classes wherever an item is drawn: ph phase, ms milestone,
    tk task, sub subtask. The calendar uses k-task, k-milestone, k-phase and k-sub, and the
    list l-ph, l-ms, l-sub and l-top. */
+/* On iPhones, keep clear of the notch, the rounded corners and the home bar. The insets are 0
+   on every other screen. */
 body {
   margin: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-text-size-adjust: 100%;
   background: var(--white);
 }
 
@@ -196,7 +200,7 @@ a:hover {
   font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
   color: var(--text-4);
   background: var(--white);
-  height: 100vh;
+  height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   min-height: 640px;
   display: flex;
   flex-direction: column;
@@ -1662,7 +1666,7 @@ button:disabled {
 /* New task form */
 .dialog {
   width: min(500px, calc(100vw - 32px));
-  max-height: calc(100vh - 48px);
+  max-height: calc(100vh - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   padding: 0;
   border: 1px solid var(--line-4);
   border-radius: 12px;
@@ -2104,7 +2108,7 @@ button:disabled {
 .save-warning {
   position: fixed;
   left: 50%;
-  bottom: 56px;
+  bottom: calc(56px + env(safe-area-inset-bottom));
   z-index: 60;
   display: flex;
   align-items: center;
@@ -7700,6 +7704,45 @@ button.pill {
   .stack {
     display: none;
   }
+
+  .app {
+    min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  /* New task as just its + so the tools fit one row; its name is still read out */
+  .top [data-new-task] {
+    justify-content: center;
+    width: 34px;
+    padding: 0;
+    gap: 0;
+    font-size: 0;
+  }
+
+  /* Popups from the top bar open full width under the header instead of off the edge */
+  .top {
+    position: relative;
+  }
+
+  .project-wrap,
+  .tag-wrap,
+  .search {
+    position: static;
+  }
+
+  .popup,
+  .project-popup,
+  .search-results {
+    left: 14px;
+    right: 14px;
+    width: auto;
+    max-width: none;
+  }
+
+  /* The week view keeps readable columns and scrolls sideways */
+  .cal.week .cal-weekdays,
+  .cal.week .cal-grid {
+    min-width: 700px;
+  }
 }
 
 @media (max-width: 420px) {
@@ -7709,6 +7752,19 @@ button.pill {
 }
 
 /* Touch screens: text boxes at 16px, so phones (iPhones especially) don't zoom in when you tap one */
+@media (hover: none) {
+  .note-delete,
+  .note-move:not(:disabled),
+  .popup-edit,
+  .hide-col-btn {
+    opacity: 1;
+  }
+
+  .task-row[data-id] .more {
+    display: grid;
+  }
+}
+
 @media (pointer: coarse) {
   input:not([type=checkbox]):not([type=radio]):not([type=range]),
   select,
