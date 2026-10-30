@@ -1442,7 +1442,7 @@ button.name:focus-visible {
 
 .details-foot {
   display: flex;
-  justify-content: flex-end;
+  gap: 6px;
   padding: 10px 12px;
   border-top: 1px solid var(--grey-937);
 }
@@ -1453,6 +1453,22 @@ button.name:focus-visible {
 
 .details-foot .btn svg {
   flex: none;
+}
+
+/* Move up / Move down: arrows on the left, Edit on the right */
+.details-foot [data-peek-move] {
+  justify-content: center;
+  width: 28px;
+  padding: 0;
+}
+
+.details-foot [data-peek-edit] {
+  margin-left: auto;
+}
+
+.details-foot .btn:disabled {
+  opacity: .45;
+  cursor: default;
 }
 
 .phase-cap {
@@ -7444,8 +7460,41 @@ button.pill {
   height: 11px;
 }
 
+/* Move up / Move down, shown like Delete: on hover or keyboard focus */
+.note-move {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.note-move svg {
+  width: 12px;
+  height: 12px;
+}
+
+.note-move:hover:not(:disabled) {
+  background: var(--surface-6);
+  color: var(--text-3);
+}
+
+.note-move:disabled {
+  cursor: default;
+}
+
 .note:hover .note-delete,
-.note-delete:focus-visible {
+.note-delete:focus-visible,
+.note:hover .note-move:not(:disabled),
+.note:focus-within .note-move:not(:disabled),
+.note-move:focus-visible {
   opacity: 1;
 }
 

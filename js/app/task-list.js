@@ -27,8 +27,9 @@ function reveal(row, i, always) {
 newBtn.addEventListener('click', function () { openForm(); });
 deleteBtn.addEventListener('click', deleteRow);
 
-// Click a row in the task list to scroll the chart to it (Enter or Space when it has
-// focus); its ⋯ button, shown on hover, opens it for editing (E from the keyboard).
+// Click a row in the task list to scroll the chart to it. Enter or Space does the same and
+// opens its details, the keyboard's way to them, since the chart itself takes no focus.
+// Its ⋯ button, shown on hover, opens it for editing (E from the keyboard).
 // The empty task list has its own "Add a task" link, and the blank row under the last
 // one adds a task too.
 function goToRow(id) {
@@ -66,7 +67,9 @@ taskRowsEl.addEventListener('keydown', function (e) {
     nudgeRow(tr.getAttribute('data-id'), e.key === 'ArrowUp' ? -1 : 1);
   } else if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault();
-    goToRow(tr.getAttribute('data-id'));
+    var id = tr.getAttribute('data-id');
+    goToRow(id);
+    peekWhenStill(id);
   } else if (e.key === 'e' || e.key === 'E') {
     e.preventDefault();
     openEdit(tr.getAttribute('data-id'));
@@ -161,16 +164,25 @@ function placeBlock(from, end, slot) {
   return true;
 }
 
-function nudgeRow(id, dir) {
+// The slot a row (with its subtasks, or a phase with its section) moves to one step up or
+// down, or null at the top or bottom of where it can go.
+function nudgeSlot(id, dir) {
   var from = rowIndex[id];
-  var end = blockEnd(from);
-  var rest = data.rows.slice(0, from).concat(data.rows.slice(end));
+  var rest = data.rows.slice(0, from).concat(data.rows.slice(blockEnd(from)));
   var slots = slotsFor(data.rows[from], rest);
   var next = slots[slots.indexOf(from) + dir];
-  if (next == null || !placeBlock(from, end, next)) return;
+  return next == null ? null : next;
+}
+
+function nudgeRow(id, dir) {
+  var from = rowIndex[id];
+  var next = nudgeSlot(id, dir);
+  if (next == null || !placeBlock(from, blockEnd(from), next)) return false;
+  if (!peek.hidden) return true; // moved from the details popup, which keeps the focus
   var tr = taskRowsEl.querySelector('.task-row[data-id="' + CSS.escape(id) + '"]');
   if (tr) tr.focus();
   reveal(data.rows[rowIndex[id]], rowIndex[id]);
+  return true;
 }
 
 taskRowsEl.addEventListener('pointerdown', function (e) {

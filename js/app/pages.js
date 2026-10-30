@@ -14,6 +14,11 @@ function setPage(page) {
     else btn.removeAttribute('aria-current');
   });
   closePeek();
+  // The list, board, calendar and settings sit over the timeline; what's underneath can't take
+  // focus or be read out while they're showing.
+  var over = ['list', 'board', 'calendar', 'settings'].indexOf(page) >= 0;
+  scroller.inert = over;
+  panel.inert = over;
   localStore.set(STORE.page, page);
   if (page === 'settings') setTimeout(renderSettings, 0); // after start-up has loaded tags and templates
   // Workload redraws the timeline by person, with the people panel always open.

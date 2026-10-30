@@ -59,13 +59,52 @@ function openPeek(id, el, clientX) {
   var top = r.bottom + 8 + h > window.innerHeight - 8 ? r.top - 8 - h : r.bottom + 8;
   peek.style.left = left + 'px';
   peek.style.top = Math.max(8, top) + 'px';
+  syncPeekMoves();
   peek.querySelector('[data-peek-edit]').focus();
 }
 
 function closePeek() {
+  var back = peekFrom && peek.contains(document.activeElement) ? taskRowsEl.querySelector('.task-row[data-id="' + CSS.escape(peekFrom) + '"]') : null;
   peek.hidden = true;
   peekId = null;
+  peekFrom = null;
+  if (back) back.focus();
 }
+
+// Open the details from the task list once the chart has finished scrolling to the item, and
+// send the focus back to the row when they close (found again by id: moving redraws the list).
+var peekFrom = null;
+function peekWhenStill(id) {
+  var last = -1;
+  var tries = 0;
+  (function wait() {
+    var now = scroller.scrollLeft + ',' + scroller.scrollTop;
+    if (now !== last && tries++ < 40) {
+      last = now;
+      return setTimeout(wait, 60);
+    }
+    var el = scroller.querySelector('.plan [data-id="' + CSS.escape(id) + '"]');
+    if (!el) return;
+    var r = el.getBoundingClientRect();
+    openPeek(id, el, r.left + Math.min(r.width / 2, 40));
+    peekFrom = id;
+  })();
+}
+
+// Move up / Move down: the same as dragging the row in the task list.
+function syncPeekMoves() {
+  Array.prototype.forEach.call(peek.querySelectorAll('[data-peek-move]'), function (b) {
+    b.disabled = nudgeSlot(peekId, +b.getAttribute('data-peek-move')) == null;
+  });
+}
+
+peek.querySelector('.details-foot').addEventListener('click', function (e) {
+  var b = e.target.closest('[data-peek-move]');
+  if (!b || !peekId) return;
+  nudgeRow(peekId, +b.getAttribute('data-peek-move'));
+  syncPeekMoves();
+  if (b.disabled) peek.querySelector('[data-peek-edit]').focus();
+});
 
 peek.querySelector('[data-peek-close]').addEventListener('click', closePeek);
 peek.querySelector('[data-peek-edit]').addEventListener('click', function () {

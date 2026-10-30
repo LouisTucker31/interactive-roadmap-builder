@@ -81,7 +81,7 @@ function renderProfile() {
       MAC ? [KEYS.mod + ' ' + KEYS.shift + ' Z', 'Redo (also ⌘ Y)'] : [KEYS.mod + ' Y', 'Redo (also Ctrl Shift Z)'],
       [KEYS.mod + ' F', 'Search'],
       ['N', 'New task'], ['T', 'Back to today (timeline, workload, calendar)'], ['Esc', 'Close a popup, or put back an item being moved'],
-      ['↑ ↓ Enter', 'Pick a search result'], ['Enter', 'Open the selected row or card'],
+      ['↑ ↓ Enter', 'Pick a search result'], ['Enter', 'Open the selected row or card (from the task list: its details)'],
       ['E', 'Edit the selected task list row'], [KEYS.alt + ' ↑ ↓', 'Move the selected task list row'],
       ['Hold, then drag', 'Move an item on the timeline']
     ];

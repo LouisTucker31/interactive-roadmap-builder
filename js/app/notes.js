@@ -34,13 +34,23 @@ function syncNotesBadge() {
   });
 }
 
+// Open notes in their order, for Move up / Move down.
+function openNoteIds() {
+  return notes.filter(function (x) { return !x.done; }).map(function (x) { return x.id; });
+}
+
 function noteHtml(n) {
+  var ids = openNoteIds();
+  var at = ids.indexOf(n.id);
+  var moves = n.done || editNote === n.id ? '' :
+    '<button type="button" class="note-move" aria-label="Move up" title="Move up" data-note-move="-1"' + (at === 0 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"></path></svg></button>' +
+    '<button type="button" class="note-move" aria-label="Move down" title="Move down" data-note-move="1"' + (at === ids.length - 1 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>';
   var text = editNote === n.id
     ? '<input type="text" class="note-input" maxlength="300" value="' + esc(n.text) + '" aria-label="Edit note" data-note-input>'
     : '<span class="note-text" tabindex="0" role="button" title="Click to edit" data-note-edit>' + esc(n.text) + '</span>';
   return '<li class="note' + (n.done ? ' done' : '') + '" data-note="' + esc(n.id) + '"' + (n.done || editNote === n.id ? '' : ' draggable="true"') + '>' +
     '<label class="note-check"><input type="checkbox"' + (n.done ? ' checked' : '') + ' aria-label="' + (n.done ? 'Mark as not done' : 'Mark as done') + '" data-note-done><span></span></label>' +
-    text + '<button type="button" class="note-delete" aria-label="Delete note" title="Delete" data-note-del>' +
+    text + moves + '<button type="button" class="note-delete" aria-label="Delete note" title="Delete" data-note-del>' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button></li>';
 }
 
@@ -113,6 +123,21 @@ notesPop.addEventListener('click', function (e) {
     return renderNotes();
   }
   if (!n) return;
+  var move = e.target.closest('[data-note-move]');
+  if (move) {
+    // The same as dragging it above or below its neighbour in the open list.
+    var dir = +move.getAttribute('data-note-move');
+    var ids = openNoteIds();
+    var other = noteById(ids[ids.indexOf(n.id) + dir]);
+    if (!other) return;
+    notes = notes.filter(function (x) { return x !== n; });
+    notes.splice(notes.indexOf(other) + (dir > 0 ? 1 : 0), 0, n);
+    saveNotes();
+    renderNotes();
+    var again = notesPop.querySelector('[data-note="' + CSS.escape(n.id) + '"] [data-note-move="' + dir + '"]');
+    (again && !again.disabled ? again : notesPop.querySelector('[data-note="' + CSS.escape(n.id) + '"] .note-text')).focus();
+    return;
+  }
   if (e.target.closest('[data-note-del]')) {
     notes = notes.filter(function (x) { return x !== n; });
     saveNotes();
