@@ -60,6 +60,7 @@ function openPeek(id, el, clientX) {
   peek.style.left = left + 'px';
   peek.style.top = Math.max(8, top) + 'px';
   syncPeekMoves();
+  syncPeekDone();
   peek.querySelector('[data-peek-edit]').focus();
 }
 
@@ -91,6 +92,44 @@ function peekWhenStill(id) {
   })();
 }
 
+// Complete (tasks only): progress to 100%, the same as dropping the card in the board's Done
+// column. Clicking it again puts back the progress it had, or none.
+var progressBefore = {};
+
+function syncPeekDone() {
+  var row = data.rows[rowIndex[peekId]];
+  var b = peek.querySelector('[data-peek-done]');
+  var done = row.progress >= 1;
+  b.hidden = row.type !== 'task';
+  b.setAttribute('aria-pressed', String(done));
+  b.querySelector('span').textContent = done ? 'Completed' : 'Complete';
+}
+
+peek.querySelector('[data-peek-done]').addEventListener('click', function () {
+  var id = peekId;
+  var i = rowIndex[id];
+  var row = data.rows[i];
+  var done = row.progress >= 1;
+  if (!done) progressBefore[id] = row.progress;
+  data.rows[i] = changedRow(row, function (copy) {
+    if (!done) copy.progress = 1;
+    else if (progressBefore[id] > 0) copy.progress = progressBefore[id];
+    else delete copy.progress;
+  });
+  var at = peek.getBoundingClientRect();
+  var from = peekFrom;
+  refresh(); // redraws every page, which closes the popup
+  savePlan();
+  // Open it again where it was, showing the new progress, with the focus back on the button.
+  var el = scroller.querySelector('.plan [data-id="' + CSS.escape(id) + '"]');
+  if (!el) return;
+  openPeek(id, el, at.left + 24);
+  peek.style.left = at.left + 'px';
+  peek.style.top = at.top + 'px';
+  peekFrom = from;
+  peek.querySelector('[data-peek-done]').focus();
+});
+
 // Move up / Move down: the same as dragging the row in the task list.
 function syncPeekMoves() {
   Array.prototype.forEach.call(peek.querySelectorAll('[data-peek-move]'), function (b) {
@@ -112,8 +151,12 @@ peek.querySelector('[data-peek-edit]').addEventListener('click', function () {
   closePeek();
   openEdit(id);
 });
+// Clicking anywhere else closes it, and that click does nothing more: the next click on the
+// timeline adds an item or opens another one's details.
+var peekJustClosed = false;
 document.addEventListener('pointerdown', function (e) {
-  if (!peek.hidden && !peek.contains(e.target)) closePeek();
+  peekJustClosed = !peek.hidden && !peek.contains(e.target);
+  if (peekJustClosed) closePeek();
 });
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape' && !peek.hidden && !move) closePeek();
@@ -126,6 +169,10 @@ window.addEventListener('resize', function () { if (!peek.hidden) closePeek(); }
 scroller.addEventListener('click', function (e) {
   if (dragMoved) {
     dragMoved = false;
+    return;
+  }
+  if (peekJustClosed) {
+    peekJustClosed = false;
     return;
   }
   var hit = document.elementFromPoint(e.clientX, e.clientY);

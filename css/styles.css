@@ -1466,8 +1466,15 @@ button.name:focus-visible {
   padding: 0;
 }
 
-.details-foot [data-peek-edit] {
-  margin-left: auto;
+.details-foot [data-peek-move="1"] {
+  margin-right: auto;
+}
+
+/* Completed: the same greens as the Done status in the list */
+.details-foot [data-peek-done][aria-pressed="true"] {
+  border-color: var(--green-324);
+  background: var(--green-922);
+  color: var(--green-324);
 }
 
 .details-foot .btn:disabled {
@@ -3154,7 +3161,9 @@ button:disabled {
   background: #1b2a40;
 }
 
-[data-theme="dark"] .status.done {
+[data-theme="dark"] .status.done,
+[data-theme="dark"] .details-foot [data-peek-done][aria-pressed="true"] {
+  border-color: #7fd0a1;
   background: #17301f;
   color: #7fd0a1;
 }
