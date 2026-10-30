@@ -1931,8 +1931,7 @@ button:disabled {
   background: var(--grey-971);
 }
 
-.chip:focus-visible,
-.chip-select:focus-within {
+.chip:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
@@ -1986,22 +1985,21 @@ button:disabled {
 }
 
 .chip-select {
-  gap: 2px;
   padding: 0 8px 0 10px;
 }
 
-.dialog .chip-select select {
-  height: 26px;
+.chip-wrap[hidden] {
+  display: none;
+}
+
+.chip-select [data-pick-label] {
   max-width: 190px;
-  padding: 0 22px 0 4px;
-  margin-right: -14px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  appearance: none;
-  field-sizing: content; /* as wide as the chosen option */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip-select.unset [data-pick-label] {
+  color: var(--text-faint);
 }
 
 .chip-select::after {
@@ -2009,19 +2007,36 @@ button:disabled {
   flex: none;
   width: 12px;
   height: 12px;
-  margin-right: 2px;
+  margin-left: -2px;
   background: var(--text-faint);
   -webkit-mask: var(--icon-chevron-down) center / contain no-repeat;
   mask: var(--icon-chevron-down) center / contain no-repeat;
-  pointer-events: none;
 }
 
-.dialog .chip-select select:focus {
-  box-shadow: none;
-}
-
-.chip-select:has(select:disabled) {
+.chip:disabled {
+  opacity: .5;
   cursor: default;
+}
+
+.chip:disabled:hover {
+  background: var(--white);
+}
+
+/* Phase and Subtask of: the app's menu instead of the browser's */
+.dropdown.chip-menu {
+  position: fixed;
+  bottom: auto;
+  transform: none;
+  z-index: 5;
+  min-width: 160px;
+  max-width: 300px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.chip-menu button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .prop-panel {
@@ -2628,6 +2643,10 @@ button:disabled {
 
 [data-theme="dark"] .chip:hover {
   background: var(--surface-6);
+}
+
+[data-theme="dark"] .chip:disabled:hover {
+  background: var(--surface);
 }
 
 [data-theme="dark"] .swatch input:checked+span {

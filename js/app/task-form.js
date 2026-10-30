@@ -62,6 +62,15 @@ function syncForm() {
   form.querySelector('[data-chip-color]').textContent = named[0];
   var who = chosenPerson();
   form.querySelector('[data-chip-person]').innerHTML = who ? avatar(who) + '<span>' + esc(who.name) + '</span>' : '<span class="person-avatar none"></span><span>Unassigned</span>';
+  // Phase and Subtask of: the chip shows the hidden select's choice, and is off when it is.
+  Array.prototype.forEach.call(form.querySelectorAll('[data-pick]'), function (chip) {
+    var sel = form.elements[chip.getAttribute('data-pick')];
+    var opt = sel.options[sel.selectedIndex];
+    chip.querySelector('[data-pick-label]').textContent = opt ? opt.text : '';
+    chip.disabled = sel.disabled;
+    chip.title = sel.title || chip.getAttribute('data-title'); // why it's off, if it is
+    chip.classList.toggle('unset', !sel.value);
+  });
   // A panel whose chip doesn't apply to this type closes.
   if (openPanel && form.querySelector('[data-chip="' + openPanel + '"]').hidden) showPanel(null);
 }
@@ -88,6 +97,71 @@ form.querySelector('.props').addEventListener('click', function (e) {
   var name = chip.getAttribute('data-chip');
   showPanel(openPanel === name ? null : name, e.detail === 0); // focus into it from the keyboard
 });
+
+// Phase and Subtask of open the app's menu of their select's options, below the chip, or
+// above it when there's no room. Fixed, so the scrolling form doesn't clip it.
+var pickMenu = null; // the open menu
+
+function showPick(chip, open) {
+  if (pickMenu) {
+    pickMenu.hidden = true;
+    pickMenu.previousElementSibling.setAttribute('aria-expanded', 'false');
+    pickMenu = null;
+  }
+  if (!open) return;
+  var sel = form.elements[chip.getAttribute('data-pick')];
+  var menu = chip.nextElementSibling;
+  menu.innerHTML = Array.prototype.map.call(sel.options, function (o) {
+    return '<button type="button" role="menuitemradio" aria-checked="' + (o.value === sel.value) + '" data-value="' + esc(o.value) + '"><span>' + esc(o.text) + '</span></button>';
+  }).join('');
+  menu.hidden = false;
+  chip.setAttribute('aria-expanded', 'true');
+  pickMenu = menu;
+  var r = chip.getBoundingClientRect();
+  var h = menu.offsetHeight;
+  menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
+  menu.style.top = (r.bottom + 4 + h > window.innerHeight - 8 && r.top - 4 - h > 8 ? r.top - 4 - h : r.bottom + 4) + 'px';
+  (menu.querySelector('[aria-checked="true"]') || menu.firstChild).focus();
+}
+
+form.querySelector('.props').addEventListener('click', function (e) {
+  var chip = e.target.closest('[data-pick]');
+  if (chip) return showPick(chip, chip.getAttribute('aria-expanded') !== 'true');
+  var item = e.target.closest('.chip-menu [data-value]');
+  if (!item) return;
+  var back = pickMenu.previousElementSibling;
+  var sel = form.elements[back.getAttribute('data-pick')];
+  showPick(null, false);
+  if (sel.value !== item.getAttribute('data-value')) {
+    sel.value = item.getAttribute('data-value');
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  back.focus();
+});
+
+form.querySelector('.props').addEventListener('keydown', function (e) {
+  if (!pickMenu || !pickMenu.contains(document.activeElement)) return;
+  var items = Array.prototype.slice.call(pickMenu.children);
+  var i = items.indexOf(document.activeElement);
+  if (e.key === 'Escape' || e.key === 'Tab') {
+    if (e.key === 'Escape') e.preventDefault(); // just the menu, not the form
+    var chip = pickMenu.previousElementSibling;
+    showPick(null, false);
+    chip.focus();
+  } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
+  } else if (e.key === 'Home' || e.key === 'End') {
+    e.preventDefault();
+    items[e.key === 'Home' ? 0 : items.length - 1].focus();
+  }
+});
+
+// Clicking anywhere else, or scrolling the form, closes the menu.
+dialog.addEventListener('click', function (e) {
+  if (pickMenu && !e.target.closest('.chip-wrap')) showPick(null, false);
+});
+form.querySelector('.dialog-body').addEventListener('scroll', function () { if (pickMenu) showPick(null, false); });
 
 form.addEventListener('keydown', function (e) {
   if (e.key !== 'Escape' || !openPanel || e.defaultPrevented) return;
@@ -196,6 +270,7 @@ function openForm(row, spot) {
   if (!editing) applyDefaults(!!spot);
   errEl.hidden = true;
   showPanel(null);
+  showPick(null, false);
   syncForm();
   dialog.showModal();
   f.name.focus();
