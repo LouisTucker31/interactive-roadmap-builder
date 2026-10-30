@@ -123,14 +123,14 @@ function openForm(row, spot) {
     if (row.type === 'task') {
       f.parent.value = row.parent || '';
       f.progress.value = Math.round((row.progress || 0) * 100);
-      var swatch = form.querySelector('[name="color"][value="' + (row.color || '') + '"]');
+      var swatch = form.querySelector('[name="color"][value="' + CSS.escape(row.color || '') + '"]');
       if (swatch) swatch.checked = true;
     }
     if (row.type !== 'phase') f.phase.value = phaseOf(row.parent ? data.rows[rowIndex[row.parent]] : row);
     if (personById(row.person)) fillPeople(row.person);
     data.deps.forEach(function (dep) {
       if (dep[1] !== row.id) return;
-      var box = form.querySelector('[name="deps"][value="' + dep[0] + '"]');
+      var box = form.querySelector('[name="deps"][value="' + CSS.escape(dep[0]) + '"]');
       if (box) box.checked = true;
     });
   } else if (spot && scale.unit !== 'hour') {
@@ -176,7 +176,7 @@ function chosenPerson() {
 }
 
 function pickPerson(id) {
-  var r = peopleEl.querySelector('[name="person"][value="' + (personById(id) ? id : '') + '"]');
+  var r = peopleEl.querySelector('[name="person"][value="' + CSS.escape(personById(id) ? id : '') + '"]');
   if (r) r.checked = true;
   syncPersonSel();
 }
@@ -319,7 +319,7 @@ function applyDefaults(clicked) {
   var d = defaults();
   var f = form.elements;
   if (d.color) {
-    var swatch = form.querySelector('[name="color"][value="' + d.color + '"]');
+    var swatch = form.querySelector('[name="color"][value="' + CSS.escape(d.color || '') + '"]');
     if (swatch) swatch.checked = true;
   }
   var hourClick = clicked && scale.unit === 'hour';

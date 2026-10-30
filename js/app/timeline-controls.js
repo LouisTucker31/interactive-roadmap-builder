@@ -22,7 +22,7 @@ function renderStats() {
   stack.hidden = !people.length;
   stack.setAttribute('aria-label', people.length + (people.length === 1 ? ' person' : ' people'));
   stack.innerHTML = people.slice(0, 4).map(function (p) {
-    return '<span class="avatar" style="background: ' + esc(p.color || AVATAR_COLORS[0]) + '" title="' + esc(p.name) + '">' + esc(initials(p.name)) + '</span>';
+    return '<span class="avatar" style="background: ' + safeColor(p.color, AVATAR_COLORS[0]) + '" title="' + esc(p.name) + '">' + esc(initials(p.name)) + '</span>';
   }).join('') + (people.length > 4 ? '<span class="more" title="' + esc(people.slice(4).map(function (p) { return p.name; }).join(', ')) + '">+' + (people.length - 4) + '</span>' : '');
 }
 
@@ -224,7 +224,7 @@ function renderPeopleList() {
     var tip = state === 'over' ? 'More than one task at once for ' + duration({ start: 0, end: bk.overDays })
       : state === 'ok' ? 'No overlapping work' : 'No work assigned';
     return '<div class="task-row workload-person' + (bk.p ? '' : ' none') + '" role="button" tabindex="0" data-person="' + esc(bk.id) + '" style="height: ' + bk.lanes * ROW_PX + 'px' +
-      (bk.p ? '; --c: ' + esc(bk.p.color || AVATAR_COLORS[0]) : '') + '" title="' +
+      (bk.p ? '; --c: ' + safeColor(bk.p.color, AVATAR_COLORS[0]) : '') + '" title="' +
       esc(name + ' · ' + sub + ' · click to go to their first item') + '">' + face +
       '<span class="workload-who"><span class="row-name">' + esc(name) + '</span><span class="workload-sub">' + esc(sub) + '</span></span>' +
       '<i class="workload-dot ' + state + '" title="' + tip + '"></i></div>';

@@ -168,7 +168,7 @@ function nudgeRow(id, dir) {
   var slots = slotsFor(data.rows[from], rest);
   var next = slots[slots.indexOf(from) + dir];
   if (next == null || !placeBlock(from, end, next)) return;
-  var tr = taskRowsEl.querySelector('.task-row[data-id="' + id + '"]');
+  var tr = taskRowsEl.querySelector('.task-row[data-id="' + CSS.escape(id) + '"]');
   if (tr) tr.focus();
   reveal(data.rows[rowIndex[id]], rowIndex[id]);
 }

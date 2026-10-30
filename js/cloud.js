@@ -28,6 +28,10 @@
   var pending = {};    // key → new JSON text, or null to remove
   var timer = 0;
   var lastPull = 0;
+  // The database turns away any item over 1MB (supabase/schema.sql). Its stored form is a little
+  // longer than ours, so anything near that stays in this browser instead of failing every upload.
+  var MAX_BYTES = 900000;
+  var tooBig = {}; // keys held back for size
   var leaving = false; // the page is going out of view or closing
 
   // Uploads made while the page is going away use keepalive, so they can finish after it has
@@ -89,7 +93,9 @@
     var ups = [];
     var dels = [];
     keys.forEach(function (k) {
+      delete tooBig[k];
       if (pending[k] == null) return dels.push(k);
+      if (new TextEncoder().encode(pending[k]).length > MAX_BYTES) { tooBig[k] = true; return; }
       var value;
       try { value = JSON.parse(pending[k]); } catch (e) { return; }
       ups.push({ owner: user.id, key: k, value: value, updated_at: new Date().toISOString() });
@@ -103,14 +109,14 @@
       var failed = results.some(function (r) { return r.error; });
       if (failed) {
         // Put them back for the next try.
-        Object.keys(sent).forEach(function (k) { if (!(k in pending)) pending[k] = sent[k]; });
+        Object.keys(sent).forEach(function (k) { if (!(k in pending) && !tooBig[k]) pending[k] = sent[k]; });
         setStatus('offline');
       } else {
-        setStatus('saved');
+        setStatus(Object.keys(tooBig).length ? 'too-big' : 'saved');
       }
       noteUnsent();
     }, function () {
-      Object.keys(sent).forEach(function (k) { if (!(k in pending)) pending[k] = sent[k]; });
+      Object.keys(sent).forEach(function (k) { if (!(k in pending) && !tooBig[k]) pending[k] = sent[k]; });
       noteUnsent();
       setStatus('offline');
     });
@@ -304,9 +310,14 @@
     if (b) b.disabled = false;
   }
 
-  // The request itself failed: no connection, or the server didn't answer.
+  // The request itself failed: no connection, or the server didn't answer. Supabase reports
+  // that as an error result rather than a failed promise, so both come here.
   function unreachable() {
     gateError('Couldn’t reach the server. Check your connection and try again.');
+  }
+
+  function offline(error) {
+    return error && (error.name === 'AuthRetryableFetchError' || error.status === 0);
   }
 
   gate.addEventListener('click', function (e) {
@@ -328,20 +339,24 @@
     form.querySelector('button[type=submit]').disabled = true;
     if (view === 'signin') {
       sb.auth.signInWithPassword({ email: email, password: password }).then(function (r) {
+        if (offline(r.error)) return unreachable();
         if (r.error) return gateError(/confirm/i.test(r.error.message) ? 'Confirm your email first: open the link we sent you, then sign in.' : 'That email and password don’t match.');
       }, unreachable);
     } else if (view === 'signup') {
       sb.auth.signUp({ email: email, password: password, options: { emailRedirectTo: SITE, data: { name: get('name') } } }).then(function (r) {
+        if (offline(r.error)) return unreachable();
         if (r.error) return gateError(r.error.message);
         if (!r.data.session) showGate('sent', 'We’ve sent a link to ' + email + '. Open it to confirm your account, then sign in.');
       }, unreachable);
     } else if (view === 'forgot') {
       sb.auth.resetPasswordForEmail(email, { redirectTo: SITE }).then(function (r) {
+        if (offline(r.error)) return unreachable();
         if (r.error) return gateError(r.error.message);
         showGate('sent', 'If there’s an account for ' + email + ', a link to reset its password is on its way.');
       }, unreachable);
     } else if (view === 'recover') {
       sb.auth.updateUser({ password: password }).then(function (r) {
+        if (offline(r.error)) return unreachable();
         if (r.error) return gateError(r.error.message);
         recovering = false;
         start(user); // signed in already by the reset link

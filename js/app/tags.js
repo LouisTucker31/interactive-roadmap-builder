@@ -45,7 +45,7 @@ function renderTagBtn() {
   var t = on[0];
   tagBtn.innerHTML = t ? '# ' + esc(t.name) + (on.length > 1 ? '<span class="pill-more">+' + (on.length - 1) + '</span>' : '') : '+ Add tag';
   tagBtn.classList.toggle('empty', !t);
-  tagBtn.style.setProperty('--c', t ? t.color : '');
+  tagBtn.style.setProperty('--c', t ? safeColor(t.color, '') : '');
   tagBtn.title = t ? on.map(function (x) { return '# ' + x.name; }).join(', ') + ' · click to change' : 'Tag this project';
   if (app.getAttribute('data-page') === 'settings') setTimeout(renderSettings, 0); // its tag list too
 }
@@ -88,7 +88,7 @@ function renderTagList() {
   tagPop.querySelector('[data-tag-list]').innerHTML = shown.map(function (t) {
     var on = projectTags.indexOf(t.id) >= 0;
     return '<div class="popup-row' + (on ? ' on' : '') + '"><button type="button" class="popup-pick popup-check" role="option" aria-selected="' + on + '" data-tag-pick="' + esc(t.id) + '">' +
-      '<b class="popup-box" aria-hidden="true"></b><i style="background: ' + esc(t.color) + '"></i><span>' + esc(t.name) + '</span>' +
+      '<b class="popup-box" aria-hidden="true"></b><i style="background: ' + safeColor(t.color, '') + '"></i><span>' + esc(t.name) + '</span>' +
       (on && projectTags[0] === t.id && projectTags.length > 1 ? '<em>Shown first</em>' : '') + '</button>' +
       '<button type="button" class="popup-edit" aria-label="Edit ' + esc(t.name) + '" title="Edit tag" data-tag-edit="' + esc(t.id) + '">' + PENCIL + '</button></div>';
   }).join('') +

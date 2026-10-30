@@ -19,7 +19,7 @@ function saveMe() {
 
 function renderProfBtn() {
   profBtn.textContent = initials(me.name || '?');
-  profBtn.style.background = me.color;
+  profBtn.style.background = safeColor(me.color, AVATAR_COLORS[0]);
   profBtn.title = (me.name || 'Your profile') + ' · your profile';
 }
 
@@ -40,6 +40,7 @@ function cloudNote() {
   var s = document.documentElement.getAttribute('data-cloud');
   if (!signedIn()) return 'Workspace · saved in this browser only';
   return s === 'offline' ? 'Offline · changes are kept here and saved when you’re back online'
+    : s === 'too-big' ? 'Some of your data is too large to save to your account, so it’s only kept in this browser'
     : s === 'saving' ? 'Saving to your account…' : 'Workspace · saved to your account';
 }
 
@@ -94,7 +95,7 @@ function renderProfile() {
   }
   var mode = themeMode();
   profPop.innerHTML = '<div class="profile-me">' +
-    '<span class="person-avatar profile-avatar" style="background: ' + esc(me.color) + '" aria-hidden="true">' + esc(initials(me.name || '?')) + '</span>' +
+    '<span class="person-avatar profile-avatar" style="background: ' + safeColor(me.color, AVATAR_COLORS[0]) + '" aria-hidden="true">' + esc(initials(me.name || '?')) + '</span>' +
     '<div class="profile-who"><b>' + esc(me.name || 'Your name') + '</b><span>' + (accountEmail() ? esc(accountEmail()) : 'Not signed in') + '</span></div>' +
     '<button type="button" class="btn" data-pf-view="edit">Edit</button></div>' +
     '<div class="profile-section"><span class="profile-label">Appearance</span><div class="segmented" role="group" aria-label="Theme">' +

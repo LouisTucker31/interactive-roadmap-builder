@@ -80,14 +80,14 @@ var STATUS_WORD = { empty: 'Empty', upcoming: 'Upcoming', active: 'In progress',
 
 function avatarsHtml(people) {
   return '<span class="avatar-stack">' + people.slice(0, 4).map(function (q) {
-    return '<span class="person-avatar" style="background: ' + esc(q.color || AVATAR_COLORS[0]) + '" title="' + esc(q.name) + '">' + esc(initials(q.name)) + '</span>';
+    return '<span class="person-avatar" style="background: ' + safeColor(q.color, AVATAR_COLORS[0]) + '" title="' + esc(q.name) + '">' + esc(initials(q.name)) + '</span>';
   }).join('') + (people.length > 4 ? '<span class="avatar-more">+' + (people.length - 4) + '</span>' : '') + '</span>';
 }
 
 function cardHtml2(s) {
   var p = s.p;
   var pct = s.progress == null ? null : Math.round(s.progress * 100);
-  var tags = s.tags.slice(0, 2).map(function (t) { return '<span class="pill" style="--c: ' + esc(t.color) + '"># ' + esc(t.name) + '</span>'; }).join('') +
+  var tags = s.tags.slice(0, 2).map(function (t) { return '<span class="pill" style="--c: ' + safeColor(t.color, '') + '"># ' + esc(t.name) + '</span>'; }).join('') +
     (s.tags.length > 2 ? '<span class="avatar-more">+' + (s.tags.length - 2) + '</span>' : '');
   var dates = s.first == null ? 'No dates yet' : listDate(s.first) + ' – ' + listDate(s.last);
   var next = s.next ? '<span class="project-next"><i class="kind-mark' + (s.next.type === 'milestone' ? ' ms' : '') + '" style="' + colorVar(s.next).slice(2) + '"></i>' +
@@ -197,7 +197,7 @@ function renderHome() {
     '<label class="search home-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>' +
     '<input type="text" placeholder="Find a project" aria-label="Find a project" value="' + esc(homeState.q) + '" data-home-q></label>' +
     '<button type="button" class="primary" data-home-new><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>New project</button>' +
-    '<button type="button" class="avatar home-avatar" style="background: ' + esc(me.color) + '" title="Your profile" data-home-profile>' + esc(initials(me.name || '?')) + '</button></div></header>' +
+    '<button type="button" class="avatar home-avatar" style="background: ' + safeColor(me.color, AVATAR_COLORS[0]) + '" title="Your profile" data-home-profile>' + esc(initials(me.name || '?')) + '</button></div></header>' +
     // The projects on the left under the greeting and view controls; the overview
     // runs down the right from the top.
     '<div class="home-wrap"><div class="home-main"><div class="home-hello"><h1>' + greeting() + (first ? ', ' + esc(first) : '') + '</h1><p>' + WEEKDAYS_LONG[today.getUTCDay()] + ' ' + today.getUTCDate() + ' ' + MONTHS_LONG[today.getUTCMonth()] +
@@ -227,7 +227,7 @@ function renderHome() {
       return '<li><span><b>' + esc(t.name) + '</b><span>' + itemsWord(t.rows.length) + '</span></span><button type="button" class="btn" data-home-tpl="' + esc(t.id) + '">Use</button></li>';
     }).join('') + '</ul>' : '<p class="coming-up-empty">Save a project as a template to start new ones from it.</p>') + '</section>' +
     '<section class="home-box"><h2>Tags</h2>' + (tagUse.length ? '<div class="home-tag-list">' + tagUse.map(function (x) {
-      return '<button type="button" class="pill' + (homeState.tag === x.t.id ? ' on' : '') + '" style="--c: ' + esc(x.t.color) + '" aria-pressed="' + (homeState.tag === x.t.id) + '" data-home-tag="' + (homeState.tag === x.t.id ? '' : esc(x.t.id)) + '"># ' + esc(x.t.name) + ' <span class="hidden-count">' + x.n + '</span></button>';
+      return '<button type="button" class="pill' + (homeState.tag === x.t.id ? ' on' : '') + '" style="--c: ' + safeColor(x.t.color, '') + '" aria-pressed="' + (homeState.tag === x.t.id) + '" data-home-tag="' + (homeState.tag === x.t.id ? '' : esc(x.t.id)) + '"># ' + esc(x.t.name) + ' <span class="hidden-count">' + x.n + '</span></button>';
     }).join('') + '</div>' : '<p class="coming-up-empty">No tags on any project yet.</p>') + '</section>' +
     '</aside></div>';
   // The Notes popup, if open from here, belongs to the new button now.

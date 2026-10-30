@@ -4504,6 +4504,11 @@ html.gated body {
   overflow: hidden;
 }
 
+/* Shown inside another site's frame: show nothing (js/early.js) */
+html.framed body {
+  display: none;
+}
+
 html.booting .app {
   visibility: hidden;
 }

@@ -271,7 +271,7 @@ var COLORS = [
 
 // The inline style that gives a row its colour, or '' for the default.
 function colorVar(row) {
-  return /^#[0-9a-f]{6}$/i.test(row.color || '') ? '; --c: ' + row.color : '';
+  return safeColor(row.color, '') ? '; --c: ' + row.color : '';
 }
 
 // People: any row can have a `person` (an id from data.people). People are added from
@@ -288,7 +288,7 @@ function initials(name) {
 }
 
 function avatar(p) {
-  return '<span class="person-avatar" style="background: ' + esc(p.color || AVATAR_COLORS[0]) + '" aria-hidden="true">' + esc(initials(p.name)) + '</span>';
+  return '<span class="person-avatar" style="background: ' + safeColor(p.color, AVATAR_COLORS[0]) + '" aria-hidden="true">' + esc(initials(p.name)) + '</span>';
 }
 
 // Milestones and tasks without a finish are drawn as marks, not bars: a milestone with
@@ -481,7 +481,7 @@ function workloadHtml() {
       html += '<div class="workload-overlap" title="' + esc((bk.p ? bk.p.name : 'Unassigned') + ' has more than one task at once here') +
         '" style="left: ' + dayX(s[0]) + 'px; width: ' + Math.max(dayX(s[1]) - dayX(s[0]), 2) + 'px; top: ' + top + 'px; height: ' + h + 'px"></div>';
     });
-    var tint = bk.p ? ' style="--c: ' + esc(bk.p.color || AVATAR_COLORS[0]) + '; top: ' : ' style="top: ';
+    var tint = bk.p ? ' style="--c: ' + safeColor(bk.p.color, AVATAR_COLORS[0]) + '; top: ' : ' style="top: ';
     html = '<div class="workload-band' + (bk.p ? '' : ' none') + '"' + tint + top + 'px; height: ' + h + 'px"></div>' + html; // behind everything
     html += '<div class="workload-sep" style="top: ' + (top + h - 2) + 'px"></div>';
   });

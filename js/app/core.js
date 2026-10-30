@@ -107,6 +107,12 @@ function defaults() {
 
 var WEEK_START = defaults().weekStart === 0 ? 0 : 1;
 
+// A colour from saved data, only if it's a plain #rrggbb; anything else could carry extra CSS
+// into the style attribute it's written into, so it gets the fallback instead.
+function safeColor(color, fallback) {
+  return /^#[0-9a-f]{6}$/i.test(color || '') ? color : fallback;
+}
+
 // Dates, times and row ids, used everywhere. (Days are offsets from PLAN_START; see timeline.js.)
 function isoDate(t) {
   return new Date(t).toISOString().slice(0, 10);

@@ -56,7 +56,7 @@ function renderSettings() {
     '<label class="settings-field"><span class="field-label">Description <em>optional</em></span><textarea rows="3" maxlength="600" placeholder="What this project is for, who it involves, anything worth knowing" data-set-desc>' +
     esc(p.description || '') + '</textarea></label>' +
     '<div class="settings-field"><span class="field-label">Tags</span><div class="settings-row wrap">' +
-    (on.length ? on.map(function (t) { return '<span class="pill" style="--c: ' + esc(t.color) + '"># ' + esc(t.name) + '</span>'; }).join('') : '<span class="empty-value">No tags</span>') +
+    (on.length ? on.map(function (t) { return '<span class="pill" style="--c: ' + safeColor(t.color, '') + '"># ' + esc(t.name) + '</span>'; }).join('') : '<span class="empty-value">No tags</span>') +
     '<button type="button" class="btn" data-set-tag>' + (on.length ? 'Change' : 'Add tags') + '</button></div></div>' +
     '<div class="settings-field"><span class="field-label">At a glance</span><div class="settings-glance">' +
     '<div><b>' + count('milestone') + '</b>' + (count('milestone') === 1 ? 'milestone' : 'milestones') + '</div>' +
