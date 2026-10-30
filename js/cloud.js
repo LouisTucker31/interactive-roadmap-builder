@@ -1,4 +1,5 @@
-// Cloud: sign-in and syncing with Supabase. Loaded after data.js and before app.js.
+// Cloud: sign-in and syncing with Supabase. Loaded after shared.js and data.js; starts the app
+// (js/app/*.js) once you're signed in and synced.
 //
 // The app keeps working from its copy in this browser (localStorage), so it stays quick;
 // this file sends every change to the items it keeps (projects, plans, tags, templates,
@@ -14,42 +15,72 @@
   var SUPABASE_URL = 'https://rvpczyvdulqwxopspipb.supabase.co';
   var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2cGN6eXZkdWxxd3hvcHNwaXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyODM0MDcsImV4cCI6MjEwODg1OTQwN30.GxcOvjYsAPd24BUl0-dWlFPI9l88c3UMk82NvqwEieQ';
   var SITE = location.origin + location.pathname; // where emailed links come back to
-  var SYNCED = /^roadmap(Projects|Plan(:.+)?|Tags|Templates|Notes|Profile)$/;
   var store = window.localStorage;
   var rawSet = Storage.prototype.setItem;
   var rawRemove = Storage.prototype.removeItem;
 
   var sb = window.supabase && window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'workspaceAuth' }
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'workspaceAuth' },
+    global: { fetch: send }
   });
   var user = null;
   var ready = false;   // the first sync has finished, so changes can go up
   var pending = {};    // key → new JSON text, or null to remove
   var timer = 0;
   var lastPull = 0;
+  var leaving = false; // the page is going out of view or closing
 
-  // Watch the app's own saves: a synced item going into localStorage is queued for upload.
+  // Uploads made while the page is going away use keepalive, so they can finish after it has
+  // gone. Browsers only allow that for small bodies (64KB), so bigger ones go as normal.
+  function send(url, options) {
+    if (leaving && options && typeof options.body === 'string' && options.body.length < 60000) {
+      options = Object.assign({}, options, { keepalive: true });
+    }
+    return fetch(url, options);
+  }
+
+  // Watch the app's own saves: a synced item going into localStorage is queued for upload. It's
+  // queued before it's stored, so the change still reaches the account if this browser can't
+  // store it (the error still goes back to the app, which says so).
   Storage.prototype.setItem = function (key, value) {
+    if (this === store && isSynced(key)) queue(key, String(value));
     rawSet.call(this, key, value);
-    if (this === store && SYNCED.test(key)) queue(key, String(value));
   };
   Storage.prototype.removeItem = function (key) {
+    if (this === store && isSynced(key)) queue(key, null);
     rawRemove.call(this, key);
-    if (this === store && SYNCED.test(key)) queue(key, null);
   };
 
   function syncedKeys() {
     var keys = [];
-    for (var i = 0; i < store.length; i++) if (SYNCED.test(store.key(i))) keys.push(store.key(i));
+    for (var i = 0; i < store.length; i++) if (isSynced(store.key(i))) keys.push(store.key(i));
     return keys;
   }
 
   function queue(key, value) {
     if (!ready || !user) return;
     pending[key] = value;
+    noteUnsent();
     clearTimeout(timer);
     timer = setTimeout(flush, 600);
     setStatus('saving');
+  }
+
+  // Which items haven't reached the account yet, kept in this browser too: if the page closes
+  // first, the next start sends them instead of taking the older copy from the cloud.
+  function noteUnsent() {
+    var keys = Object.keys(pending);
+    if (keys.length) localStore.set(STORE.unsent, JSON.stringify({ owner: user.id, keys: keys }));
+    else localStore.remove(STORE.unsent);
+  }
+
+  function takeUnsent(u) {
+    var unsent = localStore.getJSON(STORE.unsent);
+    if (unsent && unsent.owner === u.id && Array.isArray(unsent.keys)) {
+      unsent.keys.forEach(function (k) { if (isSynced(k)) pending[k] = store.getItem(k); });
+    } else {
+      localStore.remove(STORE.unsent);
+    }
   }
 
   function flush() {
@@ -77,8 +108,10 @@
       } else {
         setStatus('saved');
       }
+      noteUnsent();
     }, function () {
       Object.keys(sent).forEach(function (k) { if (!(k in pending)) pending[k] = sent[k]; });
+      noteUnsent();
       setStatus('offline');
     });
   }
@@ -114,7 +147,7 @@
       if (!first) {
         // Tell the open app, the same way another tab's changes reach it.
         changed.forEach(function (c) {
-          try { window.dispatchEvent(new StorageEvent('storage', { key: c.key, oldValue: c.old, newValue: c.now, storageArea: store })); } catch (e) {}
+          try { window.dispatchEvent(new StorageEvent('storage', { key: c.key, oldValue: c.old, newValue: c.now, storageArea: store })); } catch (e) { /* no StorageEvent here: the open app misses this live update */ }
         });
       }
       ready = true;
@@ -122,21 +155,48 @@
     });
   }
 
-  // The app itself (app.js) only starts once the first sync is done, so it always starts
+  // The app itself (js/app/*.js) only starts once the first sync is done, so it always starts
   // from the latest copy, and nothing it saves while starting can race the download.
   var booted = false;
+
+  // The app's files, in the order they run. They share one scope, so a later file can use
+  // what an earlier one set up.
+  var APP_FILES = ['core', 'timeline', 'timeline-controls', 'plan', 'task-form', 'task-list', 'details', 'list', 'board',
+    'calendar', 'settings', 'pages', 'tags', 'search', 'projects', 'notes', 'profile', 'home', 'start'];
+
+  // While they load, page-level events are held back: a handler set up by an early file could
+  // otherwise run before the files it calls into have arrived. Input is dropped (the app is
+  // still hidden); storage and history changes are replayed once everything has loaded.
+  var HELD = ['click', 'dblclick', 'mousedown', 'mouseup', 'pointerdown', 'pointermove', 'pointerup', 'pointercancel',
+    'lostpointercapture', 'wheel', 'scroll', 'keydown', 'keyup', 'input', 'change', 'submit', 'focusin', 'focusout',
+    'dragstart', 'dragover', 'drop', 'resize', 'storage', 'popstate'];
 
   function boot() {
     if (booted) return hideGate();
     booted = true;
-    var s = document.createElement('script');
-    s.src = 'js/app.js';
-    // Reveal the app (and drop the loading screen) only once it has drawn itself.
-    s.onload = s.onerror = function () {
-      document.documentElement.classList.remove('booting');
-      hideGate();
+    var replay = [];
+    var hold = function (e) {
+      if (e.target instanceof Node && gate.contains(e.target)) return; // the loading screen itself
+      e.stopImmediatePropagation();
+      if (e.type === 'storage') replay.push(new StorageEvent('storage', e));
+      if (e.type === 'popstate') replay.push(new PopStateEvent('popstate', { state: e.state }));
     };
-    document.body.appendChild(s);
+    HELD.forEach(function (type) { window.addEventListener(type, hold, true); });
+    APP_FILES.forEach(function (name, i) {
+      var s = document.createElement('script');
+      s.src = 'js/app/' + name + '.js';
+      s.async = false; // run in list order
+      if (i === APP_FILES.length - 1) {
+        // Reveal the app (and drop the loading screen) only once it has drawn itself.
+        s.onload = s.onerror = function () {
+          HELD.forEach(function (type) { window.removeEventListener(type, hold, true); });
+          replay.forEach(function (e) { window.dispatchEvent(e); });
+          document.documentElement.classList.remove('booting');
+          hideGate();
+        };
+      }
+      document.body.appendChild(s);
+    });
   }
 
   // Signed in: sync, then start the app. A brand new account (nothing in the cloud yet)
@@ -145,16 +205,17 @@
 
   function start(u) {
     user = u;
+    takeUnsent(u);
     showGate('loading');
     pull(true).then(function (result) {
       var name = u.user_metadata && u.user_metadata.name;
       if (result === 'empty' && name) {
-        var prof = {};
-        try { prof = JSON.parse(store.getItem('roadmapProfile')) || {}; } catch (e) {}
+        var prof = localStore.getJSON(STORE.profile) || {};
         prof.name = name;
-        store.setItem('roadmapProfile', JSON.stringify(prof));
+        localStore.set(STORE.profile, JSON.stringify(prof));
       }
-      setStatus('saved');
+      if (Object.keys(pending).length) flush(); // changes left over from last time
+      else setStatus('saved');
       boot();
     }, function () {
       // Can't reach the cloud: carry on with this browser's copy and try again later.
@@ -164,14 +225,23 @@
     });
   }
 
-  // When the app comes back into view, pick up changes made on other devices.
+  // Going out of view may be the last chance before the tab is closed, so send what's waiting
+  // straight away. Coming back into view, pick up changes made on other devices.
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState !== 'visible' || !user || !ready) return;
+    if (!user || !ready) return;
+    if (document.visibilityState === 'hidden') return sendNow();
+    leaving = false;
     if (Date.now() - lastPull < 15000) return;
     flush().then(function () { return pull(false); }).then(null, function () { setStatus('offline'); });
   });
   window.addEventListener('online', function () { if (user) flush(); });
-  window.addEventListener('beforeunload', function () { if (Object.keys(pending).length) flush(); });
+  window.addEventListener('pagehide', function () { if (user && ready) sendNow(); });
+
+  function sendNow() {
+    leaving = true;
+    clearTimeout(timer);
+    flush();
+  }
 
   // The sign-in screen: sign in, create an account, reset a forgotten password, or (from
   // a reset email) choose a new one. Also a short "Loading your workspace" while syncing.
@@ -182,10 +252,6 @@
   gate.setAttribute('aria-label', 'Sign in to Workspace');
   document.body.appendChild(gate);
   var LOGO = '<span class="logo" aria-hidden="true"><svg viewBox="0 0 32 32" width="22" height="22"><path d="M6.5 9.5l4.2 13 5.3-10.2 5.3 10.2 4.2-13" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>';
-
-  function esc(s) {
-    return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
-  }
 
   function showGate(view, note) {
     document.documentElement.classList.add('gated');
@@ -204,10 +270,10 @@
     };
     var f = forms[view];
     var field = {
-      name: '<label class="fld"><span class="fl">Your name</span><input type="text" name="name" autocomplete="name" maxlength="60" required></label>',
-      email: '<label class="fld"><span class="fl">Email</span><input type="email" name="email" autocomplete="email" required></label>',
-      password: '<label class="fld"><span class="fl">Password</span><input type="password" name="password" autocomplete="current-password" required></label>',
-      newpassword: '<label class="fld"><span class="fl">Password <em>at least 8 characters</em></span><input type="password" name="password" autocomplete="new-password" minlength="8" required></label>'
+      name: '<label class="field"><span class="field-label">Your name</span><input type="text" name="name" autocomplete="name" maxlength="60" required></label>',
+      email: '<label class="field"><span class="field-label">Email</span><input type="email" name="email" autocomplete="email" required></label>',
+      password: '<label class="field"><span class="field-label">Password</span><input type="password" name="password" autocomplete="current-password" required></label>',
+      newpassword: '<label class="field"><span class="field-label">Password <em>at least 8 characters</em></span><input type="password" name="password" autocomplete="new-password" minlength="8" required></label>'
     };
     gate.innerHTML = '<form class="gate-card" novalidate data-gate-form="' + view + '">' + head +
       '<h1>' + f.title + '</h1>' +
@@ -238,6 +304,11 @@
     if (b) b.disabled = false;
   }
 
+  // The request itself failed: no connection, or the server didn't answer.
+  function unreachable() {
+    gateError('Couldn’t reach the server. Check your connection and try again.');
+  }
+
   gate.addEventListener('click', function (e) {
     var to = e.target.closest('[data-gate]');
     if (to) showGate(to.getAttribute('data-gate'));
@@ -258,23 +329,23 @@
     if (view === 'signin') {
       sb.auth.signInWithPassword({ email: email, password: password }).then(function (r) {
         if (r.error) return gateError(/confirm/i.test(r.error.message) ? 'Confirm your email first: open the link we sent you, then sign in.' : 'That email and password don’t match.');
-      });
+      }, unreachable);
     } else if (view === 'signup') {
       sb.auth.signUp({ email: email, password: password, options: { emailRedirectTo: SITE, data: { name: get('name') } } }).then(function (r) {
         if (r.error) return gateError(r.error.message);
         if (!r.data.session) showGate('sent', 'We’ve sent a link to ' + email + '. Open it to confirm your account, then sign in.');
-      });
+      }, unreachable);
     } else if (view === 'forgot') {
       sb.auth.resetPasswordForEmail(email, { redirectTo: SITE }).then(function (r) {
         if (r.error) return gateError(r.error.message);
         showGate('sent', 'If there’s an account for ' + email + ', a link to reset its password is on its way.');
-      });
+      }, unreachable);
     } else if (view === 'recover') {
       sb.auth.updateUser({ password: password }).then(function (r) {
         if (r.error) return gateError(r.error.message);
         recovering = false;
         start(user); // signed in already by the reset link
-      });
+      }, unreachable);
     }
   });
 
@@ -284,7 +355,7 @@
     window.dispatchEvent(new CustomEvent('cloud-status', { detail: s }));
   }
 
-  // For app.js: who's signed in, and the account actions in the profile popup.
+  // For the app: who's signed in, and the account actions in the profile popup.
   window.cloud = {
     available: !!sb,
     email: function () { return user ? user.email : ''; },
@@ -296,7 +367,7 @@
     signOut: function () {
       return flush().then(null, function () {}).then(function () { return sb.auth.signOut(); }).then(function () {
         syncedKeys().forEach(function (k) { rawRemove.call(store, k); });
-        ['roadmapCurrent', 'roadmapPage'].forEach(function (k) { rawRemove.call(store, k); });
+        [STORE.current, STORE.page, STORE.unsent].forEach(function (k) { rawRemove.call(store, k); });
         sessionStorage.clear();
         location.replace(SITE);
       });

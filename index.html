@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Workspace</title>
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/fonts.css">
 <link rel="stylesheet" href="css/styles.css">
 <script>
@@ -20,26 +20,27 @@
 </script>
 </head>
 <body>
-<div class="app" data-canvas-width="1440" data-canvas-height="900" data-document-role="page" data-label="Workspace">
+<noscript><p class="noscript">Workspace needs JavaScript to run. Turn it on in your browser’s settings, then reload this page.</p></noscript>
+<div class="app">
 
 <header class="top">
-<nav class="crumb" aria-label="Breadcrumb">
-<button class="ws" type="button" title="Back to Workspace: all your projects" data-go-home>Workspace</button><span class="sep">/</span><div class="projwrap"><button class="name" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="proj-pop" title="Switch, rename or create projects" data-project-btn></button><div class="tagpop projpop" id="proj-pop" role="dialog" aria-label="Projects" hidden data-project-pop></div></div>
-<div class="tagwrap"><button class="pill" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="tag-pop" data-tag-btn></button><div class="tagpop" id="tag-pop" role="dialog" aria-label="Project tag" hidden data-tag-pop></div></div>
+<nav class="breadcrumb" aria-label="Breadcrumb">
+<button class="crumb-home" type="button" title="Back to Workspace: all your projects" data-go-home>Workspace</button><span class="sep">/</span><div class="project-wrap"><button class="name" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="proj-pop" title="Switch, rename or create projects" data-project-btn></button><div class="popup project-popup" id="proj-pop" role="dialog" aria-label="Projects" hidden data-project-pop></div></div>
+<div class="tag-wrap"><button class="pill" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="tag-pop" data-tag-btn></button><div class="popup" id="tag-pop" role="dialog" aria-label="Project tag" hidden data-tag-pop></div></div>
 </nav>
 <div class="tools">
-<div class="notewrap"><button class="btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="notes-pop" data-notes-btn><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"></path><path d="M15 3v4a2 2 0 0 0 2 2h4"></path></svg><span class="lbl">Notes</span><b class="nbadge" hidden data-notes-count></b></button><div class="notespop" id="notes-pop" role="dialog" aria-label="Notes" hidden data-notes-pop></div></div>
-<div class="search" data-search><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input type="text" placeholder="Search" aria-label="Search the plan" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-results" data-search-input><span class="kbd" data-search-kbd>⌘F</span><div class="sresults" id="search-results" role="listbox" aria-label="Search results" hidden data-search-results></div></div>
-<div class="grp">
+<div class="notes-wrap"><button class="btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="notes-pop" data-notes-btn><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"></path><path d="M15 3v4a2 2 0 0 0 2 2h4"></path></svg><span class="btn-label">Notes</span><b class="notes-badge" hidden data-notes-count></b></button><div class="notes-popup" id="notes-pop" role="dialog" aria-label="Notes" hidden data-notes-pop></div></div>
+<div class="search" data-search><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input type="text" placeholder="Search" aria-label="Search the plan" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-results" data-search-input><span class="shortcut" data-search-kbd>⌘F</span><div class="search-results" id="search-results" role="listbox" aria-label="Search results" hidden data-search-results></div></div>
+<div class="btn-group">
 <button type="button" disabled="" aria-label="Undo" title="Undo (Ctrl+Z)" data-undo><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"></path></svg></button>
 <button type="button" aria-label="Redo" title="Redo (Ctrl+Y)" disabled="" data-redo><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"></path><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"></path></svg></button>
 </div>
-<div class="actwrap"><button class="btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="actions-menu" data-actions-btn>Actions<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 11px; height: 11px"><path d="m6 9 6 6 6-6"></path></svg></button>
-<div class="zmenu amenu" id="actions-menu" role="menu" aria-label="Actions" hidden data-actions-menu>
-<div class="amenu-h">Project</div>
+<div class="actions-wrap"><button class="btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="actions-menu" data-actions-btn>Actions<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 11px; height: 11px"><path d="m6 9 6 6 6-6"></path></svg></button>
+<div class="dropdown actions-menu" id="actions-menu" role="menu" aria-label="Actions" hidden data-actions-menu>
+<div class="dropdown-head">Project</div>
 <button type="button" role="menuitem" data-act="duplicate">Duplicate project<em>A copy to work on separately</em></button>
 <button type="button" role="menuitem" data-act="template">Save as template…<em>Start new projects from this one</em></button>
-<div class="zsep" role="separator"></div>
+<div class="dropdown-sep" role="separator"></div>
 <button type="button" role="menuitem" class="danger" data-act="reset">Reset project…<em>Remove every item</em></button>
 </div></div>
 <div class="stack" hidden data-people-stack></div>
@@ -50,42 +51,42 @@
 <main class="panel">
 <nav class="rail" aria-label="Views">
 <button class="logo" type="button" title="Workspace" aria-label="Workspace: all your projects" data-go-home><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path d="M6.5 9.5l4.2 13 5.3-10.2 5.3 10.2 4.2-13" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
-<button class="ri on" type="button" aria-label="Timeline" title="Timeline" aria-current="page" data-page-btn="timeline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h8"></path><path d="M12 16h6"></path><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><path d="M8 11h7"></path></svg></button>
-<button class="ri" type="button" aria-label="List" title="List" data-page-btn="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h.01"></path><path d="M3 18h.01"></path><path d="M3 6h.01"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M8 6h13"></path></svg></button>
-<button class="ri" type="button" aria-label="Calendar" title="Calendar" data-page-btn="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg></button>
-<button class="ri" type="button" aria-label="Board" title="Board" data-page-btn="board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M8 7v7"></path><path d="M12 7v4"></path><path d="M16 7v9"></path></svg></button>
-<button class="ri" type="button" aria-label="Workload" title="Workload" data-page-btn="workload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></button>
+<button class="rail-btn on" type="button" aria-label="Timeline" title="Timeline" aria-current="page" data-page-btn="timeline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6h8"></path><path d="M12 16h6"></path><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><path d="M8 11h7"></path></svg></button>
+<button class="rail-btn" type="button" aria-label="List" title="List" data-page-btn="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h.01"></path><path d="M3 18h.01"></path><path d="M3 6h.01"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M8 6h13"></path></svg></button>
+<button class="rail-btn" type="button" aria-label="Calendar" title="Calendar" data-page-btn="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg></button>
+<button class="rail-btn" type="button" aria-label="Board" title="Board" data-page-btn="board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M8 7v7"></path><path d="M12 7v4"></path><path d="M16 7v9"></path></svg></button>
+<button class="rail-btn" type="button" aria-label="Workload" title="Workload" data-page-btn="workload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></button>
 <div class="spacer"></div>
-<button class="av profile-btn" type="button" style="background: #dfae2f" aria-haspopup="dialog" aria-expanded="false" aria-controls="profile-pop" title="Your profile" data-profile-btn></button>
-<button class="ri" type="button" aria-label="Dark mode" aria-pressed="false" data-theme-toggle><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></button>
-<button class="ri" type="button" aria-label="Project settings" title="Project settings" data-page-btn="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+<button class="avatar profile-btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="profile-pop" title="Your profile" data-profile-btn></button>
+<button class="rail-btn" type="button" aria-label="Dark mode" aria-pressed="false" data-theme-toggle><svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg><svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></button>
+<button class="rail-btn" type="button" aria-label="Project settings" title="Project settings" data-page-btn="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
 </nav>
 
-<aside class="gut" aria-label="Task list" data-panel>
-<div class="gut-hd">
-<span class="gut-title">Task</span>
+<aside class="task-panel" aria-label="Task list" data-panel>
+<div class="task-panel-head">
+<span class="task-panel-title">Task</span>
 <button class="caret" type="button" aria-expanded="false" aria-controls="task-list" aria-label="Show task list" title="Show task list" data-panel-toggle><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button>
 </div>
-<div class="gut-body" id="task-list"><div class="gut-rows" data-task-rows></div></div>
+<div class="task-panel-body" id="task-list"><div class="task-panel-rows" data-task-rows></div></div>
 </aside>
 
 <div class="scroll">
 <div class="chart">
-<div class="hd">
+<div class="chart-head">
 <div class="groups" data-groups></div>
 <div class="cols" data-cols></div>
 </div>
 
 <div class="body">
 <div class="rows"></div>
-<div class="mlines" data-mlines></div>
+<div class="grid-lines" data-mlines></div>
 <div class="dock"><button class="today" type="button" data-today>← Today</button></div>
 
-<!-- Plan rows and dependency arrows are drawn from js/data.js by js/app.js; phase bands sit behind them -->
+<!-- Plan rows and dependency arrows are drawn from js/data.js by js/app/timeline.js; phase bands sit behind them -->
 <div class="bands" data-bands></div>
 <svg class="deps" aria-hidden="true">
-<defs><marker id="ah" viewBox="0 0 8 8" refX="4" refY="7" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L4 7L7 1" fill="none" stroke="#9aa3ad" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></marker></defs>
-<g fill="none" stroke="#b3bbc4" stroke-width="1.1" stroke-linecap="square" data-deps></g>
+<defs><marker id="ah" viewBox="0 0 8 8" refX="4" refY="7" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L4 7L7 1" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></marker></defs>
+<g fill="none" stroke-width="1.1" stroke-linecap="square" data-deps></g>
 </svg>
 <div class="plan" data-plan></div>
 <div class="ghost" hidden data-ghost><span></span></div>
@@ -93,130 +94,130 @@
 </div>
 </div>
 
-<!-- List view: the same plan as a table, laid over the timeline. Rows and menus are filled in by js/app.js -->
+<!-- List view: the same plan as a table, laid over the timeline. Rows and menus are filled in by js/app/list.js -->
 <section class="list" aria-label="List" data-list>
-<div class="ltools">
-<label class="lsearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input type="search" placeholder="Filter by name" aria-label="Filter by name" autocomplete="off" data-lf="q"></label>
+<div class="toolbar">
+<label class="list-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input type="search" placeholder="Filter by name" aria-label="Filter by name" autocomplete="off" data-lf="q"></label>
 <select aria-label="Type" data-lf="type"><option value="">All types</option><option value="task">Tasks</option><option value="milestone">Milestones</option><option value="phase">Phases</option></select>
 <select aria-label="Status" data-lf="status"><option value="">Any status</option><option value="open">Not started</option><option value="active">In progress</option><option value="done">Done</option></select>
 <select aria-label="Phase" data-lf="phase"></select>
 <select aria-label="Person" data-lf="person"></select>
-<button class="lclear" type="button" hidden data-lf-clear>Clear filters</button>
-<span class="lcount" data-list-count></span>
-<div class="cwrap">
-<button class="btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="cols-menu" data-cols-btn><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path><path d="M15 3v18"></path></svg>Columns<b class="hcount" hidden data-hidden-count></b></button>
-<div class="zmenu cmenu" id="cols-menu" hidden data-cols-menu></div>
+<button class="clear-filters" type="button" hidden data-lf-clear>Clear filters</button>
+<span class="item-count" data-list-count></span>
+<div class="menu-wrap">
+<button class="btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="cols-menu" data-cols-btn><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path><path d="M15 3v18"></path></svg>Columns<b class="hidden-count" hidden data-hidden-count></b></button>
+<div class="dropdown check-menu" id="cols-menu" hidden data-cols-menu></div>
 </div>
 </div>
-<div class="lscroll">
-<table class="ltable">
+<div class="list-scroll">
+<table class="list-table">
 <thead data-list-head></thead>
 <tbody data-list-body></tbody>
 </table>
 </div>
 </section>
 
-<!-- Project settings: a page of sections, laid over the timeline. Filled in by js/app.js -->
+<!-- Project settings: a page of sections, laid over the timeline. Filled in by js/app/settings.js -->
 <section class="settings" aria-label="Project settings" data-settings>
-<nav class="snav" aria-label="Settings sections" data-settings-nav></nav>
-<div class="sbody" data-settings-body></div>
+<nav class="settings-nav" aria-label="Settings sections" data-settings-nav></nav>
+<div class="settings-body" data-settings-body></div>
 </section>
 
-<!-- Calendar view: the plan by month or week, laid over the timeline. Filled in by js/app.js -->
+<!-- Calendar view: the plan by month or week, laid over the timeline. Filled in by js/app/calendar.js -->
 <section class="cal" aria-label="Calendar" data-cal>
-<div class="ltools ctools">
-<div class="cnav"><button class="ib" type="button" aria-label="Previous" title="Previous" data-cal-step="-1"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button class="btn" type="button" data-cal-today>Today</button><button class="ib" type="button" aria-label="Next" title="Next" data-cal-step="1"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button></div>
-<h2 class="ctitle" aria-live="polite" data-cal-title></h2>
-<div class="cshow" role="group" aria-label="Show">
-<label class="chk"><input type="checkbox" data-cal-show="task"> Tasks</label>
-<label class="chk"><input type="checkbox" data-cal-show="milestone"> Milestones</label>
-<label class="chk"><input type="checkbox" data-cal-show="phase"> Phases</label>
+<div class="toolbar cal-toolbar">
+<div class="cal-nav"><button class="icon-btn" type="button" aria-label="Previous" title="Previous" data-cal-step="-1"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button class="btn" type="button" data-cal-today>Today</button><button class="icon-btn" type="button" aria-label="Next" title="Next" data-cal-step="1"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button></div>
+<h2 class="cal-title" aria-live="polite" data-cal-title></h2>
+<div class="cal-show" role="group" aria-label="Show">
+<label class="checkbox"><input type="checkbox" data-cal-show="task"> Tasks</label>
+<label class="checkbox"><input type="checkbox" data-cal-show="milestone"> Milestones</label>
+<label class="checkbox"><input type="checkbox" data-cal-show="phase"> Phases</label>
 </div>
-<div class="bseg" role="group" aria-label="Calendar view"><button type="button" data-cal-view="month">Month</button><button type="button" data-cal-view="week">Week</button></div>
+<div class="segmented" role="group" aria-label="Calendar view"><button type="button" data-cal-view="month">Month</button><button type="button" data-cal-view="week">Week</button></div>
 </div>
-<div class="cgrid-wrap"><div class="cdays" aria-hidden="true" data-cal-days></div><div class="cgrid" data-cal-grid></div></div>
+<div class="cal-grid-wrap"><div class="cal-weekdays" aria-hidden="true" data-cal-days></div><div class="cal-grid" data-cal-grid></div></div>
 </section>
 
-<!-- Board view: the plan as a kanban, laid over the timeline. Columns and cards are filled in by js/app.js -->
+<!-- Board view: the plan as a kanban, laid over the timeline. Columns and cards are filled in by js/app/board.js -->
 <section class="board" aria-label="Board" data-board>
-<div class="ltools btools">
-<span class="blbl">Columns</span>
-<div class="bseg" role="group" aria-label="Group cards by" data-board-group><button type="button" data-group-by="status">Status</button><button type="button" data-group-by="phase">Phase</button><button type="button" data-group-by="person">Person</button><button type="button" data-group-by="day">Day</button></div>
-<button class="btn btog" type="button" aria-pressed="true" data-board-subtasks>Subtasks</button>
-<span class="blbl">Width</span>
-<div class="bseg" role="group" aria-label="Card width" data-board-width><button type="button" data-width="comfortable" title="Columns stretch to fill the width">Fill</button><button type="button" data-width="compact" title="Narrower columns, so more fit on screen">Narrow</button></div>
-<span class="lcount" data-board-count></span>
-<div class="cwrap">
-<button class="btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="show-menu" data-show-btn><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>Show<b class="hcount" hidden data-show-count></b></button>
-<div class="zmenu cmenu" id="show-menu" hidden data-show-menu></div>
+<div class="toolbar board-toolbar">
+<span class="toolbar-label">Columns</span>
+<div class="segmented" role="group" aria-label="Group cards by" data-board-group><button type="button" data-group-by="status">Status</button><button type="button" data-group-by="phase">Phase</button><button type="button" data-group-by="person">Person</button><button type="button" data-group-by="day">Day</button></div>
+<button class="btn toggle-btn" type="button" aria-pressed="true" data-board-subtasks>Subtasks</button>
+<span class="toolbar-label">Width</span>
+<div class="segmented" role="group" aria-label="Card width" data-board-width><button type="button" data-width="comfortable" title="Columns stretch to fill the width">Fill</button><button type="button" data-width="compact" title="Narrower columns, so more fit on screen">Narrow</button></div>
+<span class="item-count" data-board-count></span>
+<div class="menu-wrap">
+<button class="btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="show-menu" data-show-btn><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>Show<b class="hidden-count" hidden data-show-count></b></button>
+<div class="dropdown check-menu" id="show-menu" hidden data-show-menu></div>
 </div>
 </div>
-<div class="bscroll"><div class="bcols" data-board-cols></div></div>
+<div class="board-scroll"><div class="board-columns" data-board-cols></div></div>
 </section>
 </main>
 
-<footer class="foot">
+<footer class="status-bar">
 <div class="l"><span data-stat="milestones"></span><span class="dot">·</span><span data-stat="phases"></span><span class="dot">·</span><span data-stat="tasks"></span></div>
 <div class="r">
-<button class="ib" type="button" aria-label="Full screen" aria-pressed="false" data-fullscreen><svg class="i-enter" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg><svg class="i-exit" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3"></path><path d="M21 8h-3a2 2 0 0 1-2-2V3"></path><path d="M3 16h3a2 2 0 0 1 2 2v3"></path><path d="M16 21v-3a2 2 0 0 1 2-2h3"></path></svg></button>
-<button class="ib" type="button" aria-label="Zoom out" data-zoom-out>−</button>
-<div class="zwrap">
+<button class="icon-btn" type="button" aria-label="Full screen" aria-pressed="false" data-fullscreen><svg class="icon-enter" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg><svg class="icon-exit" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3"></path><path d="M21 8h-3a2 2 0 0 1-2-2V3"></path><path d="M3 16h3a2 2 0 0 1 2 2v3"></path><path d="M16 21v-3a2 2 0 0 1 2-2h3"></path></svg></button>
+<button class="icon-btn" type="button" aria-label="Zoom out" data-zoom-out>−</button>
+<div class="zoom-wrap">
 <button class="zoom" type="button" aria-label="Zoom level" aria-haspopup="menu" aria-expanded="false" aria-controls="zoom-menu" data-zoom-label>80%</button>
-<div class="zmenu" id="zoom-menu" role="menu" aria-label="Zoom" hidden data-zoom-menu></div>
+<div class="dropdown" id="zoom-menu" role="menu" aria-label="Zoom" hidden data-zoom-menu></div>
 </div>
-<button class="ib" type="button" aria-label="Zoom in" data-zoom-in>+</button>
-<div class="seg" role="group" aria-label="Scale">
+<button class="icon-btn" type="button" aria-label="Zoom in" data-zoom-in>+</button>
+<div class="scale-picker" role="group" aria-label="Scale">
 <button type="button" data-scale="H" aria-pressed="false" title="Hour">H</button><button type="button" data-scale="D" aria-pressed="false" title="Day">D</button><button type="button" data-scale="W" class="on" aria-pressed="true" title="Week">W</button><button type="button" data-scale="M" aria-pressed="false" title="Month">M</button><button type="button" data-scale="Q" aria-pressed="false" title="Quarter">Q</button><button type="button" data-scale="Y" aria-pressed="false" title="Year">Y</button>
 </div>
 </div>
 </footer>
 
-<!-- Workspace: the home page above the projects. Filled in by js/app.js -->
+<!-- Workspace: the home page above the projects. Filled in by js/app/home.js -->
 <section class="home" aria-label="Workspace" hidden data-home></section>
 
 </div>
 
-<!-- New task form. Options (colours, phases, parents, dependencies) are filled in by js/app.js -->
-<dialog class="dlg" aria-labelledby="nt-title" data-new-dialog>
+<!-- New task form. Options (colours, phases, parents, dependencies) are filled in by js/app/task-form.js -->
+<dialog class="dialog" aria-labelledby="nt-title" data-new-dialog>
 <form method="dialog" novalidate data-new-form>
-<div class="dlg-hd">
+<div class="dialog-head">
 <h2 id="nt-title" data-nt-title>New task</h2>
-<button class="x" type="button" aria-label="Close" data-nt-close><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<button class="close-btn" type="button" aria-label="Close" data-nt-close><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
 </div>
-<div class="dlg-body">
+<div class="dialog-body">
 <div class="kind" role="radiogroup" aria-label="Type">
 <label><input type="radio" name="type" value="task" checked><span>Task</span></label><label><input type="radio" name="type" value="milestone"><span>Milestone</span></label><label><input type="radio" name="type" value="phase"><span>Phase</span></label>
 </div>
 
-<label class="fld"><span class="fl">Name</span><input type="text" name="name" maxlength="80" autocomplete="off" placeholder="e.g. Billing page" required></label>
+<label class="field"><span class="field-label">Name</span><input type="text" name="name" maxlength="80" autocomplete="off" placeholder="e.g. Billing page" required></label>
 
 <div class="when">
-<div class="fld"><span class="fl" data-start-label>Start</span><div class="dt"><input type="date" name="startDate" aria-label="Start date" required><input type="time" name="startTime" aria-label="Start time" value="09:00" data-time></div></div>
-<div class="fld"><span class="fl"><span data-end-label>Finish</span><button class="clr" type="button" hidden data-end-clear>Clear</button></span><div class="dt"><input type="date" name="endDate" aria-label="Finish date"><input type="time" name="endTime" aria-label="Finish time" value="17:00" data-time></div></div>
+<div class="field"><span class="field-label" data-start-label>Start</span><div class="date-time"><input type="date" name="startDate" aria-label="Start date" required><input type="time" name="startTime" aria-label="Start time" value="09:00" data-time></div></div>
+<div class="field"><span class="field-label"><span data-end-label>Finish</span><button class="clear-btn" type="button" hidden data-end-clear>Clear</button></span><div class="date-time"><input type="date" name="endDate" aria-label="Finish date"><input type="time" name="endTime" aria-label="Finish time" value="17:00" data-time></div></div>
 </div>
-<label class="chk"><input type="checkbox" name="allDay" checked> All day</label>
-<div class="fld" data-for="task"><span class="fl">Colour</span><div class="swatches" role="radiogroup" aria-label="Colour" data-colors></div></div>
-<div class="fld"><span class="fl">Person</span>
+<label class="checkbox"><input type="checkbox" name="allDay" checked> All day</label>
+<div class="field" data-for="task"><span class="field-label">Colour</span><div class="swatches" role="radiogroup" aria-label="Colour" data-colors></div></div>
+<div class="field"><span class="field-label">Person</span>
 <div class="people-pick" data-people></div>
-<div class="pp-sel" data-person-sel></div>
-<div class="newp" hidden data-new-person>
-<div class="newp-row"><input type="text" name="newPerson" maxlength="60" placeholder="Their name" autocomplete="off" aria-label="Person's name"><button class="primary" type="button" data-add-person>Add</button><button class="btn" type="button" data-cancel-person>Cancel</button></div>
-<div class="newp-row"><div class="pcolors" role="radiogroup" aria-label="Avatar colour" data-person-colors></div></div>
+<div class="person-selected" data-person-sel></div>
+<div class="new-person" hidden data-new-person>
+<div class="new-person-row"><input type="text" name="newPerson" maxlength="60" placeholder="Their name" autocomplete="off" aria-label="Person's name"><button class="primary" type="button" data-add-person>Add</button><button class="btn" type="button" data-cancel-person>Cancel</button></div>
+<div class="new-person-row"><div class="person-colors" role="radiogroup" aria-label="Avatar colour" data-person-colors></div></div>
 </div>
 </div>
 
 <div class="two">
-<label class="fld" data-for="task milestone"><span class="fl">Phase</span><select name="phase" data-phases></select></label>
-<label class="fld" data-for="task"><span class="fl">Subtask of</span><select name="parent" data-parents></select></label>
+<label class="field" data-for="task milestone"><span class="field-label">Phase</span><select name="phase" data-phases></select></label>
+<label class="field" data-for="task"><span class="field-label">Subtask of</span><select name="parent" data-parents></select></label>
 </div>
 
-<div class="fld" data-for="task"><span class="fl">Progress <output data-progress-out>0%</output></span><input type="range" name="progress" min="0" max="100" step="5" value="0" aria-label="Progress"></div>
+<div class="field" data-for="task"><span class="field-label">Progress <output data-progress-out>0%</output></span><input type="range" name="progress" min="0" max="100" step="5" value="0" aria-label="Progress"></div>
 
-<div class="fld" data-for="task milestone"><button class="fold" type="button" aria-expanded="false" aria-controls="dep-options" data-deps-toggle><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><span class="fl">Depends on <em>can't start until these finish</em></span><span class="fold-n" data-deps-count></span></button><div class="deps-list" id="dep-options" hidden data-dep-options></div></div>
+<div class="field" data-for="task milestone"><button class="fold" type="button" aria-expanded="false" aria-controls="dep-options" data-deps-toggle><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><span class="field-label">Depends on <em>can't start until these finish</em></span><span class="fold-count" data-deps-count></span></button><div class="deps-list" id="dep-options" hidden data-dep-options></div></div>
 
-<p class="err" role="alert" data-nt-error hidden></p>
+<p class="form-error" role="alert" data-nt-error hidden></p>
 </div>
-<div class="dlg-ft">
+<div class="dialog-foot">
 <button class="btn del" type="button" hidden data-nt-delete>Delete</button>
 <button class="btn" type="button" data-nt-close>Cancel</button>
 <button class="primary" type="submit" data-nt-submit>Create task</button>
@@ -224,27 +225,31 @@
 </form>
 </dialog>
 
-<!-- Profile popup, from the avatar at the bottom of the rail. Filled in by js/app.js -->
-<div class="profpop" id="profile-pop" role="dialog" aria-label="Your profile" hidden data-profile-pop></div>
+<!-- Shown when this browser can't store a change to the account's data (saveData in js/app/core.js) -->
+<div class="save-warning" role="alert" hidden data-save-warning><p></p><button class="btn" type="button">Dismiss</button></div>
 
-<!-- Small dialog for Actions that need a name or a confirmation (Save as template, Reset project). Filled in by js/app.js -->
-<dialog class="dlg dlg-sm" aria-labelledby="act-title" data-act-dialog>
+<!-- Profile popup, from the avatar at the bottom of the rail. Filled in by js/app/profile.js -->
+<div class="profile-popup" id="profile-pop" role="dialog" aria-label="Your profile" hidden data-profile-pop></div>
+
+<!-- Small dialog for Actions that need a name or a confirmation (Save as template, Reset project). Filled in by js/app/projects.js -->
+<dialog class="dialog dialog-small" aria-labelledby="act-title" data-act-dialog>
 <form method="dialog" novalidate data-act-form></form>
 </dialog>
 
-<!-- Item details, shown when a bar, milestone or phase is clicked in the chart. Filled in by js/app.js -->
-<div class="peek" role="dialog" aria-labelledby="peek-title" hidden data-peek>
-<div class="peek-hd">
+<!-- Item details, shown when a bar, milestone or phase is clicked in the chart. Filled in by js/app/details.js -->
+<div class="details" role="dialog" aria-labelledby="peek-title" hidden data-peek>
+<div class="details-head">
 <i data-peek-icon></i>
-<div class="peek-tt"><span class="peek-kind" data-peek-kind></span><h3 id="peek-title" data-peek-title></h3></div>
-<button class="x" type="button" aria-label="Close" data-peek-close><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+<div class="details-title"><span class="details-kind" data-peek-kind></span><h3 id="peek-title" data-peek-title></h3></div>
+<button class="close-btn" type="button" aria-label="Close" data-peek-close><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
 </div>
-<dl class="peek-body" data-peek-body></dl>
-<div class="peek-ft"><button class="btn" type="button" data-peek-edit><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>Edit</button></div>
+<dl class="details-body" data-peek-body></dl>
+<div class="details-foot"><button class="btn" type="button" data-peek-edit><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>Edit</button></div>
 </div>
 
+<script src="js/shared.js"></script>
 <script src="js/data.js"></script>
-<!-- Supabase (sign-in and syncing). js/cloud.js starts js/app.js once you are signed in and synced -->
+<!-- Supabase (sign-in and syncing). js/cloud.js starts the app (js/app/*.js) once you are signed in and synced -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/cloud.js"></script>
 </body>

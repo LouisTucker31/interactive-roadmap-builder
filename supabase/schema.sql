@@ -3,7 +3,7 @@
 -- Each signed-in person's saved data lives in user_data, one row per item the app keeps:
 -- the project list, each project's plan, tags, templates, notes and their profile. The
 -- `key` is the same name the app uses in the browser (e.g. roadmapProjects,
--- roadmapPlan:ex-thunder) and `value` is that item as JSON.
+-- roadmapPlan:<project id>) and `value` is that item as JSON.
 --
 -- Row level security means each person can only read and change their own rows; signed-out
 -- visitors can't touch the table at all. Sharing projects with other people later would
