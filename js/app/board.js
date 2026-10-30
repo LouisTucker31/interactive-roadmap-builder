@@ -41,7 +41,25 @@ function columnOf(row) {
   return String(Math.floor(startDay(row)));
 }
 
-function boardColumns() {
+// Columns hidden on this project's board, for each way of grouping. They're saved with the
+// project, so they follow the account to every device.
+function hiddenBoardCols() {
+  var all = project().boardHidden || {};
+  return all[board.group] || [];
+}
+
+function setBoardColHidden(key, hide) {
+  var p = project();
+  var all = p.boardHidden || {};
+  var list = (all[board.group] || []).filter(function (k) { return k !== key; });
+  if (hide) list.push(key);
+  all[board.group] = list;
+  p.boardHidden = all;
+  saveProjects();
+}
+
+// Every column for the current grouping, including hidden ones.
+function boardColumns(withHidden) {
   var cards = data.rows.filter(function (r) { return r.type !== 'phase' && (board.subtasks || !r.parent); });
   var cols;
   if (board.group === 'status') {
@@ -73,11 +91,13 @@ function boardColumns() {
   });
   // "No phase" only shows when something is in it, or there are no phases at all.
   if (board.group === 'phase' && !cols[0].cards.length && cols.length > 1) cols.shift();
-  return cols;
+  if (withHidden) return cols;
+  var hidden = hiddenBoardCols();
+  return cols.filter(function (c) { return hidden.indexOf(c.key) < 0; });
 }
 
-var ICON_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>';
-var ICON_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>';
+var ICON_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v3"></path><path d="M16 2v3"></path><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18"></path></svg>';
+var ICON_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>';
 var ICON_LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>';
 
 function cardHtml(r) {
@@ -121,7 +141,8 @@ function renderBoard() {
   boardCols.innerHTML = cols.length ? cols.map(function (c) {
     var addWord = board.group === 'status' && c.key === 'ms' ? 'milestone' : 'task';
     return '<section class="board-col" data-col="' + esc(c.key) + '"><header class="board-col-head">' + c.dot +
-      '<span class="board-col-title">' + esc(c.title) + '</span><span class="board-col-count">' + c.cards.length + '</span></header>' +
+      '<span class="board-col-title">' + esc(c.title) + '</span><span class="board-col-count">' + c.cards.length + '</span>' +
+      '<button type="button" class="board-col-hide" aria-label="Hide ' + esc(c.title) + ' column" title="Hide column" data-col-hide="' + esc(c.key) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path><path d="m2 2 20 20"></path></svg></button></header>' +
       '<div class="board-col-body">' + (c.cards.map(cardHtml).join('') || '<p class="board-col-empty">Nothing here</p>') + '</div>' +
       '<button type="button" class="board-col-add" data-col-add="' + esc(c.key) + '">+ New ' + addWord + '</button></section>';
   }).join('') : '<p class="board-empty">Nothing here yet.&nbsp;<button type="button" data-board-new>Add a task</button></p>';
@@ -135,13 +156,17 @@ function renderBoard() {
     b.setAttribute('aria-pressed', String(b.getAttribute('data-width') === board.width));
   });
   boardEl.querySelector('[data-board-subtasks]').setAttribute('aria-pressed', String(board.subtasks));
-  var hidden = board.hide.length;
+  var hiddenCols = hiddenBoardCols();
+  var allCols = boardColumns(true);
+  var hidden = board.hide.length + allCols.filter(function (c) { return hiddenCols.indexOf(c.key) >= 0; }).length;
   var badge = boardEl.querySelector('[data-show-count]');
   badge.hidden = !hidden;
   badge.textContent = hidden + ' hidden';
-  showMenu.innerHTML = CARD_FIELDS.map(function (f) {
+  showMenu.innerHTML = '<div class="dropdown-head">On cards</div>' + CARD_FIELDS.map(function (f) {
     return '<button type="button" role="menuitemcheckbox" aria-checked="' + showing(f[0]) + '" data-field="' + f[0] + '">' + f[1] + '</button>';
-  }).join('') + '<div class="dropdown-sep" role="separator"></div><button type="button" data-show-all' + (hidden ? '' : ' disabled') + '>Show everything</button>';
+  }).join('') + (allCols.length ? '<div class="dropdown-head">Columns</div>' + allCols.map(function (c) {
+    return '<button type="button" role="menuitemcheckbox" aria-checked="' + (hiddenCols.indexOf(c.key) < 0) + '" data-board-col="' + esc(c.key) + '">' + esc(c.title) + '</button>';
+  }).join('') : '') + '<div class="dropdown-sep" role="separator"></div><button type="button" data-show-all' + (hidden ? '' : ' disabled') + '>Show everything</button>';
 }
 
 // Whether a card can go into a column: milestones only to Milestones and tasks never
@@ -282,20 +307,38 @@ function showShowMenu(open) {
 showBtn.addEventListener('click', function () { showShowMenu(showMenu.hidden); });
 showMenu.addEventListener('click', function (e) {
   var item = e.target.closest('[data-field]');
+  var col = e.target.closest('[data-board-col]');
   if (item) {
     var key = item.getAttribute('data-field');
     var i = board.hide.indexOf(key);
     if (i >= 0) board.hide.splice(i, 1);
     else board.hide.push(key);
+  } else if (col) {
+    setBoardColHidden(col.getAttribute('data-board-col'), col.getAttribute('aria-checked') === 'true');
   } else if (e.target.closest('[data-show-all]')) {
     board.hide = [];
+    var p = project();
+    if (p.boardHidden) {
+      delete p.boardHidden[board.group];
+      saveProjects();
+    }
   } else {
     return;
   }
   saveBoard();
   renderBoard();
-  var same = item ? showMenu.querySelector('[data-field="' + item.getAttribute('data-field') + '"]') : showMenu.querySelector('button');
+  var sel = item ? '[data-field="' + item.getAttribute('data-field') + '"]' : col ? '[data-board-col="' + CSS.escape(col.getAttribute('data-board-col')) + '"]' : 'button';
+  var same = showMenu.querySelector(sel);
   if (same) same.focus();
+});
+
+// The eye on a column's heading hides it; the Show menu brings it back.
+boardCols.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-col-hide]');
+  if (!b) return;
+  setBoardColHidden(b.getAttribute('data-col-hide'), true);
+  renderBoard();
+  showBtn.focus();
 });
 showMenu.addEventListener('keydown', function (e) {
   var items = Array.prototype.slice.call(showMenu.querySelectorAll('button:not(:disabled)'));

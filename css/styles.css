@@ -61,6 +61,12 @@
   --purple-753: #a596ea;
   --purple-916: #e2dcf7;
   --purple-947: #ece8fb;
+  /* Icons (Lucide) for CSS: white ticks on coloured fills, and masks that take currentColor */
+  --icon-check-white: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  --icon-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  --icon-plus: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='M12 5v14'/%3E%3C/svg%3E");
+  --icon-chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  --icon-slash: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 2 2 22'/%3E%3C/svg%3E");
   /* Theme: light values here, dark values under [data-theme="dark"] below. Numbered
      families run from the strongest (text) or the page colour outward (surfaces, lines). */
   --surface: #ffffff;
@@ -265,11 +271,11 @@ button.name {
 button.name::after {
   content: "";
   flex: none;
-  width: 0;
-  height: 0;
-  border: 3.5px solid transparent;
-  border-top: 4.5px solid var(--text-faint);
-  margin-top: 4px;
+  width: 12px;
+  height: 12px;
+  background: var(--text-faint);
+  -webkit-mask: var(--icon-chevron-down) center / contain no-repeat;
+  mask: var(--icon-chevron-down) center / contain no-repeat;
 }
 
 button.name:hover,
@@ -390,7 +396,7 @@ button.name:focus-visible {
   align-items: center;
   justify-content: center;
   color: var(--white);
-  font: 700 8px Inter, sans-serif;
+  font: 700 9.5px Inter, sans-serif;
   border: 2px solid var(--white);
   margin-left: -6px;
   flex: none;
@@ -427,8 +433,8 @@ button.name:focus-visible {
 }
 
 .primary svg {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
 }
 
 .panel {
@@ -723,21 +729,13 @@ button.name:focus-visible {
   position: relative;
 }
 
-.task-row.add .row-icon::before,
-.task-row.add .row-icon::after {
+.task-row.add .row-icon::before {
   content: "";
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 6px;
-  height: 1.5px;
-  margin: -.75px 0 0 -3px;
+  inset: 0;
   background: var(--grey-514);
-  border-radius: 1px;
-}
-
-.task-row.add .row-icon::after {
-  transform: rotate(90deg);
+  -webkit-mask: var(--icon-plus) center / 9px no-repeat;
+  mask: var(--icon-plus) center / 9px no-repeat;
 }
 
 .task-row.add:hover,
@@ -757,8 +755,7 @@ button.name:focus-visible {
   border-color: var(--link);
 }
 
-.task-row.add:hover .row-icon::before,
-.task-row.add:hover .row-icon::after {
+.task-row.add:hover .row-icon::before {
   background: var(--accent-text-3);
 }
 
@@ -1255,13 +1252,8 @@ button.name:focus-visible {
 .point.done i::after {
   content: "";
   position: absolute;
-  left: 2.5px;
-  top: .5px;
-  width: 3px;
-  height: 5.5px;
-  border: solid var(--white);
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(45deg);
+  inset: 0;
+  background: var(--icon-check-white) center / 8px no-repeat;
 }
 
 .point.done .t {
@@ -1611,8 +1603,13 @@ button.name:focus-visible {
 }
 
 .dropdown button[aria-checked="true"]::after {
-  content: "\2713";
-  color: var(--focus);
+  content: "";
+  flex: none;
+  width: 13px;
+  height: 13px;
+  background: var(--focus);
+  -webkit-mask: var(--icon-check) center / contain no-repeat;
+  mask: var(--icon-check) center / contain no-repeat;
 }
 
 .dropdown .dropdown-sep {
@@ -1938,13 +1935,8 @@ button:disabled {
 .swatch input:checked+span::after {
   content: "";
   position: absolute;
-  left: 8px;
-  top: 5px;
-  width: 4px;
-  height: 8px;
-  border: solid var(--white);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+  inset: 0;
+  background: var(--icon-check-white) center / 12px no-repeat;
 }
 
 .swatch input:focus-visible+span {
@@ -2684,13 +2676,25 @@ button:disabled {
 
 .check-menu button[aria-checked="true"]::before {
   border-color: var(--accent);
-  background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 6.2l2 2 4-4.4' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat;
+  background: var(--accent) var(--icon-check-white) center / 75% no-repeat;
 }
 
 .check-menu button:disabled {
   color: var(--grey-696);
   cursor: default;
   background: none;
+}
+
+.scroll,
+.task-panel-body,
+.board-scroll {
+  scrollbar-width: none;
+}
+
+.scroll::-webkit-scrollbar,
+.task-panel-body::-webkit-scrollbar,
+.board-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .list-scroll {
@@ -2730,6 +2734,55 @@ button:disabled {
 
 .list-table th.r {
   text-align: right;
+}
+
+/* Press and hold a heading, then drag it sideways to move the column */
+.list-table th:not(.name-col) {
+  touch-action: pan-y;
+  -webkit-touch-callout: none;
+}
+
+.list-table th.lifted {
+  opacity: .45;
+}
+
+.list-table th.drop-before {
+  box-shadow: inset 2px 0 0 var(--focus);
+}
+
+.list-table th.drop-after {
+  box-shadow: inset -2px 0 0 var(--focus);
+}
+
+.list.moving-col,
+.list.moving-col * {
+  cursor: grabbing;
+}
+
+/* The Columns menu: each column with Move up / Move down (earlier or later in the table) */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.check-row [role="menuitemcheckbox"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.dropdown .col-move {
+  flex: none;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--text-faint);
+}
+
+.dropdown .col-move svg {
+  width: 13px;
+  height: 13px;
 }
 
 .sort-btn {
@@ -2883,6 +2936,11 @@ button:disabled {
 
 .list-row {
   cursor: pointer;
+}
+
+/* A finished task: a faint green row (its progress column says 100%) */
+.list-row.done td {
+  background: color-mix(in srgb, var(--green-922) 55%, var(--white));
 }
 
 .list-row:hover td {
@@ -3161,6 +3219,10 @@ button:disabled {
   background: #1b2a40;
 }
 
+[data-theme="dark"] .list-row.done td {
+  background: color-mix(in srgb, #17301f 60%, var(--surface));
+}
+
 [data-theme="dark"] .status.done,
 [data-theme="dark"] .details-foot [data-peek-done][aria-pressed="true"] {
   border-color: #7fd0a1;
@@ -3193,14 +3255,14 @@ button:disabled {
   height: 18px;
   border-radius: 50%;
   color: var(--white);
-  font: 600 7.5px/1 Inter, sans-serif;
+  font: 600 9px/1 Inter, sans-serif;
   letter-spacing: .02em;
 }
 
 .bar .person-avatar {
   width: 16px;
   height: 16px;
-  font-size: 7px;
+  font-size: 8.5px;
   margin-left: 6px;
   box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .75);
 }
@@ -3208,7 +3270,7 @@ button:disabled {
 .point .person-avatar {
   width: 16px;
   height: 16px;
-  font-size: 7px;
+  font-size: 8.5px;
 }
 
 .details-body .person-avatar {
@@ -3245,7 +3307,7 @@ button:disabled {
 .person-pick .person-avatar {
   width: 26px;
   height: 26px;
-  font-size: 9.5px;
+  font-size: 11px;
   transition: transform .12s, box-shadow .12s;
 }
 
@@ -3257,10 +3319,11 @@ button:disabled {
 
 .person-pick .person-avatar.none::after {
   content: "";
-  width: 12px;
-  height: 1.5px;
+  width: 14px;
+  height: 14px;
   background: var(--line-6);
-  transform: rotate(-45deg);
+  -webkit-mask: var(--icon-slash) center / contain no-repeat;
+  mask: var(--icon-slash) center / contain no-repeat;
 }
 
 .person-pick:hover .person-avatar {
@@ -3384,10 +3447,7 @@ button:disabled {
 }
 
 .swatch.small input:checked+span::after {
-  left: 5.5px;
-  top: 3px;
-  width: 3px;
-  height: 6px;
+  background-size: 9px;
 }
 
 [data-theme="dark"] .person-pick .person-avatar.none {
@@ -3592,7 +3652,7 @@ button.logo:focus-visible {
   height: 30px;
   margin: 0;
   border: 0;
-  font-size: 10px;
+  font-size: 11.5px;
   cursor: pointer;
 }
 
@@ -3915,7 +3975,7 @@ button.logo:focus-visible {
 .avatar-stack .person-avatar {
   width: 22px;
   height: 22px;
-  font-size: 7.5px;
+  font-size: 9px;
   margin-left: -6px;
   border: 2px solid var(--raised);
 }
@@ -4581,7 +4641,7 @@ html.booting .app {
   justify-content: center;
   padding: 0;
   color: var(--white);
-  font: 700 8px Inter, sans-serif;
+  font: 700 9.5px Inter, sans-serif;
   cursor: pointer;
 }
 
@@ -4641,7 +4701,7 @@ html.booting .app {
 .profile-avatar {
   width: 40px;
   height: 40px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .profile-who {
@@ -5098,7 +5158,7 @@ html.booting .app {
 .settings-item .person-avatar {
   width: 24px;
   height: 24px;
-  font-size: 8.5px;
+  font-size: 10px;
 }
 
 .settings-item input[type=text] {
@@ -6014,7 +6074,7 @@ html.booting .app {
   width: 20px;
   height: 20px;
   margin-top: 4px;
-  font-size: 7.5px;
+  font-size: 9px;
 }
 
 .task-row.workload-person .person-avatar.none {
@@ -6218,6 +6278,37 @@ html.booting .app {
   }
 }
 
+.board-col-hide {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: -6px -6px -6px -2px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.board-col-hide svg {
+  width: 13px;
+  height: 13px;
+}
+
+.board-col-head:hover .board-col-hide,
+.board-col-hide:focus-visible {
+  opacity: 1;
+}
+
+.board-col-hide:hover {
+  background: var(--surface-6);
+  color: var(--text-3);
+}
+
 .board-col-head {
   display: flex;
   align-items: center;
@@ -6284,7 +6375,7 @@ html.booting .app {
 .board-col-head .person-avatar {
   width: 18px;
   height: 18px;
-  font-size: 7px;
+  font-size: 8.5px;
   letter-spacing: .02em;
 }
 
@@ -6480,7 +6571,7 @@ html.booting .app {
 .card-person .person-avatar {
   width: 20px;
   height: 20px;
-  font-size: 7.5px;
+  font-size: 9px;
 }
 
 .card-progress {
@@ -6742,9 +6833,13 @@ button.pill {
 }
 
 .popup-row.on .popup-pick::after {
-  content: "\2713";
-  color: var(--focus);
-  font-weight: 600;
+  content: "";
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background: var(--focus);
+  -webkit-mask: var(--icon-check) center / contain no-repeat;
+  mask: var(--icon-check) center / contain no-repeat;
 }
 
 /* Tags tick on and off: a box per row, ticked for this project's tags */
@@ -6763,7 +6858,7 @@ button.pill {
 
 .popup-row.on .popup-box {
   border-color: var(--accent);
-  background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 6.2l2 2 4-4.4' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat;
+  background: var(--accent) var(--icon-check-white) center / 75% no-repeat;
 }
 
 .popup-check em {
@@ -7422,7 +7517,7 @@ button.pill {
 
 .note-check input:checked+span {
   border-color: var(--success);
-  background: var(--success) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 6.2l2 2 4-4.4' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/80% no-repeat;
+  background: var(--success) var(--icon-check-white) center / 75% no-repeat;
 }
 
 .note-check input:focus-visible+span {
@@ -7771,6 +7866,10 @@ button.pill {
 
   .task-row[data-id] .more {
     display: grid;
+  }
+
+  .board-col-hide {
+    opacity: 1;
   }
 }
 

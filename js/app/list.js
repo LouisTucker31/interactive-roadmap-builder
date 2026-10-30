@@ -23,7 +23,7 @@ var pageBtns = Array.prototype.slice.call(document.querySelectorAll('[data-page-
 var STATUS = { open: 'Not started', active: 'In progress', done: 'Done' };
 var STATUS_RANK = { open: 0, active: 1, done: 2, ms: 3 };
 
-var listState = { sort: null, dir: 1, hidden: [], filters: {} };
+var listState = { sort: null, dir: 1, hidden: [], order: [], filters: {} };
 var savedList = localStore.getJSON(STORE.list);
 if (savedList) Object.keys(listState).forEach(function (k) { if (savedList[k] != null) listState[k] = savedList[k]; });
 
@@ -113,8 +113,29 @@ var LIST_COLS = [
     } }
 ];
 
+// Columns in the order chosen (dragged headings, or Move up / Move down in the Columns menu):
+// Name first, then the saved order, then any column not in it yet.
+function orderedCols() {
+  var order = listState.order;
+  return LIST_COLS.slice().sort(function (a, b) {
+    if (a.fixed || b.fixed) return a.fixed ? -1 : 1;
+    var i = order.indexOf(a.key), j = order.indexOf(b.key);
+    return (i < 0 ? 1e3 + LIST_COLS.indexOf(a) : i) - (j < 0 ? 1e3 + LIST_COLS.indexOf(b) : j);
+  });
+}
+
 function shownCols() {
-  return LIST_COLS.filter(function (c) { return c.fixed || listState.hidden.indexOf(c.key) < 0; });
+  return orderedCols().filter(function (c) { return c.fixed || listState.hidden.indexOf(c.key) < 0; });
+}
+
+// Put column `key` before `before` (null: last), and keep the order for next time.
+function moveCol(key, before) {
+  var keys = orderedCols().filter(function (c) { return !c.fixed; }).map(function (c) { return c.key; });
+  keys.splice(keys.indexOf(key), 1);
+  keys.splice(before == null ? keys.length : keys.indexOf(before), 0, key);
+  listState.order = keys;
+  saveList();
+  renderList();
 }
 
 function colByKey(key) {
@@ -175,7 +196,8 @@ function renderList() {
   var rows = listRows();
   var span = ' colspan="' + cols.length + '"';
   var body = rows.map(function (r) {
-    var cls = 'list-row ' + (r.type === 'phase' ? 'l-ph' : r.type === 'milestone' ? 'l-ms' : r.parent ? 'l-sub' : 'l-top') + (r.id === freshId ? ' fresh' : '');
+    var cls = 'list-row ' + (r.type === 'phase' ? 'l-ph' : r.type === 'milestone' ? 'l-ms' : r.parent ? 'l-sub' : 'l-top') +
+      (r.type === 'task' && r.progress >= 1 ? ' done' : '') + (r.id === freshId ? ' fresh' : '');
     return '<tr class="' + cls + '" data-id="' + esc(r.id) + '" tabindex="0" title="Click to edit"' + (r.type === 'phase' && r.color ? ' style="' + colorVar(r).slice(2) + '"' : '') + '>' + cols.map(function (c) {
       return '<td class="' + (c.key === 'name' ? 'name-col' : '') + (c.mono ? ' mono' : '') + (c.right ? ' r' : '') + '">' + c.cell(r) + '</td>';
     }).join('') + '</tr>';
@@ -223,8 +245,11 @@ function renderList() {
 }
 
 function renderColsMenu() {
-  colsMenu.innerHTML = LIST_COLS.filter(function (c) { return !c.fixed; }).map(function (c) {
-    return '<button type="button" role="menuitemcheckbox" aria-checked="' + (listState.hidden.indexOf(c.key) < 0) + '" data-col="' + c.key + '">' + c.label + '</button>';
+  var cols = orderedCols().filter(function (c) { return !c.fixed; });
+  colsMenu.innerHTML = cols.map(function (c, i) {
+    return '<div class="check-row"><button type="button" role="menuitemcheckbox" aria-checked="' + (listState.hidden.indexOf(c.key) < 0) + '" data-col="' + c.key + '">' + c.label + '</button>' +
+      '<button type="button" class="col-move" aria-label="Move ' + c.label + ' up" title="Move up" data-col-move="' + c.key + '" data-dir="-1"' + (i === 0 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"></path></svg></button>' +
+      '<button type="button" class="col-move" aria-label="Move ' + c.label + ' down" title="Move down" data-col-move="' + c.key + '" data-dir="1"' + (i === cols.length - 1 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>';
   }).join('') + '<div class="dropdown-sep" role="separator"></div><button type="button" data-show-all' + (listState.hidden.length ? '' : ' disabled') + '>Show all columns</button>';
 }
 
@@ -237,7 +262,77 @@ function setHidden(key, hide) {
   renderList();
 }
 
+// Press and hold a heading (except Name), then drag it sideways to move the column. A quick
+// click still sorts; the Columns menu's Move up / Move down does the same without dragging.
+var colDrag = null;
+var colDragged = false;
+
+listHead.addEventListener('pointerdown', function (e) {
+  colDragged = false;
+  var th = e.target.closest('th');
+  var btn = th && th.querySelector('[data-sort]');
+  if (!btn || e.button !== 0 || e.target.closest('[data-hide-col]') || colByKey(btn.getAttribute('data-sort')).fixed) return;
+  colDrag = { key: btn.getAttribute('data-sort'), th: th, x: e.clientX, y: e.clientY, pointer: e.pointerId, on: false };
+  colDrag.timer = setTimeout(function () {
+    if (!colDrag) return;
+    colDrag.on = true;
+    th.classList.add('lifted');
+    listEl.classList.add('moving-col');
+    try { th.setPointerCapture(colDrag.pointer); } catch (err) { /* the pointer has already gone */ }
+  }, 350);
+});
+
+// Where the dragged heading would go: before the heading whose middle is to the right.
+function colDropTarget(x) {
+  var ths = Array.prototype.filter.call(listHead.querySelectorAll('th'), function (th) { return !th.classList.contains('name-col'); });
+  for (var i = 0; i < ths.length; i++) {
+    var r = ths[i].getBoundingClientRect();
+    if (x < r.left + r.width / 2) return { th: ths[i], before: true };
+  }
+  return ths.length ? { th: ths[ths.length - 1], before: false } : null;
+}
+
+listHead.addEventListener('pointermove', function (e) {
+  if (!colDrag) return;
+  if (!colDrag.on) {
+    // Moving before the hold ends is a scroll or a stray click, not a column move.
+    if (Math.abs(e.clientX - colDrag.x) > 6 || Math.abs(e.clientY - colDrag.y) > 6) {
+      clearTimeout(colDrag.timer);
+      colDrag = null;
+    }
+    return;
+  }
+  Array.prototype.forEach.call(listHead.querySelectorAll('.drop-before, .drop-after'), function (th) { th.classList.remove('drop-before', 'drop-after'); });
+  var t = colDropTarget(e.clientX);
+  if (t && t.th !== colDrag.th) t.th.classList.add(t.before ? 'drop-before' : 'drop-after');
+});
+
+function endColDrag(e, cancel) {
+  if (!colDrag) return;
+  var d = colDrag;
+  colDrag = null;
+  clearTimeout(d.timer);
+  listEl.classList.remove('moving-col');
+  if (!d.on) return;
+  colDragged = true; // the click that follows isn't a sort
+  d.th.classList.remove('lifted');
+  var t = !cancel && colDropTarget(e.clientX);
+  if (!t || t.th === d.th) return renderList();
+  var target = t.th.querySelector('[data-sort]').getAttribute('data-sort');
+  if (t.before) return moveCol(d.key, target);
+  var keys = orderedCols().filter(function (c) { return !c.fixed; }).map(function (c) { return c.key; });
+  moveCol(d.key, keys[keys.indexOf(target) + 1] || null);
+}
+
+listHead.addEventListener('pointerup', function (e) { endColDrag(e, false); });
+listHead.addEventListener('pointercancel', function (e) { endColDrag(e, true); });
+listHead.addEventListener('contextmenu', function (e) { if (colDrag) e.preventDefault(); }); // long press on touch
+
 listHead.addEventListener('click', function (e) {
+  if (colDragged) {
+    colDragged = false;
+    return;
+  }
   var hide = e.target.closest('[data-hide-col]');
   if (hide) return setHidden(hide.getAttribute('data-hide-col'), true);
   var btn = e.target.closest('[data-sort]');
@@ -265,6 +360,17 @@ function showColsMenu(open) {
 
 colsBtn.addEventListener('click', function () { showColsMenu(colsMenu.hidden); });
 colsMenu.addEventListener('click', function (e) {
+  var move = e.target.closest('[data-col-move]');
+  if (move) {
+    var mk = move.getAttribute('data-col-move');
+    var dir = +move.getAttribute('data-dir');
+    var keys = orderedCols().filter(function (c) { return !c.fixed; }).map(function (c) { return c.key; });
+    var at = keys.indexOf(mk);
+    moveCol(mk, dir < 0 ? keys[at - 1] : keys[at + 2] || null);
+    var again = colsMenu.querySelector('[data-col-move="' + mk + '"][data-dir="' + dir + '"]');
+    (again && !again.disabled ? again : colsMenu.querySelector('[data-col="' + mk + '"]')).focus();
+    return;
+  }
   var item = e.target.closest('[data-col]');
   if (item) {
     var key = item.getAttribute('data-col');
@@ -391,7 +497,7 @@ function dragScroll(box, skip, yTarget) {
   };
 }
 
-var listDragged = dragScroll(listEl.querySelector('.list-scroll'), 'button, input, select, a');
+var listDragged = dragScroll(listEl.querySelector('.list-scroll'), 'button, input, select, a, th');
 
 listBody.addEventListener('click', function (e) {
   if (listDragged()) return;
