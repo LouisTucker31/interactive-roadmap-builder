@@ -3,7 +3,7 @@
 -- Each signed-in person's saved data lives in user_data, one row per item the app keeps:
 -- the project list, each project's plan, tags, templates, notes and their profile. The
 -- `key` is the same name the app uses in the browser (e.g. roadmapProjects,
--- roadmapPlan:ex-thunder) and `value` is that item as JSON.
+-- roadmapPlan:<project id>) and `value` is that item as JSON.
 --
 -- Row level security means each person can only read and change their own rows; signed-out
 -- visitors can't touch the table at all. Sharing projects with other people later would
@@ -34,6 +34,19 @@ create policy "Change your own data" on public.user_data
 drop policy if exists "Remove your own data" on public.user_data;
 create policy "Remove your own data" on public.user_data
   for delete to authenticated using (owner = (select auth.uid()));
+
+-- Limits on what a row can hold: only the item names the app uses, and at most 1MB of JSON per
+-- item (a large plan is a few hundred KB). Stops one account filling the database. js/cloud.js
+-- keeps anything near the limit in the browser rather than sending it.
+alter table public.user_data drop constraint if exists user_data_key_name;
+alter table public.user_data add constraint user_data_key_name
+  check (key ~ '^roadmap(Projects|Tags|Templates|Notes|Profile|Plan(:.{1,200})?)
+grant select, insert, update, delete on public.user_data to authenticated;
+);
+
+alter table public.user_data drop constraint if exists user_data_value_size;
+alter table public.user_data add constraint user_data_value_size
+  check (octet_length(value::text) <= 1048576);
 
 revoke all on public.user_data from anon;
 grant select, insert, update, delete on public.user_data to authenticated;
